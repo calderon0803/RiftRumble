@@ -35,6 +35,9 @@ var _boss_name: Label
 var _boss_bar: ProgressBar
 var _boss_note: Label
 var _banner: Label
+var _cloud_label: Label
+var _cloud_status := ""
+var _reward_text := ""
 var _banner_t := 0.0
 var _debug: Label
 var _hint: Label
@@ -104,6 +107,11 @@ func _ready() -> void:
 	_overlay_stats.columns = 2
 	_overlay_stats.add_theme_constant_override("h_separation", 24)
 	ov.add_child(_overlay_stats)
+	_cloud_label = Label.new()
+	_cloud_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_cloud_label.add_theme_color_override("font_color", Color("6ff3ff"))
+	_cloud_label.add_theme_font_size_override("font_size", 13)
+	ov.add_child(_cloud_label)
 	_button(ov, "Jugar otra vez", restart_requested.emit)
 
 	# --- Barra del jefe (arriba, centrada) ---------------------------------------
@@ -185,7 +193,33 @@ func bind(new_world: SimWorld, content_db) -> void:
 	_overlay.visible = false
 	_banner.visible = false
 	_boss_panel.visible = false
+	_reward_text = ""
+	_update_cloud_label()
 	_build_hero_cards()
+
+
+## Estado del guardado (servicio de persistencia).
+func set_cloud_status(text: String) -> void:
+	_cloud_status = text
+	_update_cloud_label()
+
+
+## Respuesta del servidor a un resultado: recompensa en fragmentos.
+func show_reward(response: Dictionary) -> void:
+	if response.get("rejected", false):
+		_reward_text = "El servidor no aceptó el resultado"
+	elif response.get("duplicate", false):
+		_reward_text = ""
+	elif int(response.get("reward", 0)) > 0:
+		_reward_text = "+%d fragmentos%s · total %d" % [response.reward,
+			" (¡primera victoria!)" if response.get("first_clear", false) else "", response.get("shards", 0)]
+	_update_cloud_label()
+
+
+func _update_cloud_label() -> void:
+	if _cloud_label:
+		_cloud_label.text = "
+".join([_reward_text, _cloud_status].filter(func(t): return t != ""))
 
 
 ## Eventos de la simulación relevantes para la interfaz (carteles).

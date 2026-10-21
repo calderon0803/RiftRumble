@@ -21,6 +21,7 @@ const CameraRig := preload("res://src/view/camera_rig.gd")
 const WorldView := preload("res://src/view/world_view.gd")
 const Hud := preload("res://src/ui/hud.gd")
 const AudioDirector := preload("res://src/audio/audio_director.gd")
+const SaveService := preload("res://src/services/save_service.gd")
 const BUILD_PAD := preload("res://art/placeholder/build_pad.png")
 
 ## Misión que se carga (más adelante la elegirá el menú de selección).
@@ -50,6 +51,7 @@ var _view: WorldView
 var _camera: CameraRig
 var _hud: Hud
 var _audio: AudioDirector
+var _save: SaveService
 var _press_pos := Vector2.ZERO
 var _pressing := false
 var _selected_hero := -1
@@ -93,6 +95,12 @@ func _ready() -> void:
 	add_child(_hud)
 	_audio = AudioDirector.new()
 	add_child(_audio)
+	_save = SaveService.new()
+	add_child(_save)
+	_save.status_changed.connect(_hud.set_cloud_status)
+	_save.result_processed.connect(_hud.show_reward)
+	_save.configure_from_file()
+	_save.start()
 	# Construir o vender cierra el menú; mejorar lo deja abierto (se puede seguir).
 	_hud.build_requested.connect(func(spot, id): if _command(world.build(spot, id)): _select(-1))
 	_hud.upgrade_requested.connect(func(spot): _command(world.upgrade(spot)))
@@ -165,11 +173,29 @@ func _run_tick() -> void:
 	_dispatch_events()
 
 
+## Resumen de la partida para el servidor (que recalcula estrellas y recompensas).
+func _match_summary() -> Dictionary:
+	var won := world.outcome == SimWorld.Outcome.VICTORY
+	return {
+		mission_id = String(mission.id),
+		outcome = "victory" if won else "defeat",
+		base_hp = world.base_hp,
+		waves_reached = world.waves_total() if won else world.wave_index + 1,
+		duration_secs = world.tick / SimWorld.TICK_RATE,
+		stars = world.stars(),
+		stats = world.stats,
+	}
+
+
 ## Reparte los eventos del tick entre la vista, la interfaz y el audio.
 func _dispatch_events() -> void:
 	var events := world.drain_events()
 	_view.handle_events(events)
 	_hud.on_events(events)
+	for ev in events:
+		# Las partidas automáticas (pruebas, capturas) no cuentan como progreso.
+		if (ev.type == &"victory" or ev.type == &"defeat") and not autoplay:
+			_save.submit_result(_match_summary())
 	if _audio:
 		_audio.on_events(events)
 
