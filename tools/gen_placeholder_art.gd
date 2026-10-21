@@ -20,10 +20,18 @@ func _init() -> void:
 	_save(_ground_atlas(), "ground_tiles.png")
 	_save(_block(), "prop_block.png")
 	_save(_bush(), "prop_bush.png")
-	_save(_enemy_sheet(), "enemy_glitchling.png")
+	_save(_enemy_sheet(Color("e2475a"), Color("ff8f9c"), &"light"), "enemy_glitchling.png")
+	_save(_enemy_sheet(Color("7d8aa6"), Color("b9c3d8"), &"armored"), "enemy_cascaron.png")
+	_save(_enemy_sheet(Color("ffcc33"), Color("fff0a0"), &"fast"), "enemy_zumbador.png")
 	_save(_tower(), "tower_basic.png")
+	_save(_tower_pixeladora(), "tower_pixeladora.png")
+	_save(_tower_grimorio(), "tower_grimorio.png")
+	_save(_tower_rebote(), "tower_rebote.png")
 	_save(_build_pad(), "build_pad.png")
 	_save(_projectile(), "projectile_bit.png")
+	_save(_proj_pixel(), "proj_pixel.png")
+	_save(_proj_seal(), "proj_seal.png")
+	_save(_proj_ball(), "proj_ball.png")
 	quit()
 
 
@@ -162,38 +170,66 @@ func _bush() -> Image:
 
 # --- Entidades -------------------------------------------------------------------
 
-## Hoja 4 frames × 32×32 de un «glitchling» que camina. Pie en (16, 30).
-func _enemy_sheet() -> Image:
+## Hoja 4 frames × 32×32 de un enemigo que camina. Pie en (16, 30).
+## kind: &"light" (gota), &"armored" (más ancho, con placas), &"fast" (pequeño, con alas).
+func _enemy_sheet(body: Color, belly: Color, kind: StringName) -> Image:
 	var img := _img(128, 32)
-	var body := Color("e2475a")
-	var belly := Color("ff8f9c")
+	var rx := 10.0
+	var ry := 9.0
+	var cy := 18
+	if kind == &"armored":
+		rx = 12.0
+		ry = 10.0
+		cy = 17
+	elif kind == &"fast":
+		rx = 7.0
+		ry = 6.0
+		cy = 21
 	for f in 4:
 		var ox := f * 32
 		var bob: int = [0, -1, 0, -1][f]
-		var step: int = [0, 1, 0, -1][f]
+		var step: int = [0, 1, 0, -1][f] * (2 if kind == &"fast" else 1)
 		# Patas
 		for leg in [-1, 1]:
-			var lx: int = ox + 16 + leg * 4 + (step * leg)
+			var lx: int = ox + 16 + leg * (5 if kind == &"armored" else 4) + (step * leg)
 			for y in range(26, 30):
 				img.set_pixel(lx, y, OUTLINE)
 				img.set_pixel(lx + 1, y, OUTLINE)
-		# Cuerpo (gota redondeada)
-		for y in range(8, 27):
-			for x in range(ox + 6, ox + 26):
-				var c := Vector2(ox + 16, 18 + bob)
-				var e := Vector2((x - c.x) / 10.0, (y - c.y) / 9.0)
+		# Alas del rápido (aleteo alterno)
+		if kind == &"fast":
+			var wy := 14 + bob - (2 if f % 2 == 0 else 0)
+			for wx in range(3, 8):
+				for side in [ox + 16 - 6 - wx, ox + 16 + 5 + wx]:
+					img.set_pixel(side, wy + wx / 3, Color("e8fbff"))
+					img.set_pixel(side, wy + wx / 3 + 1, Color("bfefff"))
+		# Cuerpo
+		var c := Vector2(ox + 16, cy + bob)
+		for y in range(0, 30):
+			for x in range(ox + 2, ox + 30):
+				var e := Vector2((x - c.x) / rx, (y - c.y) / ry)
 				if e.length() <= 1.0:
-					img.set_pixel(x, y, belly if (e.y > 0.25 and absf(e.x) < 0.5) else body)
+					var col := belly if (e.y > 0.25 and absf(e.x) < 0.5) else body
+					if kind == &"armored" and e.y < 0.1 and int(x + y) % 6 == 0:
+						col = body.darkened(0.35)  # remaches de las placas
+					if kind == &"armored" and e.y < -0.55:
+						col = body.lightened(0.25)  # casco
+					img.set_pixel(x, y, col)
 		# Antena con «píxel suelto» (glitch)
-		img.set_pixel(ox + 16, 7 + bob, OUTLINE)
-		img.set_pixel(ox + 16, 6 + bob, OUTLINE)
-		img.set_pixel(ox + 17 + (f % 2), 4 + bob, Color("6ff3ff"))
+		var top := int(c.y - ry)
+		img.set_pixel(ox + 16, top - 1, OUTLINE)
+		img.set_pixel(ox + 16, top - 2, OUTLINE)
+		img.set_pixel(ox + 17 + (f % 2), top - 4, Color("6ff3ff"))
 		# Ojos
-		for ex in [12, 19]:
-			img.set_pixel(ox + ex, 15 + bob, Color.WHITE)
-			img.set_pixel(ox + ex + 1, 15 + bob, Color.WHITE)
-			img.set_pixel(ox + ex + 1, 16 + bob, OUTLINE)
-			img.set_pixel(ox + ex, 16 + bob, Color.WHITE)
+		var eye_y := int(c.y) - (2 if kind == &"fast" else 3)
+		var eye_dx := 3 if kind == &"fast" else 4
+		for ex in [16 - eye_dx, 16 + eye_dx - 1]:
+			img.set_pixel(ox + ex, eye_y, Color.WHITE)
+			img.set_pixel(ox + ex + 1, eye_y, Color.WHITE)
+			img.set_pixel(ox + ex + 1, eye_y + 1, OUTLINE)
+			img.set_pixel(ox + ex, eye_y + 1, Color.WHITE)
+		if kind == &"armored":  # visera
+			for x in range(ox + 10, ox + 23):
+				img.set_pixel(x, eye_y - 2, OUTLINE)
 	_outline(img)
 	return img
 
@@ -241,6 +277,106 @@ func _projectile() -> Image:
 			var d := Vector2(x, y).distance_to(Vector2(3.5, 3.5))
 			if d < 3.6:
 				img.set_pixel(x, y, Color.WHITE if d < 1.6 else Color("6ff3ff"))
+	return img
+
+
+## Base de piedra común a las torres (32×64, pie en (16, 58)): zócalo en rombo.
+func _tower_base(img: Image, top_y: int, a: Color, b: Color) -> void:
+	for y in range(top_y, 58):
+		for x in range(6, 26):
+			img.set_pixel(x, y, a if x < 16 else b)
+	for y in range(52, 60):
+		for x in range(3, 29):
+			if absf(x - 15.5) / 13.0 + absf(y - 55.5) / 4.5 <= 1.0:
+				img.set_pixel(x, y, Color("8a8fa8") if x < 16 else Color("6a6f88"))
+
+
+## Pixeladora: columna magenta coronada por un cubo de píxeles flotante.
+func _tower_pixeladora() -> Image:
+	var img := _img(32, 64)
+	_tower_base(img, 22, Color("c03a9a"), Color("8e2273"))
+	for y in range(26, 50, 6):
+		for x in range(8, 24, 4):
+			img.set_pixel(x, y, Color("ff8be0"))
+	var pal := [Color("ff5fd2"), Color("6ff3ff"), Color("ffe066"), Color("b18cff")]
+	for by in 3:
+		for bx in 3:
+			var col: Color = pal[(bx + by * 2) % pal.size()]
+			for y in 4:
+				for x in 4:
+					img.set_pixel(10 + bx * 4 + x, 4 + by * 4 + y, col)
+	_outline(img)
+	return img
+
+
+## Grimorio de Guardia: atril violeta con un libro abierto y runa dorada.
+func _tower_grimorio() -> Image:
+	var img := _img(32, 64)
+	_tower_base(img, 30, Color("6a4bc4"), Color("4b3296"))
+	for y in range(20, 30):
+		for x in range(4, 28):
+			var page := Color("fff4dc") if x != 15 and x != 16 else Color("b48a5a")
+			if y > 20 + absf(x - 15.5) * 0.25:
+				img.set_pixel(x, y, page)
+	for x in range(6, 26):
+		img.set_pixel(x, 29, Color("5a2d82"))
+	for y in range(6, 16):
+		for x in range(10, 22):
+			var d := Vector2(x, y).distance_to(Vector2(15.5, 10.5))
+			if d < 5.5 and d > 3.5:
+				img.set_pixel(x, y, Color("ffd34d"))
+	img.set_pixel(15, 10, Color("ffd34d"))
+	img.set_pixel(16, 11, Color("ffd34d"))
+	_outline(img)
+	return img
+
+
+## Rebote Supremo: torre turquesa con muelle y bola elástica arriba.
+func _tower_rebote() -> Image:
+	var img := _img(32, 64)
+	_tower_base(img, 34, Color("2bb5a8"), Color("1d867c"))
+	for y in range(18, 34):
+		var x0 := 11 if (y / 2) % 2 == 0 else 13
+		for x in range(x0, x0 + 8):
+			img.set_pixel(x, y, Color("cfd6e6"))
+	for y in range(2, 18):
+		for x in range(8, 24):
+			var d := Vector2(x, y).distance_to(Vector2(15.5, 10))
+			if d < 7.5:
+				img.set_pixel(x, y, Color("ff7a45") if d > 2.5 or y > 10 else Color("ffd0b0"))
+	_outline(img)
+	return img
+
+
+func _proj_pixel() -> Image:
+	var img := _img(8, 8)
+	for y in range(1, 7):
+		for x in range(1, 7):
+			img.set_pixel(x, y, Color("ff5fd2") if (x + y) % 3 else Color.WHITE)
+	_outline(img)
+	return img
+
+
+func _proj_seal() -> Image:
+	var img := _img(10, 10)
+	for y in 10:
+		for x in 10:
+			var d := Vector2(x, y).distance_to(Vector2(4.5, 4.5))
+			if d < 4.6 and d > 2.4:
+				img.set_pixel(x, y, Color("ffd34d"))
+			elif d <= 1.2:
+				img.set_pixel(x, y, Color("fff4c2"))
+	return img
+
+
+func _proj_ball() -> Image:
+	var img := _img(9, 9)
+	for y in 9:
+		for x in 9:
+			var d := Vector2(x, y).distance_to(Vector2(4, 4))
+			if d < 4.2:
+				img.set_pixel(x, y, Color("ffd0b0") if (x < 4 and y < 4) else Color("ff7a45"))
+	_outline(img)
 	return img
 
 

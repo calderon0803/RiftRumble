@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="EffectDef" format=3]
+
+[ext_resource type="Script" path="res://src/content/effect_def.gd" id="1_ic5a5"]
+
+[resource]
+script = ExtResource("1_ic5a5")
+id = &"corruption"
+duration = 4.0
+max_stacks = 3
+damage_taken_bonus_per_stack = 0.15
+bonus_excludes_damage_type = &"digital"
+view_flags = 4

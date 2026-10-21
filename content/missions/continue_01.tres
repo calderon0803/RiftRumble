@@ -1,0 +1,39 @@
+[gd_resource type="Resource" script_class="MissionDef" format=3]
+
+[ext_resource type="Script" path="res://src/content/mission_def.gd" id="1_bi45v"]
+[ext_resource type="Script" path="res://src/content/wave_def.gd" id="2_2sx8s"]
+
+[sub_resource type="Resource" id="Resource_myrsw"]
+script = ExtResource("2_2sx8s")
+enemies = PackedStringArray("glitchling")
+counts = PackedInt32Array(10)
+spacing = PackedFloat32Array(0.9)
+start_delay = PackedFloat32Array(0)
+route = PackedInt32Array()
+
+[sub_resource type="Resource" id="Resource_n47o7"]
+script = ExtResource("2_2sx8s")
+enemies = PackedStringArray("glitchling", "zumbador")
+counts = PackedInt32Array(10, 8)
+spacing = PackedFloat32Array(0.9, 0.6)
+start_delay = PackedFloat32Array(0, 3)
+route = PackedInt32Array()
+clear_bonus = 25
+
+[sub_resource type="Resource" id="Resource_ms6c2"]
+script = ExtResource("2_2sx8s")
+enemies = PackedStringArray("glitchling", "cascaron", "zumbador")
+counts = PackedInt32Array(12, 6, 10)
+spacing = PackedFloat32Array(0.7, 1.6, 0.4)
+start_delay = PackedFloat32Array(0, 2, 8)
+route = PackedInt32Array()
+clear_bonus = 30
+
+[resource]
+script = ExtResource("1_bi45v")
+id = &"continue_01"
+display_name = "Reino del Continue — Nivel 1"
+map_scene = "res://maps/continue_01.tscn"
+start_gold = 150
+waves = Array[ExtResource("2_2sx8s")]([SubResource("Resource_myrsw"), SubResource("Resource_n47o7"), SubResource("Resource_ms6c2")])
+towers = PackedStringArray("pixeladora", "grimorio", "rebote")

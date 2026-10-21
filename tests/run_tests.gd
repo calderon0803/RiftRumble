@@ -6,6 +6,7 @@ extends SceneTree
 const SimWorld := preload("res://src/sim/sim_world.gd")
 const SimPath := preload("res://src/sim/sim_path.gd")
 const Iso := preload("res://src/view/iso.gd")
+const ContentDB := preload("res://src/content/content_db.gd")
 
 ## Ruta recta de 10 casillas: (0,0) → (10,0).
 const STRAIGHT := [Vector2(0, 0), Vector2(10, 0)]
@@ -218,6 +219,211 @@ func test_enemy_traverses_real_map_route() -> void:
 			break
 	check(absi(leaked_at - expected) <= 1, "recorre la ruta en %d ticks (esperado %d)" % [leaked_at, expected])
 	check(w.base_hp == 19, "llega a la base y le resta vida")
+
+
+# --- Contenido -----------------------------------------------------------------
+
+var _db_cache = null
+
+
+func _db():
+	if _db_cache == null:
+		_db_cache = ContentDB.load_all()
+	return _db_cache
+
+
+func _mission_world() -> SimWorld:
+	var db = _db()
+	var mission: MissionDef = db.missions[&"continue_01"]
+	var map: Node = load(mission.map_scene).instantiate()
+	var def = map.build_def()
+	map.free()
+	var w := SimWorld.new(def.routes, 99)
+	w.setup_mission(db, mission, def)
+	return w
+
+
+func test_content_is_consistent() -> void:
+	var db = _db()
+	check(db.towers.size() == 3 and db.enemies.size() == 3, "3 torres y 3 enemigos cargados")
+	var mission: MissionDef = db.missions[&"continue_01"]
+	for t in mission.towers:
+		check(db.towers.has(StringName(t)), "la misión usa una torre existente: %s" % t)
+	for w in mission.waves:
+		for e in w.enemies:
+			check(db.enemies.has(StringName(e)), "la oleada usa un enemigo existente: %s" % e)
+		check(w.counts.size() == w.enemies.size() and w.spacing.size() == w.enemies.size()
+				and w.start_delay.size() == w.enemies.size(), "arrays de la oleada en paralelo")
+	for t: TowerDef in db.towers.values():
+		var levels := t.max_level()
+		for arr in [t.damage, t.interval, t.range_tiles]:
+			check(arr.size() == levels, "%s: un valor por nivel" % t.id)
+
+
+# --- Combate: armadura y efectos --------------------------------------------------
+
+func _straight_with(enemy_id: StringName) -> Array:
+	var w := _world()
+	var slot := w.spawn(_db().enemies[enemy_id], 0, 5.0)
+	w.drain_events()
+	return [w, slot]
+
+
+func test_armor_reduces_by_damage_type() -> void:
+	var r := _straight_with(&"cascaron")  # armadura 0.6
+	var w: SimWorld = r[0]
+	var s: int = r[1]
+	var hp := w.e_hp[s]
+	w.damage_enemy(s, 10.0, &"kinetic")
+	check(is_equal_approx(hp - w.e_hp[s], 4.0), "cinético: 10 × (1 − 0.6) = 4")
+	hp = w.e_hp[s]
+	w.damage_enemy(s, 10.0, &"magic")
+	check(is_equal_approx(hp - w.e_hp[s], 10.0), "mágico ignora la armadura")
+	hp = w.e_hp[s]
+	w.damage_enemy(s, 10.0, &"digital", 0.5)
+	check(is_equal_approx(hp - w.e_hp[s], 7.0), "penetración 0.5: armadura efectiva 0.3")
+
+
+func test_corruption_amplifies_other_damage_types() -> void:
+	var r := _straight_with(&"glitchling")
+	var w: SimWorld = r[0]
+	var s: int = r[1]
+	var corr: EffectDef = _db().towers[&"pixeladora"].on_hit_effect
+	for i in 5:
+		w.effects.apply(w, s, corr)
+	check(w.effects.stacks_of(s, &"corruption") == 3, "la corrupción se limita a 3 pilas")
+	w.e_hp[s] = 100.0
+	w.damage_enemy(s, 10.0, &"kinetic")
+	check(is_equal_approx(100.0 - w.e_hp[s], 14.5), "cinético +45 %% con 3 pilas (%.2f)" % (100.0 - w.e_hp[s]))
+	w.e_hp[s] = 100.0
+	w.damage_enemy(s, 10.0, &"digital")
+	check(is_equal_approx(100.0 - w.e_hp[s], 10.0), "la corrupción no amplifica el daño digital")
+	for i in roundi(4.0 * SimWorld.TICK_RATE) + 1:
+		w.effects.step(w)
+	check(w.effects.stacks_of(s, &"corruption") == 0, "la corrupción expira a los 4 s")
+
+
+func test_three_seals_root_then_immunity() -> void:
+	var r := _straight_with(&"glitchling")
+	var w: SimWorld = r[0]
+	var s: int = r[1]
+	var seal: EffectDef = _db().towers[&"grimorio"].on_hit_effect
+	w.effects.apply(w, s, seal)
+	check(is_equal_approx(w.effects.speed_mult[s], 0.8), "1 sello: velocidad × 0.8")
+	w.effects.apply(w, s, seal)
+	check(is_equal_approx(w.effects.speed_mult[s], 0.64), "2 sellos: velocidad × 0.64")
+	w.effects.apply(w, s, seal)
+	check(w.effects.rooted[s] == 1, "3 sellos: inmovilizado")
+	check(w.effects.stacks_of(s, &"seal") == 0, "los sellos se consumen al inmovilizar")
+	var d0 := w.e_dist[s]
+	for i in 30:  # 1 s < 1.2 s de inmovilización
+		w.step()
+	check(is_equal_approx(w.e_dist[s], d0), "no avanza mientras está inmovilizado")
+	check(not w.effects.apply(w, s, seal), "inmune a nuevos sellos justo después")
+	for i in 70:  # > 3 s desde el disparo del efecto
+		w.step()
+	check(w.effects.rooted[s] == 0 and w.e_dist[s] > d0, "vuelve a moverse")
+	check(w.effects.apply(w, s, seal), "acabada la inmunidad, acepta sellos de nuevo")
+
+
+func test_rebote_hits_distinct_targets() -> void:
+	var w := _world()
+	var reb: TowerDef = _db().towers[&"rebote"]  # nivel 1: 2 rebotes → 3 objetivos
+	w.place_tower(reb, Vector2(4, 1), 1)
+	for d in [3.0, 3.6, 4.2, 4.8, 5.4]:
+		w.spawn_enemy(1000.0, 0.0, d)
+	var ev := _run(w, 25)  # tiempo para un disparo y sus rebotes, no para el segundo
+	var hits := ev.filter(func(e): return e.type == &"enemy_hit")
+	var slots := {}
+	for h in hits:
+		slots[h.slot] = true
+	check(hits.size() == 3 and slots.size() == 3, "un disparo alcanza 3 enemigos distintos (%d impactos, %d distintos)" % [hits.size(), slots.size()])
+	check(hits[1].amount < hits[0].amount, "cada rebote hace menos daño")
+
+
+func test_rebote_weak_against_single_target() -> void:
+	var w := _world()
+	w.place_tower(_db().towers[&"rebote"], Vector2(4, 1), 1)
+	w.spawn_enemy(1000.0, 0.0, 4.0)
+	var ev := _run(w, 25)
+	check(_count(ev, &"enemy_hit") == 1, "con un solo enemigo no hay rebote (no repite objetivo)")
+
+
+# --- Economía -------------------------------------------------------------------
+
+func test_economy_rules() -> void:
+	var w := _mission_world()
+	check(w.gold == 150, "oro inicial 150")
+	check(w.build(0, &"pixeladora") == &"ok" and w.gold == 80, "construir cuesta 70")
+	check(w.build(0, &"grimorio") == &"occupied", "posición ocupada")
+	check(w.build(7, &"grimorio") == &"invalid_spot", "posición inexistente")
+	check(w.build(1, &"no_existe") == &"unknown_tower", "torre desconocida")
+	check(w.build(1, &"rebote") == &"ok" and w.gold == 0, "construir Rebote con justo 80")
+	check(w.build(2, &"grimorio") == &"no_gold" and w.gold == 0, "sin oro no se construye ni se gasta")
+	check(w.upgrade(0) == &"no_gold", "sin oro no se mejora")
+	w.gold = 1000
+	check(w.upgrade(0) == &"ok" and w.gold == 945, "mejorar a nivel 2 cuesta 55")
+	check(w.upgrade(0) == &"ok" and w.upgrade(0) == &"max_level", "nivel máximo 3")
+	var invested := 70 + 55 + 90
+	var before := w.gold
+	check(w.sell(0) == &"ok" and w.gold == before + floori(invested * 0.7), "vender devuelve el 70 % de lo invertido")
+	check(w.tower_at(0).is_empty(), "la posición queda libre")
+	check(w.sell(0) == &"empty", "no se vende una posición vacía")
+
+
+func test_kill_bounty_and_leak_damage() -> void:
+	var w := _mission_world()
+	var casc: EnemyDef = _db().enemies[&"cascaron"]
+	var s := w.spawn(casc)
+	var gold0 := w.gold
+	w.damage_enemy(s, 1000.0, &"magic")
+	check(w.gold == gold0 + casc.bounty, "eliminar da la recompensa del enemigo")
+	w.spawn(casc, 0, w.path.length - 0.01)
+	w.step()
+	check(w.base_hp == 20 - casc.base_damage, "al llegar quita base_damage a la base")
+
+
+# --- Oleadas y resultado -----------------------------------------------------------
+
+func test_wave_spawns_and_blocks_overlap() -> void:
+	var w := _mission_world()
+	check(w.start_next_wave() == &"ok", "lanza la oleada 1")
+	check(w.start_next_wave() == &"wave_active", "no se lanza otra con una activa")
+	var spawned := 0
+	for i in 30 * 15:
+		w.step()
+		spawned += _count(w.drain_events(), &"enemy_spawned")
+	check(spawned == w.mission.waves[0].total_enemies(), "aparecen los %d enemigos de la oleada" % spawned)
+
+
+## Estrategia scripted: construye en orden y mejora entre oleadas.
+func _play(w: SimWorld, plan: Array) -> SimWorld.Outcome:
+	for i in 30 * 60 * 10:
+		for action in plan:
+			if action[0] == &"build" and w.tower_at(action[1]).is_empty():
+				w.build(action[1], action[2])
+			elif action[0] == &"upgrade" and not w.wave_active:
+				w.upgrade(action[1])
+		if not w.wave_active and not w.is_over():
+			w.start_next_wave()
+		w.step()
+		w.drain_events()
+		if w.is_over():
+			break
+	return w.outcome
+
+
+func test_mission_without_towers_is_lost() -> void:
+	var w := _mission_world()
+	check(_play(w, []) == SimWorld.Outcome.DEFEAT, "sin torres se pierde")
+
+
+func test_mission_with_sensible_defense_is_won() -> void:
+	var w := _mission_world()
+	var plan := [[&"build", 1, &"pixeladora"], [&"build", 0, &"grimorio"], [&"build", 2, &"rebote"],
+		[&"upgrade", 1], [&"upgrade", 2]]
+	var outcome := _play(w, plan)
+	check(outcome == SimWorld.Outcome.VICTORY, "con una defensa razonable se gana (vida base %d)" % w.base_hp)
 
 
 # --- Determinismo -------------------------------------------------------------

@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="TowerDef" format=3]
+
+[ext_resource type="Texture2D" path="res://art/placeholder/proj_ball.png" id="1_d3js8"]
+[ext_resource type="Script" path="res://src/content/tower_def.gd" id="2_6x1ic"]
+[ext_resource type="Texture2D" path="res://art/placeholder/tower_rebote.png" id="3_clrkv"]
+
+[resource]
+script = ExtResource("2_6x1ic")
+id = &"rebote"
+display_name = "Rebote Supremo"
+description = "Proyectiles que rebotan entre enemigos cercanos. Brilla contra grupos; flojea contra un objetivo aislado."
+damage = PackedFloat32Array(3.5, 4.5, 5.5)
+interval = PackedFloat32Array(1.0, 0.9, 0.8)
+range_tiles = PackedFloat32Array(3, 3.2, 3.4)
+projectile_speed = 9.0
+armor_pierce = PackedFloat32Array(0)
+bounces = PackedInt32Array(2, 3, 5)
+bounce_range = 2.2
+bounce_damage_mult = 0.85
+cost = PackedInt32Array(80, 60, 100)
+sprite = ExtResource("3_clrkv")
+projectile_sprite = ExtResource("1_d3js8")
+level_names = PackedStringArray("", "Efecto dominó", "Rebote Supremo")
