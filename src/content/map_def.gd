@@ -8,8 +8,12 @@ var size := Vector2i.ZERO
 ## Rutas enemigas en casillas (la primera es la principal). Preparado para
 ## rutas alternativas del mundo 1 y posteriores.
 var routes: Array[PackedVector2Array] = []
+## Ancho del camino en casillas (la ruta es su línea central).
+var path_width := 1.0
 ## Centros de las posiciones de construcción, en casillas.
 var build_spots := PackedVector2Array()
+## Posiciones iniciales de los héroes, en casillas.
+var hero_spawns := PackedVector2Array()
 
 
 ## Lista de problemas del mapa (vacía si es válido).
@@ -34,20 +38,36 @@ func validate() -> PackedStringArray:
 	return problems
 
 
-## Casillas que pisa alguna ruta (segmentos muestreados).
+## Casillas del camino: aquellas cuyo centro está a ≤ path_width/2 de la línea
+## central de alguna ruta.
 func path_tiles() -> Dictionary:
 	var tiles := {}
-	for route in routes:
-		for i in range(1, route.size()):
-			var a := route[i - 1]
-			var b := route[i]
-			var steps := int(ceil(a.distance_to(b) * 4.0))
-			for s in steps + 1:
-				var p := a.lerp(b, float(s) / maxf(steps, 1))
-				var t := Vector2i(floori(p.x), floori(p.y))
-				if t.x >= 0 and t.y >= 0 and t.x < size.x and t.y < size.y:
-					tiles[t] = true
+	var half := path_width * 0.5 + 0.01
+	for y in size.y:
+		for x in size.x:
+			var c := Vector2(x + 0.5, y + 0.5)
+			for route in routes:
+				if distance_to_route(c, route) <= half:
+					tiles[Vector2i(x, y)] = true
+					break
 	return tiles
+
+
+## Punto de la ruta más cercano a `p` (para colocar héroes en el camino).
+static func closest_point_on_route(p: Vector2, route: PackedVector2Array) -> Vector2:
+	var best := route[0]
+	var best_d := INF
+	for i in range(1, route.size()):
+		var q := Geometry2D.get_closest_point_to_segment(p, route[i - 1], route[i])
+		var d := q.distance_squared_to(p)
+		if d < best_d:
+			best_d = d
+			best = q
+	return best
+
+
+static func distance_to_route(p: Vector2, route: PackedVector2Array) -> float:
+	return closest_point_on_route(p, route).distance_to(p)
 
 
 func _inside(p: Vector2, margin: float) -> bool:

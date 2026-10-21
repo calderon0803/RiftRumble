@@ -11,6 +11,7 @@ extends RefCounted
 
 const SimPath := preload("res://src/sim/sim_path.gd")
 const SimEffects := preload("res://src/sim/sim_effects.gd")
+const SimHeroes := preload("res://src/sim/sim_heroes.gd")
 
 const TICK_RATE := 30
 const DT := 1.0 / TICK_RATE
@@ -21,6 +22,10 @@ const ARMOR_IGNORING_TYPE := &"magic"
 enum Outcome { PLAYING, VICTORY, DEFEAT }
 
 var paths: Array = []  # Array[SimPath], una por ruta
+## Carriles por ruta: lane_paths[ruta][carril]. El carril 0 es la línea central;
+## los demás, desplazados a cada lado según el ancho del camino.
+var lane_paths: Array = []
+var lane_offsets := PackedFloat32Array([0.0])
 ## Ruta principal (compatibilidad con el código de una sola ruta).
 var path: SimPath:
 	get:
@@ -32,6 +37,11 @@ var gold := 0
 var outcome := Outcome.PLAYING
 var events: Array[Dictionary] = []
 var effects: SimEffects
+var heroes: SimHeroes
+## Sinergias activas (SynergyDef); las evalúa el sistema de efectos.
+var synergies: Array = []
+## Tamaño del mapa en casillas (limita el movimiento de los héroes).
+var map_size := Vector2i.ZERO
 
 # --- Contenido (opcional: los tests de bajo nivel funcionan sin él) ---------
 var content  # ContentDB
@@ -41,6 +51,7 @@ var mission: MissionDef
 var e_alive := PackedByteArray()
 var e_id := PackedInt32Array()     # identificador único; detecta huecos reutilizados
 var e_route := PackedInt32Array()
+var e_lane := PackedInt32Array()
 var e_dist := PackedFloat32Array() # distancia recorrida sobre su ruta
 var e_speed := PackedFloat32Array()  # casillas por segundo (base)
 var e_hp := PackedFloat32Array()
@@ -50,6 +61,10 @@ var e_bounty := PackedInt32Array()
 var e_base_damage := PackedInt32Array()
 var e_pos := PackedVector2Array()
 var e_def: Array = []              # EnemyDef o null
+var e_blocker := PackedInt32Array()  # héroe que lo bloquea (-1 = ninguno)
+var e_melee_damage := PackedFloat32Array()
+var e_melee_ticks := PackedInt32Array()  # intervalo entre golpes al héroe
+var e_melee_cd := PackedInt32Array()
 var enemy_count := 0
 var _enemy_free: Array[int] = []
 
@@ -65,6 +80,10 @@ var p_pierce := PackedFloat32Array()
 var p_bounces := PackedInt32Array()
 var p_tower_def: Array = []        # TowerDef que lo disparó (tipo, efecto, rebote)
 var p_hit_ids: Array = []          # ids ya alcanzados (un rebote no repite objetivo)
+var p_hero := PackedInt32Array()   # héroe que lo disparó (-1 = torre)
+var p_via_portal := PackedByteArray()  # 1 = aún viaja hacia la entrada del portal
+var p_portal_exit := PackedVector2Array()
+var p_portal_mult := PackedFloat32Array()
 var projectile_count := 0
 var _projectile_free: Array[int] = []
 
@@ -80,6 +99,14 @@ var wave_active := false
 var _spawn_queue: Array = []  # [tick, EnemyDef, ruta], ordenada por tick
 
 var _next_id := 1
+## Identificadores estables de torres y portales (para que la vista los siga
+## aunque cambie su contenido).
+var _next_uid := 1
+
+
+func new_uid() -> int:
+	_next_uid += 1
+	return _next_uid
 
 
 ## `routes`: una ruta (PackedVector2Array) o un Array de rutas.
@@ -88,8 +115,22 @@ func _init(routes, seed_value: int = 0) -> void:
 		routes = [routes]
 	for r in routes:
 		paths.append(SimPath.new(r))
+	_build_lanes(1.0)
 	rng.seed = seed_value
 	effects = SimEffects.new()
+	heroes = SimHeroes.new()
+
+
+## Carriles a ±1/4 del ancho del camino (con 2 casillas: los centros de ambas).
+func _build_lanes(path_width: float) -> void:
+	var q := path_width * 0.25
+	lane_offsets = PackedFloat32Array([0.0, -q, q])
+	lane_paths.clear()
+	for p: SimPath in paths:
+		var lanes := []
+		for off in lane_offsets:
+			lanes.append(SimPath.new(SimPath.offset_points(p.points, off)))
+		lane_paths.append(lanes)
 
 
 ## Configura una partida completa a partir de una misión y del mapa ya leído.
@@ -99,6 +140,13 @@ func setup_mission(content_db, mission_def: MissionDef, map_def) -> void:
 	gold = mission_def.start_gold
 	base_hp = mission_def.base_hp
 	build_spots = map_def.build_spots
+	map_size = map_def.size
+	_build_lanes(map_def.path_width)
+	synergies = content_db.synergies.values()
+	for i in mission_def.heroes.size():
+		var def: HeroDef = content_db.heroes[StringName(mission_def.heroes[i])]
+		var spawns: PackedVector2Array = map_def.hero_spawns if not map_def.hero_spawns.is_empty() 				else map_def.build_spots
+		heroes.add_hero(def, spawns[i % spawns.size()])
 
 
 func is_lost() -> bool:
@@ -192,6 +240,18 @@ func sell(spot: int) -> StringName:
 	return &"ok"
 
 
+func move_hero(index: int, destination: Vector2) -> StringName:
+	if is_over():
+		return &"game_over"
+	return heroes.move(self, index, destination)
+
+
+func cast_ability(index: int, target: Vector2) -> StringName:
+	if is_over():
+		return &"game_over"
+	return heroes.cast(self, index, target)
+
+
 func waves_total() -> int:
 	return 0 if mission == null else mission.waves.size()
 
@@ -212,7 +272,8 @@ func start_next_wave() -> StringName:
 		var first := tick + roundi(wave.start_delay[g] * TICK_RATE)
 		var every := maxi(1, roundi(wave.spacing[g] * TICK_RATE))
 		for i in wave.counts[g]:
-			_spawn_queue.append([first + i * every, def, route])
+			var lane := rng.randi_range(0, lane_offsets.size() - 1)
+			_spawn_queue.append([first + i * every, def, route, lane])
 	_spawn_queue.sort_custom(func(a, b): return a[0] < b[0])
 	events.append({type = &"wave_started", index = wave_index})
 	return &"ok"
@@ -221,7 +282,7 @@ func start_next_wave() -> StringName:
 # --- Creación directa (tests, modo estrés) --------------------------------------
 
 ## Enemigo genérico sin definición (tests de bajo nivel y estrés).
-func spawn_enemy(hp: float, speed: float, start_dist: float = 0.0, route: int = 0) -> int:
+func spawn_enemy(hp: float, speed: float, start_dist: float = 0.0, route: int = 0, lane: int = 0) -> int:
 	var slot := _alloc_enemy()
 	e_def[slot] = null
 	e_hp[slot] = hp
@@ -230,11 +291,13 @@ func spawn_enemy(hp: float, speed: float, start_dist: float = 0.0, route: int = 
 	e_armor[slot] = 0.0
 	e_bounty[slot] = 0
 	e_base_damage[slot] = 1
-	_finish_spawn(slot, route, start_dist)
+	e_melee_damage[slot] = 2.0
+	e_melee_ticks[slot] = TICK_RATE
+	_finish_spawn(slot, route, start_dist, lane)
 	return slot
 
 
-func spawn(def: EnemyDef, route: int = 0, start_dist: float = 0.0) -> int:
+func spawn(def: EnemyDef, route: int = 0, start_dist: float = 0.0, lane: int = 0) -> int:
 	var slot := _alloc_enemy()
 	e_def[slot] = def
 	e_hp[slot] = def.hp
@@ -243,13 +306,15 @@ func spawn(def: EnemyDef, route: int = 0, start_dist: float = 0.0) -> int:
 	e_armor[slot] = def.armor
 	e_bounty[slot] = def.bounty
 	e_base_damage[slot] = def.base_damage
-	_finish_spawn(slot, route, start_dist)
+	e_melee_damage[slot] = def.melee_damage
+	e_melee_ticks[slot] = maxi(1, roundi(def.melee_interval * TICK_RATE))
+	_finish_spawn(slot, route, start_dist, lane)
 	return slot
 
 
 ## Torre colocada sin pasar por la economía.
 func place_tower(def: TowerDef, pos: Vector2, level := 1, spot := -1) -> Dictionary:
-	var t := {def = def, level = level, pos = pos, spot = spot, cooldown_ticks = 0, invested = 0}
+	var t := {uid = new_uid(), def = def, level = level, pos = pos, spot = spot, cooldown_ticks = 0, invested = 0}
 	towers.append(t)
 	return t
 
@@ -274,6 +339,7 @@ func _alloc_enemy() -> int:
 	e_alive.append(0)
 	e_id.append(0)
 	e_route.append(0)
+	e_lane.append(0)
 	e_dist.append(0.0)
 	e_speed.append(0.0)
 	e_hp.append(0.0)
@@ -283,16 +349,23 @@ func _alloc_enemy() -> int:
 	e_base_damage.append(0)
 	e_pos.append(Vector2.ZERO)
 	e_def.append(null)
+	e_blocker.append(-1)
+	e_melee_damage.append(0.0)
+	e_melee_ticks.append(TICK_RATE)
+	e_melee_cd.append(0)
 	return slot
 
 
-func _finish_spawn(slot: int, route: int, start_dist: float) -> void:
+func _finish_spawn(slot: int, route: int, start_dist: float, lane: int = 0) -> void:
 	e_alive[slot] = 1
 	e_id[slot] = _next_id
 	_next_id += 1
 	e_route[slot] = clampi(route, 0, paths.size() - 1)
+	e_lane[slot] = clampi(lane, 0, lane_offsets.size() - 1)
 	e_dist[slot] = start_dist
-	e_pos[slot] = paths[e_route[slot]].sample(start_dist)
+	e_pos[slot] = _enemy_path(slot).sample(start_dist)
+	e_blocker[slot] = -1
+	e_melee_cd[slot] = 0
 	effects.reset_slot(slot)
 	enemy_count += 1
 	events.append({type = &"enemy_spawned", slot = slot})
@@ -305,6 +378,7 @@ func step() -> void:
 		return
 	_spawn_due()
 	effects.step(self)
+	heroes.step(self)
 	_move_enemies()
 	_update_towers()
 	_update_projectiles()
@@ -315,14 +389,14 @@ func step() -> void:
 func _spawn_due() -> void:
 	while not _spawn_queue.is_empty() and _spawn_queue[0][0] <= tick:
 		var entry: Array = _spawn_queue.pop_front()
-		spawn(entry[1], entry[2])
+		spawn(entry[1], entry[2], 0.0, entry[3])
 
 
 func _move_enemies() -> void:
 	for i in e_alive.size():
-		if e_alive[i] == 0 or effects.rooted[i] == 1:
+		if e_alive[i] == 0 or effects.rooted[i] == 1 or e_blocker[i] >= 0:
 			continue
-		var p: SimPath = paths[e_route[i]]
+		var p: SimPath = _enemy_path(i)
 		var d := e_dist[i] + e_speed[i] * effects.speed_mult[i] * DT
 		e_dist[i] = d
 		if d >= p.length:
@@ -333,21 +407,44 @@ func _move_enemies() -> void:
 			e_pos[i] = p.sample(d)
 
 
+func _enemy_path(slot: int) -> SimPath:
+	return lane_paths[e_route[slot]][e_lane[slot]]
+
+
 func _update_towers() -> void:
 	for t_index in towers.size():
-		var t: Dictionary = towers[t_index]
-		if t.cooldown_ticks > 0:
-			t.cooldown_ticks -= 1
-			continue
-		var def: TowerDef = t.def
-		var target := _find_first_in_range(t.pos, TowerDef.at_level(def.range_tiles, t.level))
-		if target < 0:
-			continue
-		var p_slot := _spawn_projectile(t, target)
-		# Recarga en ticks enteros: sin deriva por acumulación de coma flotante.
-		var interval_ticks := maxi(1, roundi(TowerDef.at_level(def.interval, t.level) * TICK_RATE))
-		t.cooldown_ticks = interval_ticks - 1
-		events.append({type = &"projectile_fired", slot = p_slot, tower = t_index, target = target})
+		_try_fire(towers[t_index], true)
+	for profile in heroes.attack_profiles():
+		_try_fire(profile, false)
+
+
+## Lógica de disparo común a torres y ataques básicos de héroes.
+## Si no hay objetivo en alcance y la torre está enlazada a un portal, dispara a
+## través de él contra enemigos junto a la salida.
+func _try_fire(t: Dictionary, can_use_portal: bool) -> void:
+	if t.cooldown_ticks > 0:
+		t.cooldown_ticks -= 1
+		return
+	var def: TowerDef = t.def
+	var target := _find_first_in_range(t.pos, TowerDef.at_level(def.range_tiles, t.level))
+	var portal := {}
+	if target < 0 and can_use_portal:
+		portal = heroes.portal_for(t.pos)
+		if not portal.is_empty():
+			target = _find_first_in_range(portal.exit, portal.exit_radius)
+	if target < 0:
+		return
+	var p_slot := _spawn_projectile(t, target)
+	if not portal.is_empty():
+		p_via_portal[p_slot] = 1
+		p_aim[p_slot] = portal.entry
+		p_portal_exit[p_slot] = portal.exit
+		p_portal_mult[p_slot] = portal.damage_mult
+	# Recarga en ticks enteros: sin deriva por acumulación de coma flotante.
+	var interval_ticks := maxi(1, roundi(TowerDef.at_level(def.interval, t.level) * TICK_RATE))
+	t.cooldown_ticks = interval_ticks - 1
+	events.append({type = &"projectile_fired", slot = p_slot, target = target,
+		hero = t.get("hero_index", -1), via_portal = not portal.is_empty()})
 
 
 ## Objetivo «primero»: el enemigo más avanzado en su ruta dentro del alcance.
@@ -379,6 +476,10 @@ func _spawn_projectile(t: Dictionary, target_slot: int) -> int:
 		p_bounces.append(0)
 		p_tower_def.append(null)
 		p_hit_ids.append(PackedInt32Array())
+		p_hero.append(-1)
+		p_via_portal.append(0)
+		p_portal_exit.append(Vector2.ZERO)
+		p_portal_mult.append(1.0)
 	else:
 		slot = _projectile_free.pop_back()
 	var def: TowerDef = t.def
@@ -393,6 +494,8 @@ func _spawn_projectile(t: Dictionary, target_slot: int) -> int:
 	p_bounces[slot] = TowerDef.at_level(def.bounces, t.level)
 	p_tower_def[slot] = def
 	p_hit_ids[slot] = PackedInt32Array()
+	p_hero[slot] = t.get("hero_index", -1)
+	p_via_portal[slot] = 0
 	projectile_count += 1
 	return slot
 
@@ -403,6 +506,19 @@ func _update_projectiles() -> void:
 			continue
 		var ts := p_target_slot[i]
 		var target_valid := e_alive[ts] == 1 and e_id[ts] == p_target_id[i]
+		if p_via_portal[i] == 1:
+			# Primer tramo: hacia la entrada del portal; al llegar, sale por la salida.
+			var to_entry := p_aim[i] - p_pos[i]
+			var step_entry := p_speed[i] * DT
+			if to_entry.length() > step_entry:
+				p_pos[i] += to_entry.normalized() * step_entry
+			else:
+				p_pos[i] = p_portal_exit[i]
+				p_aim[i] = e_pos[ts] if target_valid else p_portal_exit[i]
+				p_via_portal[i] = 0
+				p_damage[i] *= p_portal_mult[i]
+				events.append({type = &"portal_transit", slot = i})
+			continue
 		if target_valid:
 			p_aim[i] = e_pos[ts]
 		var to_aim := p_aim[i] - p_pos[i]
@@ -424,6 +540,8 @@ func _projectile_hit(p: int, slot: int) -> void:
 	var hit_ids: PackedInt32Array = p_hit_ids[p]
 	hit_ids.append(e_id[slot])
 	p_hit_ids[p] = hit_ids
+	if p_hero[p] >= 0:
+		heroes.on_basic_hit(p_hero[p])
 	var killed := damage_enemy(slot, p_damage[p], def.damage_type, p_pierce[p])
 	if not killed and def.on_hit_effect:
 		effects.apply(self, slot, def.on_hit_effect)
@@ -484,6 +602,7 @@ func _damage_enemy(slot: int, amount: float) -> void:
 
 func _remove_enemy(slot: int) -> void:
 	e_alive[slot] = 0
+	e_blocker[slot] = -1
 	enemy_count -= 1
 	_enemy_free.append(slot)
 

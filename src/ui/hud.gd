@@ -12,6 +12,8 @@ signal start_wave_requested
 signal pause_toggled
 signal restart_requested
 signal close_panel_requested
+signal hero_selected(index: int)
+signal ability_requested(index: int)
 
 var world: SimWorld
 var content
@@ -27,6 +29,9 @@ var _panel_box: VBoxContainer
 var _overlay: PanelContainer
 var _overlay_label: Label
 var _debug: Label
+var _hint: Label
+var _hero_box: VBoxContainer
+var _hero_cards: Array = []  # [{name: Button, ability: Button, panel: PanelContainer}]
 var _panel_signature := ""
 
 
@@ -58,23 +63,14 @@ func _ready() -> void:
 	_pause_button = _button(bar, "Pausa", pause_toggled.emit)
 	_button(bar, "Reiniciar", restart_requested.emit)
 
-	# --- Panel contextual (construir / mejorar) ---------------------------------
-	# Contenedores a pantalla completa que colocan el panel abajo y centrado
-	# (se adaptan solos a cualquier tamaño de pantalla).
-	var dock := VBoxContainer.new()
-	dock.set_anchors_preset(Control.PRESET_FULL_RECT)
-	dock.offset_bottom = -10
-	dock.alignment = BoxContainer.ALIGNMENT_END
-	dock.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	root.add_child(dock)
-	var center := CenterContainer.new()
-	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	dock.add_child(center)
+	# --- Menú contextual sobre la plataforma (construir / mejorar / vender) ----------
+	# Se coloca cada frame encima de la posición seleccionada (sigue a la cámara).
 	_panel = PanelContainer.new()
+	_panel.theme_type_variation = &"SpotMenu"
 	_panel.visible = false
-	center.add_child(_panel)
+	root.add_child(_panel)
 	_panel_box = VBoxContainer.new()
-	_panel_box.add_theme_constant_override("separation", 8)
+	_panel_box.add_theme_constant_override("separation", 4)
 	_panel.add_child(_panel_box)
 
 	# --- Resultado -----------------------------------------------------------
@@ -94,6 +90,27 @@ func _ready() -> void:
 	ov.add_child(_overlay_label)
 	_button(ov, "Jugar otra vez", restart_requested.emit)
 
+	# --- Indicación de objetivo (habilidades) -----------------------------------
+	_hint = Label.new()
+	_hint.theme_type_variation = &"HeaderLabel"
+	_hint.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	_hint.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_hint.offset_top = 84
+	_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_hint.add_theme_color_override("font_outline_color", Color.BLACK)
+	_hint.add_theme_constant_override("outline_size", 6)
+	_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(_hint)
+
+	# --- Tarjetas de héroe (abajo a la izquierda) ---------------------------------
+	_hero_box = VBoxContainer.new()
+	_hero_box.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	_hero_box.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	_hero_box.offset_left = 8
+	_hero_box.offset_bottom = -26
+	_hero_box.add_theme_constant_override("separation", 6)
+	root.add_child(_hero_box)
+
 	# --- Depuración (FPS, simulación) -------------------------------------------
 	_debug = Label.new()
 	_debug.theme_type_variation = &"DebugLabel"
@@ -112,15 +129,45 @@ func bind(new_world: SimWorld, content_db) -> void:
 	_panel_signature = ""
 	_panel.visible = false
 	_overlay.visible = false
+	_build_hero_cards()
 
 
-func select_spot(spot: int) -> void:
+func _build_hero_cards() -> void:
+	for c in _hero_box.get_children():
+		c.queue_free()
+	_hero_cards.clear()
+	for i in world.heroes.heroes.size():
+		var def: HeroDef = world.heroes.heroes[i].def
+		var panel := PanelContainer.new()
+		_hero_box.add_child(panel)
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 6)
+		panel.add_child(row)
+		var name_btn := _button(row, "%d · %s" % [i + 1, def.display_name], hero_selected.emit.bind(i))
+		name_btn.custom_minimum_size = Vector2(130, 48)
+		name_btn.add_theme_color_override("font_color", def.color)
+		name_btn.tooltip_text = "%s — %s" % [def.title, def.description]
+		var ability := _button(row, def.ability_name, ability_requested.emit.bind(i))
+		ability.custom_minimum_size = Vector2(170, 48)
+		ability.theme_type_variation = &"AccentButton"
+		ability.tooltip_text = def.ability_description
+		_hero_cards.append({name = name_btn, ability = ability, panel = panel})
+
+
+## Posición del menú: encima de este punto del mundo (pie de la plataforma).
+var _spot_world_pos := Vector2.ZERO
+
+
+func select_spot(spot: int, world_pos := Vector2.ZERO) -> void:
+	if spot >= 0:
+		_spot_world_pos = world_pos
 	selected_spot = spot
 	_panel_signature = ""  # fuerza a reconstruir el panel
 
 
 ## Refresca textos y estados de botones. Barato: solo toca lo que cambia.
-func refresh(paused: bool, debug_text: String) -> void:
+func refresh(paused: bool, debug_text: String, selected_hero := -1, targeting_hero := -1) -> void:
+	_refresh_heroes(selected_hero, targeting_hero)
 	_gold.text = "Oro %d" % world.gold
 	_lives.text = "Vida %d" % maxi(world.base_hp, 0)
 	_wave.text = "Oleada %d/%d" % [world.wave_index + 1, world.waves_total()]
@@ -130,11 +177,38 @@ func refresh(paused: bool, debug_text: String) -> void:
 	_pause_button.text = "Seguir" if paused else "Pausa"
 	_debug.text = debug_text
 	_refresh_panel()
+	_place_spot_menu()
 	if world.is_over() and not _overlay.visible:
 		_overlay.visible = true
 		_panel.visible = false
 		_overlay_label.text = "¡VICTORIA!\nVida restante: %d" % world.base_hp \
 				if world.outcome == SimWorld.Outcome.VICTORY else "La base ha caído"
+
+
+func _refresh_heroes(selected_hero: int, targeting_hero: int) -> void:
+	for i in _hero_cards.size():
+		var h: Dictionary = world.heroes.heroes[i]
+		var def: HeroDef = h.def
+		var card: Dictionary = _hero_cards[i]
+		var cd_s := ceili(h.ability_cd / float(SimWorld.TICK_RATE))
+		var dead: bool = h.dead_ticks > 0
+		var text := def.ability_name if cd_s == 0 else "%s (%d s)" % [def.ability_name, cd_s]
+		if def.charge_max > 0:
+			text += " · carga %d/%d" % [h.charge, def.charge_max]
+		if dead:
+			text = "Caído · vuelve en %d s" % ceili(h.dead_ticks / float(SimWorld.TICK_RATE))
+		if card.ability.text != text:
+			card.ability.text = text
+		card.ability.disabled = cd_s > 0 or dead or world.is_over()
+		card.panel.modulate = Color(1.25, 1.25, 1.25) if i == selected_hero else Color.WHITE
+	if targeting_hero >= 0:
+		var def: HeroDef = world.heroes.heroes[targeting_hero].def
+		var what := "la salida del portal" if def.ability_kind == HeroDef.ABILITY_PORTAL else "la dirección del ataque"
+		_hint.text = "%s: toca %s (alcance %d)" % [def.ability_name, what, roundi(def.ability_range)]
+	elif selected_hero >= 0:
+		_hint.text = "Toca el camino para mover a %s · tócalo de nuevo para soltarlo" % 				world.heroes.heroes[selected_hero].def.display_name
+	else:
+		_hint.text = ""
 
 
 func _refresh_panel() -> void:
@@ -163,49 +237,86 @@ func _refresh_panel() -> void:
 		_tower_options(t)
 
 
+## Coloca el menú centrado encima de la plataforma, sin salirse de la pantalla.
+func _place_spot_menu() -> void:
+	if not _panel.visible:
+		return
+	var screen := get_viewport().get_canvas_transform() * _spot_world_pos
+	var menu_size := _panel.get_combined_minimum_size()
+	_panel.size = menu_size
+	var pos := screen - Vector2(menu_size.x * 0.5, menu_size.y + 22.0)
+	var vp := get_viewport().get_visible_rect().size
+	pos.x = clampf(pos.x, 6.0, vp.x - menu_size.x - 6.0)
+	pos.y = clampf(pos.y, 80.0, vp.y - menu_size.y - 6.0)
+	_panel.position = pos
+
+
+## Menú de construir: un icono por torre con su coste debajo.
 func _build_options() -> void:
-	_title("Construir")
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 8)
+	row.add_theme_constant_override("separation", 4)
 	_panel_box.add_child(row)
 	for id in world.mission.towers:
 		var def: TowerDef = content.towers[StringName(id)]
-		var b := _button(row, "%s\n%d oro" % [def.display_name, def.cost[0]],
-				build_requested.emit.bind(selected_spot, def.id))
-		b.custom_minimum_size = Vector2(150, 64)
-		b.tooltip_text = def.description
+		var b := _icon_button(row, def.sprite, str(def.cost[0]), build_requested.emit.bind(selected_spot, def.id))
+		b.tooltip_text = "%s — %s" % [def.display_name, def.description]
 		b.disabled = world.gold < def.cost[0]
-	_button(_panel_box, "Cerrar", close_panel_requested.emit)
+	_close_button(row)
 
 
+## Menú de una torre construida: nombre y nivel, mejorar y vender.
 func _tower_options(t: Dictionary) -> void:
 	var def: TowerDef = t.def
-	_title("%s · nivel %d" % [def.display_name, t.level])
-	var desc := Label.new()
-	desc.text = def.description
-	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	desc.custom_minimum_size = Vector2(420, 0)
-	_panel_box.add_child(desc)
+	_title("%s · Nv %d" % [def.display_name, t.level])
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 8)
+	row.add_theme_constant_override("separation", 4)
 	_panel_box.add_child(row)
 	var cost := world.upgrade_cost(selected_spot)
 	if cost >= 0:
 		var next_name: String = def.level_names[t.level] if t.level < def.level_names.size() else ""
-		var label := "Mejorar: %s\n%d oro" % [next_name, cost] if next_name != "" else "Mejorar\n%d oro" % cost
-		var up := _button(row, label, upgrade_requested.emit.bind(selected_spot))
+		var up := _small_button(row, "Mejorar\n%d" % cost, upgrade_requested.emit.bind(selected_spot))
 		up.theme_type_variation = &"AccentButton"
+		up.tooltip_text = "Nivel %d%s" % [t.level + 1, (": " + next_name) if next_name != "" else ""]
 		up.disabled = world.gold < cost
 	else:
-		_button(row, "Nivel máximo", func(): pass).disabled = true
-	_button(row, "Vender\n+%d oro" % world.sell_value(selected_spot), sell_requested.emit.bind(selected_spot))
-	_button(row, "Cerrar", close_panel_requested.emit)
+		_small_button(row, "Nivel\nmáx.", func(): pass).disabled = true
+	_small_button(row, "Vender\n+%d" % world.sell_value(selected_spot), sell_requested.emit.bind(selected_spot))
+	_close_button(row)
+
+
+func _icon_button(parent: Node, icon: Texture2D, text: String, callback: Callable) -> Button:
+	var b := Button.new()
+	b.icon = icon
+	b.text = text
+	b.expand_icon = true
+	b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	b.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
+	b.focus_mode = Control.FOCUS_NONE
+	b.custom_minimum_size = Vector2(54, 80)
+	b.theme_type_variation = &"SpotButton"
+	b.pressed.connect(callback)
+	parent.add_child(b)
+	return b
+
+
+func _small_button(parent: Node, text: String, callback: Callable) -> Button:
+	var b := _button(parent, text, callback)
+	b.custom_minimum_size = Vector2(64, 48)
+	b.theme_type_variation = &"SpotButton"
+	return b
+
+
+func _close_button(parent: Node) -> void:
+	var b := _button(parent, "X", close_panel_requested.emit)
+	b.custom_minimum_size = Vector2(32, 32)
+	b.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	b.theme_type_variation = &"SpotButton"
 
 
 func _title(text: String) -> void:
 	var l := Label.new()
 	l.text = text
-	l.theme_type_variation = &"HeaderLabel"
+	l.theme_type_variation = &"MenuTitle"
 	_panel_box.add_child(l)
 
 

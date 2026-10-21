@@ -5,6 +5,8 @@
 
 [resource]
 script = ExtResource("1_0mrlg")
+melee_damage = 2.0
+melee_interval = 0.7
 id = &"enemy_fast"
 display_name = "Zumbador"
 hp = 5.0

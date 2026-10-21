@@ -8,6 +8,8 @@ const ROOT := "res://content/"
 var towers := {}   # StringName → TowerDef
 var enemies := {}  # StringName → EnemyDef
 var missions := {}  # StringName → MissionDef
+var heroes := {}   # StringName → HeroDef
+var synergies := {}  # StringName → SynergyDef
 
 
 static func load_all() -> RefCounted:
@@ -15,6 +17,8 @@ static func load_all() -> RefCounted:
 	db.towers = _load_dir(ROOT + "towers/")
 	db.enemies = _load_dir(ROOT + "enemies/")
 	db.missions = _load_dir(ROOT + "missions/")
+	db.heroes = _load_dir(ROOT + "heroes/")
+	db.synergies = _load_dir(ROOT + "synergies/")
 	return db
 
 

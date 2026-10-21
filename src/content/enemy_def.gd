@@ -16,6 +16,9 @@ extends Resource
 @export var bounty := 5
 ## Vida que quita a la base si llega.
 @export var base_damage := 1
+## Daño a un héroe que lo bloquea, y segundos entre golpes.
+@export var melee_damage := 2.0
+@export var melee_interval := 1.0
 
 @export_group("Presentación")
 @export var sprite: Texture2D

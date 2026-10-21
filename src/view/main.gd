@@ -3,6 +3,8 @@
 ## simulación (que los valida) y gestiona la selección en el mapa.
 ##
 ## Controles: clic/toque en una posición de construcción = construir/mejorar
+##            toque en un héroe (o su tarjeta, o 1/2) = seleccionarlo; toque en el mapa = moverlo
+##            botón de habilidad (o Q) y toque en el mapa = lanzar la habilidad
 ##            Rueda o pellizco = zoom · arrastrar (botón derecho/central o un dedo) = cámara
 ##            Espacio/P = pausa · R = reiniciar · N = lanzar oleada · S = modo estrés (depuración)
 ## Argumentos de usuario (tras `--`): `--stress`, `--screenshot=ruta.png`, `--frames=N`,
@@ -28,6 +30,8 @@ const STRESS_TOWERS := 12
 const SELECT_RADIUS := 0.9
 ## Movimiento máximo (px) para que una pulsación cuente como toque y no como arrastre.
 const TAP_SLOP := 12.0
+## Distancia (px de mundo) para que un toque seleccione a un héroe (su sprite es alto).
+const HERO_PICK_RADIUS := 26.0
 
 var content
 var mission: MissionDef
@@ -46,6 +50,8 @@ var _camera: CameraRig
 var _hud: Hud
 var _press_pos := Vector2.ZERO
 var _pressing := false
+var _selected_hero := -1
+var _targeting_hero := -1
 
 
 func _ready() -> void:
@@ -53,6 +59,8 @@ func _ready() -> void:
 	stress = "--stress" in args
 	autoplay = "--autoplay" in args
 	for arg in args:
+		if arg.begins_with("--select-hero="):
+			_select_hero.call_deferred(int(arg.trim_prefix("--select-hero=")))
 		if arg.begins_with("--speed="):  # acelera el tiempo (pruebas de flujo completas)
 			Engine.time_scale = float(arg.trim_prefix("--speed="))
 
@@ -77,17 +85,20 @@ func _ready() -> void:
 
 	_camera = CameraRig.new()
 	add_child(_camera)
-	_camera.setup(_map_bounds(), 1.3)
+	_camera.setup(_map_bounds())
 
 	_hud = Hud.new()
 	add_child(_hud)
-	_hud.build_requested.connect(func(spot, id): _command(world.build(spot, id)))
+	# Construir o vender cierra el menú; mejorar lo deja abierto (se puede seguir).
+	_hud.build_requested.connect(func(spot, id): if _command(world.build(spot, id)): _select(-1))
 	_hud.upgrade_requested.connect(func(spot): _command(world.upgrade(spot)))
-	_hud.sell_requested.connect(func(spot): _command(world.sell(spot)))
+	_hud.sell_requested.connect(func(spot): if _command(world.sell(spot)): _select(-1))
 	_hud.start_wave_requested.connect(func(): _command(world.start_next_wave()))
 	_hud.pause_toggled.connect(func(): paused = not paused)
 	_hud.restart_requested.connect(_restart)
 	_hud.close_panel_requested.connect(func(): _select(-1))
+	_hud.hero_selected.connect(_toggle_hero)
+	_hud.ability_requested.connect(_begin_targeting)
 
 	_restart()
 	_maybe_capture_screenshot()
@@ -111,13 +122,15 @@ func _restart() -> void:
 	_view.handle_events(world.drain_events())
 	_hud.bind(world, content)
 	_select(-1)
+	_select_hero(-1)
 
 
 ## Resultado de un comando: la simulación ya lo validó; aquí solo se informa.
-func _command(result: StringName) -> void:
+func _command(result: StringName) -> bool:
 	if result != &"ok":
 		print("Comando rechazado: %s" % result)
-	_hud.select_spot(_view.selected_spot)
+	_select(_view.selected_spot)  # refresca el menú abierto
+	return result == &"ok"
 
 
 func _process(delta: float) -> void:
@@ -130,7 +143,8 @@ func _process(delta: float) -> void:
 			_run_tick()
 	_view.sync(_acc / SimWorld.DT)
 	_hud.refresh(paused, "FPS %d · sim %.2f ms · enemigos %d · proyectiles %d" % [
-		Engine.get_frames_per_second(), _sim_ms_avg, world.enemy_count, world.projectile_count])
+		Engine.get_frames_per_second(), _sim_ms_avg, world.enemy_count, world.projectile_count],
+		_selected_hero, _targeting_hero)
 
 
 func _run_tick() -> void:
@@ -154,7 +168,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif _pressing:
 			_pressing = false
 			if event.position.distance_to(_press_pos) <= TAP_SLOP:
-				_select(_spot_at(get_global_mouse_position()))
+				_on_map_tap(get_global_mouse_position())
 	elif event is InputEventKey and event.pressed and not event.echo:
 		match event.keycode:
 			KEY_SPACE, KEY_P:
@@ -167,6 +181,68 @@ func _unhandled_input(event: InputEvent) -> void:
 				_toggle_stress()
 			KEY_ESCAPE:
 				_select(-1)
+				_select_hero(-1)
+			KEY_1, KEY_2, KEY_3, KEY_4:
+				_toggle_hero(event.keycode - KEY_1)
+			KEY_Q:
+				_begin_targeting(_selected_hero)
+
+
+## Prioridad de un toque en el mapa: objetivo de habilidad > héroe > posición de
+## construcción > mover al héroe seleccionado > deseleccionar.
+func _on_map_tap(world_pos: Vector2) -> void:
+	var logical := Iso.to_logical(world_pos)
+	if _targeting_hero >= 0:
+		var result := world.cast_ability(_targeting_hero, logical)
+		_command(result)
+		if result == &"ok" or result == &"cooldown":
+			_targeting_hero = -1
+		return
+	var hero := _hero_at(world_pos)
+	if hero >= 0:
+		_toggle_hero(hero)
+		return
+	var spot := _spot_at(world_pos)
+	if spot >= 0:
+		_select_hero(-1)
+		_select(spot)
+		return
+	if _selected_hero >= 0:
+		# Mover es una acción completa: tras dar la orden, el héroe se deselecciona.
+		_command(world.move_hero(_selected_hero, logical))
+		_select_hero(-1)
+		return
+	_select(-1)
+
+
+func _hero_at(world_pos: Vector2) -> int:
+	for i in world.heroes.heroes.size():
+		# El sprite es alto: se compara con el centro del cuerpo, no con el pie.
+		var body := _view.hero_screen_pos(i) + Vector2(0, -20)
+		if world_pos.distance_to(body) <= HERO_PICK_RADIUS:
+			return i
+	return -1
+
+
+func _select_hero(index: int) -> void:
+	_selected_hero = index if index < world.heroes.heroes.size() else -1
+	_targeting_hero = -1
+	_view.selected_hero = _selected_hero
+	if _selected_hero >= 0:
+		_select(-1)
+
+
+## Tocar al héroe ya seleccionado (en el mapa o en su tarjeta) lo deselecciona.
+func _toggle_hero(index: int) -> void:
+	_select_hero(-1 if index == _selected_hero and _targeting_hero < 0 else index)
+
+
+func _begin_targeting(index: int) -> void:
+	if index < 0 or index >= world.heroes.heroes.size():
+		return
+	_select_hero(index)
+	if world.heroes.heroes[index].ability_cd == 0:
+		_targeting_hero = index
 
 
 func _spot_at(world_pos: Vector2) -> int:
@@ -183,7 +259,7 @@ func _spot_at(world_pos: Vector2) -> int:
 
 func _select(spot: int) -> void:
 	_view.set_selected_spot(spot)
-	_hud.select_spot(spot)
+	_hud.select_spot(spot, Iso.to_screen(map_def.build_spots[spot]) if spot >= 0 else Vector2.ZERO)
 
 
 func _toggle_stress() -> void:
@@ -228,6 +304,21 @@ func _autoplay_step() -> void:
 			world.build(spot, StringName(mission.towers[spot % mission.towers.size()]))
 	if not world.wave_active and not world.is_over():
 		world.start_next_wave()
+	# Héroes: cada uno lanza su habilidad cuando está lista y hay enemigos, apuntando
+	# al tramo final de la ruta (detalles de prueba, no lógica del juego).
+	var route := map_def.routes[0]
+	var near_base := route[route.size() - 2].lerp(route[route.size() - 1], 0.5)
+	for i in world.heroes.heroes.size():
+		var h: Dictionary = world.heroes.heroes[i]
+		if h.ability_cd > 0 or world.enemy_count == 0:
+			continue
+		var def: HeroDef = h.def
+		var to := near_base
+		if def.ability_kind == HeroDef.ABILITY_LINE_STRIKE:
+			to = route[route.size() - 2]
+		elif h.pos.distance_to(to) > def.ability_range:
+			to = h.pos + (to - h.pos).normalized() * def.ability_range
+		world.cast_ability(i, to)
 
 
 ## `--screenshot=ruta.png [--frames=N]`: guarda una captura tras N frames y sale.

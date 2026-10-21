@@ -23,7 +23,7 @@ clear_bonus = 25
 [sub_resource type="Resource" id="Resource_ms6c2"]
 script = ExtResource("2_2sx8s")
 enemies = PackedStringArray("enemy_light", "enemy_armored", "enemy_fast")
-counts = PackedInt32Array(12, 6, 10)
+counts = PackedInt32Array(14, 6, 12)
 spacing = PackedFloat32Array(0.7, 1.6, 0.4)
 start_delay = PackedFloat32Array(0, 2, 8)
 route = PackedInt32Array()
@@ -37,3 +37,4 @@ map_scene = "res://maps/w1/w1_m1.tscn"
 start_gold = 150
 waves = Array[ExtResource("2_2sx8s")]([SubResource("Resource_myrsw"), SubResource("Resource_n47o7"), SubResource("Resource_ms6c2")])
 towers = PackedStringArray("tower_corrupt", "tower_seal", "tower_bounce")
+heroes = PackedStringArray("hero_portal", "hero_blade")

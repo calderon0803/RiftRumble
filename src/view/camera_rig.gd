@@ -16,9 +16,14 @@ var _pinch_start_dist := 0.0
 var _pinch_start_zoom := 1.0
 
 
-func setup(map_bounds: Rect2, initial_zoom: float) -> void:
+## `initial_zoom` <= 0: zoom que encaja el mapa entero en la pantalla.
+func setup(map_bounds: Rect2, initial_zoom: float = 0.0) -> void:
 	bounds = map_bounds
 	position = bounds.get_center()
+	if initial_zoom <= 0.0:
+		var vp := get_viewport_rect().size
+		initial_zoom = clampf(minf(vp.x / bounds.size.x, (vp.y - 90.0) / bounds.size.y) * 1.05, ZOOM_MIN, ZOOM_MAX)
+		position.y -= 30.0 / initial_zoom  # deja sitio a la barra superior
 	zoom = Vector2.ONE * initial_zoom
 	_clamp()
 

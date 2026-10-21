@@ -30,6 +30,23 @@ static func build() -> Theme:
 	t.set_stylebox("normal", "AccentButton", _box(Color("1f6f78"), ACCENT, 2, 6))
 	t.set_stylebox("hover", "AccentButton", _box(Color("2a8a95"), Color.WHITE, 2, 6))
 
+	# Menú contextual sobre las plataformas: compacto.
+	t.set_type_variation(&"SpotMenu", &"PanelContainer")
+	var menu := _box(Color(INK, 0.94), ACCENT, 2, 8)
+	menu.set_content_margin_all(5)
+	t.set_stylebox("panel", "SpotMenu", menu)
+	t.set_type_variation(&"SpotButton", &"Button")
+	t.set_font_size("font_size", "SpotButton", 13)
+	for state in ["normal", "hover", "pressed", "disabled"]:
+		var b: StyleBoxFlat = t.get_stylebox(state, "Button").duplicate()
+		b.set_content_margin_all(3)
+		t.set_stylebox(state, "SpotButton", b)
+	t.set_color("font_color", "SpotButton", GOLD)
+	t.set_color("font_disabled_color", "SpotButton", Color(1, 1, 1, 0.3))
+	t.set_type_variation(&"MenuTitle", &"Label")
+	t.set_font_size("font_size", "MenuTitle", 13)
+	t.set_color("font_color", "MenuTitle", ACCENT)
+
 	t.set_type_variation(&"StatLabel", &"Label")
 	t.set_font_size("font_size", "StatLabel", 20)
 	t.set_color("font_color", "StatLabel", GOLD)

@@ -4,6 +4,7 @@
 ##   Props (Node2D, Y-sort)     → decorado alto (bloques, plataformas…)
 ##   Routes/RouteN (Path2D)     → rutas enemigas, en orden de recorrido
 ##   BuildSpots/* (Marker2D)    → posiciones de construcción
+##   HeroSpawns/* (Marker2D)    → posiciones iniciales de los héroes (opcional)
 ## `build_def()` convierte todo a coordenadas lógicas para la simulación.
 extends Node2D
 
@@ -12,6 +13,8 @@ const Iso := preload("res://src/view/iso.gd")
 
 ## Tamaño del mapa en casillas.
 @export var size := Vector2i(18, 12)
+## Ancho del camino en casillas (las rutas son su línea central).
+@export var path_width := 1.0
 ## Las rutas solo se dibujan en el editor (en juego las representa el suelo).
 @export var show_routes_in_game := false
 
@@ -24,6 +27,7 @@ func _ready() -> void:
 func build_def() -> MapDef:
 	var def := MapDef.new()
 	def.size = size
+	def.path_width = path_width
 	for route in $Routes.get_children():
 		if route is Path2D and route.curve:
 			var pts := PackedVector2Array()
@@ -34,6 +38,11 @@ func build_def() -> MapDef:
 	for spot in $BuildSpots.get_children():
 		if spot is Marker2D:
 			def.build_spots.append(_snap(Iso.to_logical(spot.position)))
+	var hero_spawns := get_node_or_null(^"HeroSpawns")
+	if hero_spawns:
+		for spawn in hero_spawns.get_children():
+			if spawn is Marker2D:
+				def.hero_spawns.append(_snap(Iso.to_logical(spawn.position)))
 	return def
 
 

@@ -5,6 +5,8 @@
 
 [resource]
 script = ExtResource("1_ivoel")
+melee_damage = 5.0
+melee_interval = 1.2
 id = &"enemy_armored"
 display_name = "Cascarón"
 hp = 26.0

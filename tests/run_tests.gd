@@ -426,6 +426,192 @@ func test_mission_with_sensible_defense_is_won() -> void:
 	check(outcome == SimWorld.Outcome.VICTORY, "con una defensa razonable se gana (vida base %d)" % w.base_hp)
 
 
+# --- Héroes -----------------------------------------------------------------------
+
+func _hero_world(hero_id: StringName, pos: Vector2) -> SimWorld:
+	var w := _world([Vector2(0, 0), Vector2(20, 0)])
+	w.heroes.add_hero(_db().heroes[hero_id], pos)
+	return w
+
+
+func test_hero_moves_onto_the_path() -> void:
+	var w := _hero_world(&"hero_blade", Vector2(5, 0))
+	check(w.move_hero(0, Vector2(9, 3)) == &"ok", "orden de movimiento aceptada")
+	check(w.heroes.heroes[0].target.is_equal_approx(Vector2(9, 0)), "el destino se ajusta al camino")
+	_run(w, 60)
+	check(w.heroes.heroes[0].pos.is_equal_approx(Vector2(9, 0)), "llega al punto del camino y se detiene")
+
+
+func test_hero_blocks_up_to_capacity() -> void:
+	var w := _hero_world(&"hero_portal", Vector2(10, 0))  # bloquea a 2
+	var slots := []
+	for d in [0.0, 1.5, 3.0]:
+		slots.append(w.spawn_enemy(100000.0, 2.0, d))
+	_run(w, 30 * 6)
+	var blocked := slots.filter(func(s): return w.e_blocker[s] == 0)
+	check(blocked.size() == 2, "bloquea a 2 enemigos (%d)" % blocked.size())
+	for s in blocked:
+		check(w.e_pos[s].distance_to(Vector2(10, 0)) <= 1.0, "los bloqueados se detienen junto al héroe")
+	var free: Array = slots.filter(func(s): return w.e_blocker[s] < 0)
+	check(free.size() == 1 and w.e_dist[free[0]] > 11.0, "el tercero sigue su camino")
+	check(w.heroes.heroes[0].hp < _db().heroes[&"hero_portal"].max_hp, "los bloqueados le hacen daño")
+
+
+func test_hero_dies_releases_and_respawns() -> void:
+	var w := _hero_world(&"hero_portal", Vector2(10, 0))
+	var def: HeroDef = _db().heroes[&"hero_portal"]
+	var h: Dictionary = w.heroes.heroes[0]
+	var e := w.spawn_enemy(100000.0, 2.0, 8.0)
+	_run(w, 30)
+	check(w.e_blocker[e] == 0, "enemigo bloqueado")
+	h.hp = 3.0  # dos golpes de 2 lo derriban
+	var ev := _run(w, 70)
+	check(_count(ev, &"hero_died") == 1, "el héroe cae")
+	check(w.e_blocker[e] == -1, "al caer suelta al enemigo")
+	check(w.move_hero(0, Vector2(4, 0)) == &"dead", "caído no acepta órdenes")
+	var d0 := w.e_dist[e]
+	_run(w, 10)
+	check(w.e_dist[e] > d0, "el enemigo liberado avanza")
+	ev = _run(w, roundi(def.respawn_time * SimWorld.TICK_RATE))
+	check(_count(ev, &"hero_respawned") == 1, "reaparece tras %d s" % roundi(def.respawn_time))
+	check(h.hp == def.max_hp and h.pos == h.spawn, "con la vida completa en su posición inicial")
+
+
+func test_hero_regenerates_when_not_fighting() -> void:
+	var w := _hero_world(&"hero_blade", Vector2(10, 0))
+	var h: Dictionary = w.heroes.heroes[0]
+	h.hp = 10.0
+	_run(w, 60)
+	var def: HeroDef = _db().heroes[&"hero_blade"]
+	check(is_equal_approx(h.hp, 10.0 + def.regen_per_second * 2.0), "recupera %.0f de vida por segundo" % def.regen_per_second)
+
+
+func test_blade_basic_attack_builds_capped_charge() -> void:
+	var w := _hero_world(&"hero_blade", Vector2(6, 1))
+	w.spawn_enemy(1000.0, 0.0, 6.0)  # enemigo inmóvil al lado
+	var hero: Dictionary = w.heroes.heroes[0]
+	_run(w, 30 * 3)  # 3 s a 0,6 s por golpe: 5 golpes
+	check(hero.charge == 5, "cada golpe suma carga (%d)" % hero.charge)
+	_run(w, 30 * 3)
+	check(hero.charge == 6, "la carga se limita a 6")
+
+
+func test_blade_line_strike_hits_only_aligned_enemies() -> void:
+	var w := _hero_world(&"hero_blade", Vector2(0, 5))  # lejos de la ruta: sin ataque básico
+	var hero: Dictionary = w.heroes.heroes[0]
+	hero.charge = 3
+	var aligned := [w.spawn_enemy(1000.0, 0.0, 2.0), w.spawn_enemy(1000.0, 0.0, 4.0)]
+	var off := w.spawn_enemy(1000.0, 0.0, 12.0)
+	w.heroes.heroes[0].pos = Vector2(0, 0)
+	check(w.cast_ability(0, Vector2(1, 0)) == &"ok", "lanza el corte")
+	var def: HeroDef = _db().heroes[&"hero_blade"]
+	var expected := (def.ability_damage + def.ability_damage_per_charge * 3) * (1.0 - 0.0)
+	for s in aligned:
+		check(is_equal_approx(1000.0 - w.e_hp[s], expected), "daño %.1f a un enemigo alineado" % expected)
+	check(w.e_hp[off] == 1000.0, "un enemigo fuera de la línea no recibe daño")
+	check(hero.charge == 0, "el corte consume la carga")
+	check(w.cast_ability(0, Vector2(1, 0)) == &"cooldown", "respeta el tiempo de recarga")
+	_run(w, roundi(def.ability_cooldown * SimWorld.TICK_RATE))
+	check(w.cast_ability(0, Vector2(1, 0)) == &"ok", "disponible al terminar la recarga")
+
+
+func test_portal_redirects_tower_fire_while_active() -> void:
+	var w := _hero_world(&"hero_portal", Vector2(2, 3))
+	var def: HeroDef = _db().heroes[&"hero_portal"]
+	w.add_tower(Vector2(2, 4), 1.5, 0.5, 2.0, 20.0)  # alcance corto: no llega a la ruta
+	var target := w.spawn_enemy(1000.0, 0.0, 15.0)    # en (15, 0), lejos de todo
+	var ev := _run(w, 60)
+	check(_count(ev, &"enemy_hit") == 0, "sin portal la torre no alcanza al enemigo")
+	check(w.cast_ability(0, Vector2(15, 1)) == &"out_of_range", "la salida debe estar en alcance")
+	check(w.cast_ability(0, Vector2(9, 1)) == &"ok", "abre el portal")
+	w.e_pos[target] = Vector2(9, 0)  # el enemigo junto a la salida
+	w.e_dist[target] = 9.0
+	ev = _run(w, roundi(def.ability_duration * SimWorld.TICK_RATE))
+	var hits := ev.filter(func(e): return e.type == &"enemy_hit" and e.slot == target)
+	check(hits.size() >= 5, "con portal la torre alcanza al enemigo (%d impactos)" % hits.size())
+	check(is_equal_approx(hits[0].amount, 2.0 * def.ability_damage_mult), "daño ×%.2f a través del portal" % def.ability_damage_mult)
+	check(_count(ev, &"portal_closed") == 1, "el portal se cierra al acabar su duración")
+	ev = _run(w, 60)
+	check(_count(ev, &"enemy_hit") == 0, "cerrado el portal, la torre deja de alcanzarlo")
+
+
+# --- Sinergia «corrupción en enemigos ralentizados» ------------------------------
+
+func _synergy_world() -> SimWorld:
+	var w := _world([Vector2(0, 0), Vector2(20, 0)])
+	w.synergies = _db().synergies.values()
+	return w
+
+
+func test_synergy_extra_stack_only_when_slowed() -> void:
+	var w := _synergy_world()
+	var corr: EffectDef = _db().towers[&"tower_corrupt"].on_hit_effect
+	var seal: EffectDef = _db().towers[&"tower_seal"].on_hit_effect
+	var normal := w.spawn_enemy(100.0, 0.0, 2.0)
+	var slowed := w.spawn_enemy(100.0, 0.0, 10.0)
+	w.effects.apply(w, slowed, seal)
+	w.effects.apply(w, normal, corr)
+	w.effects.apply(w, slowed, corr)
+	check(w.effects.stacks_of(normal, &"corruption") == 1, "sin ralentizar: 1 pila")
+	check(w.effects.stacks_of(slowed, &"corruption") == 2, "ralentizado: 1 + 1 pila extra")
+	var ev := w.drain_events()
+	check(_count(ev, &"synergy_triggered") == 1, "la sinergia solo se activa en el ralentizado")
+
+
+func test_synergy_spreads_on_reaching_max_without_chaining() -> void:
+	var w := _synergy_world()
+	var corr: EffectDef = _db().towers[&"tower_corrupt"].on_hit_effect
+	var seal: EffectDef = _db().towers[&"tower_seal"].on_hit_effect
+	var src := w.spawn_enemy(100.0, 0.0, 10.0)
+	var near := []
+	for d in [9.0, 9.5, 10.5, 11.0]:  # 4 vecinos; la propagación alcanza a 3
+		near.append(w.spawn_enemy(100.0, 0.0, d))
+	var far := w.spawn_enemy(100.0, 0.0, 16.0)
+	for s in near:  # los vecinos también ralentizados: comprueba que no encadenan
+		w.effects.apply(w, s, seal)
+	w.effects.apply(w, src, seal)
+	w.drain_events()
+	w.effects.apply(w, src, corr)  # 2 pilas
+	check(_count(w.drain_events(), &"synergy_spread") == 0, "no se propaga antes del máximo")
+	w.effects.apply(w, src, corr)  # 3 pilas = máximo → propaga
+	var ev := w.drain_events()
+	var spreads := ev.filter(func(e): return e.type == &"synergy_spread")
+	check(spreads.size() == 1 and spreads[0].targets.size() == 3, "se propaga a 3 enemigos cercanos")
+	var corrupted := 0
+	for s in near:
+		corrupted += 1 if w.effects.stacks_of(s, &"corruption") > 0 else 0
+	check(corrupted == 3, "3 vecinos corrompidos")
+	check(w.effects.stacks_of(far, &"corruption") == 0, "el lejano no se corrompe")
+	check(_count(ev, &"synergy_triggered") == 1, "la propagación no reactiva la sinergia (sin cadenas)")
+	w.effects.apply(w, src, corr)
+	check(_count(w.drain_events(), &"synergy_spread") == 0, "ya en el máximo, no vuelve a propagarse")
+
+
+## Aceptación: las habilidades cambian el desarrollo del combate.
+## Oleada 3 con una sola torre (no basta por sí sola). Kira se coloca en la
+## esquina (14, 4) y corta a lo largo de la columna por la que suben los enemigos
+## cada vez que su habilidad está lista.
+func test_hero_abilities_change_the_outcome() -> void:
+	var leaks := []
+	for use_abilities in [false, true]:
+		var w := _mission_world()
+		w.build(1, &"tower_corrupt")
+		w.wave_index = 1  # la siguiente es la 3
+		w.start_next_wave()
+		var blade := 1
+		w.move_hero(blade, Vector2(14, 4.5))
+		var leaked := 0
+		for i in 30 * 60:
+			if use_abilities and w.enemy_count > 0:
+				w.cast_ability(blade, Vector2(14, 10))
+			w.step()
+			leaked += _count(w.drain_events(), &"enemy_leaked")
+			if not w.wave_active or w.is_over():
+				break
+		leaks.append(leaked)
+	check(leaks[1] < leaks[0], "usar habilidades reduce las fugas (%d → %d)" % [leaks[0], leaks[1]])
+
+
 # --- Determinismo -------------------------------------------------------------
 
 func test_determinism() -> void:

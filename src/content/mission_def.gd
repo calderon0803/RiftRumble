@@ -10,3 +10,5 @@ extends Resource
 @export var waves: Array[WaveDef] = []
 ## Ids de las torres que el jugador puede construir.
 @export var towers := PackedStringArray()
+## Ids de los héroes desplegados en la misión (uno por posición de inicio del mapa).
+@export var heroes := PackedStringArray()

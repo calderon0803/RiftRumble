@@ -2,8 +2,8 @@
 
 > *Defiende tu mundo. Rompe las reglas.*
 
-Tower defense isométrico 2.5D con héroes. Estado actual: **Fase 3 completada (combate y economía)**. Siguiente: Fase 4 (héroes y efectos).
-Documentación: [decisión tecnológica](docs/01-decision-tecnologica.md) · [resultados de la PoC](docs/02-resultados-poc.md) · [Fase 2](docs/03-fase-2-mundo-y-rutas.md) · [Fase 3](docs/04-fase-3-combate-y-economia.md).
+Tower defense isométrico 2.5D con héroes. Estado actual: **Fase 4 completada (héroes y efectos)**. Siguiente: Fase 5 (misión completa).
+Documentación: [decisión tecnológica](docs/01-decision-tecnologica.md) · [resultados de la PoC](docs/02-resultados-poc.md) · [Fase 2](docs/03-fase-2-mundo-y-rutas.md) · [Fase 3](docs/04-fase-3-combate-y-economia.md) · [Fase 4](docs/05-fase-4-heroes-y-efectos.md).
 
 ## Nombres provisionales
 Todos los nombres de torres, héroes, armas, enemigos, mundos y jefes son **provisionales**. Para que cambiarlos no afecte al código:
@@ -17,7 +17,7 @@ Todos los nombres de torres, héroes, armas, enemigos, mundos y jefes son **prov
 ## Estructura
 ```
 src/sim/       Simulación pura (sin nodos, tick fijo, determinista)
-src/content/   Tipos de contenido (TowerDef, EnemyDef, EffectDef, WaveDef, MissionDef, MapDef) y ContentDB
+src/content/   Tipos de contenido (TowerDef, EnemyDef, EffectDef, HeroDef, SynergyDef, WaveDef, MissionDef, MapDef) y ContentDB
 content/       Contenido del juego (.tres editables en el inspector)
 src/ui/        Interfaz (HUD y tema)
 src/maps/      Script de las escenas de mapa
@@ -67,6 +67,6 @@ Balance (juega la misión con varias estrategias):
 godot --headless --path . --script res://tools/balance.gd
 ```
 
-En el juego: toca una plataforma para construir, mejorar o vender; **N** lanza la oleada, **Espacio** pausa, **R** reinicia, la rueda o el pellizco hacen zoom y el botón derecho o un dedo arrastran la cámara. **S** recorre el modo estrés (depuración).
+En el juego: toca una plataforma para abrir su menú (construir, mejorar o vender); toca un héroe y luego el camino para moverlo; el botón de habilidad de su tarjeta y un toque en el mapa lanzan la habilidad; **N** lanza la oleada, **Espacio** pausa, **R** reinicia, la rueda o el pellizco hacen zoom y el botón derecho o un dedo arrastran la cámara. **S** recorre el modo estrés (depuración).
 
 > Tras clonar, ejecuta primero `--import` una vez: registra las clases de contenido (`TowerDef`…) que usan los tests.

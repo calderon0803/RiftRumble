@@ -32,6 +32,8 @@ func _init() -> void:
 	_save(_proj_pixel(), "proj_pixel.png")
 	_save(_proj_seal(), "proj_seal.png")
 	_save(_proj_ball(), "proj_ball.png")
+	_save(_hero_portal(), "hero_portal.png")
+	_save(_hero_blade(), "hero_blade.png")
 	quit()
 
 
@@ -376,6 +378,67 @@ func _proj_ball() -> Image:
 			var d := Vector2(x, y).distance_to(Vector2(4, 4))
 			if d < 4.2:
 				img.set_pixel(x, y, Color("ffd0b0") if (x < 4 and y < 4) else Color("ff7a45"))
+	_outline(img)
+	return img
+
+
+## Cuerpo base de héroe (hoja 4 × 32×48, pie en (16, 46)): piernas, torso y cabeza.
+func _hero_body(img: Image, ox: int, bob: int, coat: Color, coat_dark: Color, skin: Color) -> void:
+	for leg in [-1, 1]:  # piernas
+		for y in range(36, 46):
+			for x in range(ox + 16 + leg * 3 - 1, ox + 16 + leg * 3 + 2):
+				img.set_pixel(x, y, Color("2a2440"))
+	for y in range(20 + bob, 38):  # torso / abrigo
+		var half := 6 + (y - 20) / 5
+		for x in range(ox + 16 - half, ox + 16 + half):
+			img.set_pixel(x, y, coat if x < ox + 16 else coat_dark)
+	for y in range(10 + bob, 20 + bob):  # cabeza
+		for x in range(ox + 11, ox + 21):
+			if Vector2(x, y).distance_to(Vector2(ox + 15.5, 14.5 + bob)) < 5.2:
+				img.set_pixel(x, y, skin)
+
+
+## Héroe del portal (Nexo, provisional): capucha violeta y guantelete brillante.
+func _hero_portal() -> Image:
+	var img := _img(128, 48)
+	for f in 4:
+		var ox := f * 32
+		var bob: int = [0, 0, -1, -1][f]
+		_hero_body(img, ox, bob, Color("4b3a9e"), Color("33287a"), Color("f2c9a0"))
+		for y in range(7 + bob, 15 + bob):  # capucha
+			for x in range(ox + 9, ox + 23):
+				if Vector2(x, y).distance_to(Vector2(ox + 15.5, 14 + bob)) < 7.0 and 						not Vector2(x, y).distance_to(Vector2(ox + 15.5, 16 + bob)) < 4.6:
+					img.set_pixel(x, y, Color("6a56d0"))
+		for ex in [13, 18]:  # ojos
+			img.set_pixel(ox + ex, 15 + bob, Color("6ff3ff"))
+		var glow := Color("6ff3ff") if f % 2 == 0 else Color("b8fbff")
+		for y in range(25 + bob, 33 + bob):  # guantelete grande
+			for x in range(ox + 22, ox + 29):
+				img.set_pixel(x, y, Color("2bb5a8") if (x + y) % 3 else glow)
+	_outline(img)
+	return img
+
+
+## Héroe de la espada (Kira Volt, provisional): pelo de punta y hoja de energía.
+func _hero_blade() -> Image:
+	var img := _img(128, 48)
+	for f in 4:
+		var ox := f * 32
+		var bob: int = [0, 0, -1, -1][f]
+		_hero_body(img, ox, bob, Color("d8344f"), Color("a3223a"), Color("f6d2b0"))
+		for i in 5:  # pelo blanco en punta
+			for y in range(6 + bob - (i % 2) * 2, 12 + bob):
+				img.set_pixel(ox + 11 + i * 2, y, Color("f4f4ff"))
+				img.set_pixel(ox + 12 + i * 2, y, Color("d9dcff"))
+		for ex in [13, 18]:
+			img.set_pixel(ox + ex, 15 + bob, Color("1e1830"))
+		var blade := Color("ff6fd8") if f % 2 == 0 else Color("ffd0f4")
+		for i in 18:  # espada diagonal
+			var x := ox + 6 - i / 3
+			var y := 34 + bob - i
+			if x >= ox and y >= 0:
+				img.set_pixel(x + 8, y, blade)
+				img.set_pixel(x + 9, y, Color("6ff3ff"))
 	_outline(img)
 	return img
 

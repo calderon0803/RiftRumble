@@ -15,6 +15,30 @@ func _init(waypoints: PackedVector2Array) -> void:
 		_cumulative.append(length)
 
 
+## Polilínea desplazada lateralmente `offset` casillas (positivo = a la izquierda
+## del sentido de avance), con esquinas a inglete para que no haya saltos.
+static func offset_points(pts: PackedVector2Array, offset: float) -> PackedVector2Array:
+	if is_zero_approx(offset):
+		return pts
+	var out := PackedVector2Array()
+	for i in pts.size():
+		var n_in := Vector2.ZERO
+		var n_out := Vector2.ZERO
+		if i > 0:
+			var d := (pts[i] - pts[i - 1]).normalized()
+			n_in = Vector2(-d.y, d.x)
+		if i < pts.size() - 1:
+			var d := (pts[i + 1] - pts[i]).normalized()
+			n_out = Vector2(-d.y, d.x)
+		var n := n_in if n_out == Vector2.ZERO else n_out
+		var miter := n
+		if n_in != Vector2.ZERO and n_out != Vector2.ZERO:
+			miter = (n_in + n_out).normalized()
+			n = n_out
+		out.append(pts[i] + miter * (offset / maxf(miter.dot(n), 0.3)))
+	return out
+
+
 ## Posición a una distancia `d` desde el inicio, limitada a [0, length].
 func sample(d: float) -> Vector2:
 	if d <= 0.0:

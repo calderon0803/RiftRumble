@@ -7,16 +7,20 @@ extends SceneTree
 const Iso := preload("res://src/view/iso.gd")
 const MapScene := preload("res://src/maps/map_scene.gd")
 
-const SIZE := Vector2i(18, 12)
+const SIZE := Vector2i(20, 14)
+## Camino de 2 casillas: la ruta va por los bordes entre casillas (línea central).
+const PATH_WIDTH := 2.0
 const ROUTE := [
-	Vector2(0.0, 2.5), Vector2(7.5, 2.5), Vector2(7.5, 8.5),
-	Vector2(12.5, 8.5), Vector2(12.5, 3.5), Vector2(18.0, 3.5),
+	Vector2(0.0, 3.0), Vector2(8.0, 3.0), Vector2(8.0, 10.0),
+	Vector2(14.0, 10.0), Vector2(14.0, 4.0), Vector2(20.0, 4.0),
 ]
-const BUILD_SPOTS := [Vector2(5.5, 4.5), Vector2(10.5, 5.5), Vector2(14.5, 5.5)]
-const BLOCKS := [Vector2(2.5, 5.5), Vector2(3.5, 5.5), Vector2(9.5, 1.5),
-	Vector2(15.5, 8.5), Vector2(16.5, 8.5), Vector2(4.5, 9.5)]
-const BUSHES := [Vector2(1.5, 0.5), Vector2(10.5, 10.5), Vector2(16.5, 0.5),
-	Vector2(0.5, 7.5), Vector2(13.5, 10.5), Vector2(5.5, 0.5)]
+const BUILD_SPOTS := [Vector2(5.5, 5.5), Vector2(11.5, 6.5), Vector2(16.5, 7.5)]
+## Posiciones iniciales de los héroes (sobre el camino).
+const HERO_SPAWNS := [Vector2(8.0, 6.0), Vector2(17.0, 4.0)]
+const BLOCKS := [Vector2(2.5, 6.5), Vector2(3.5, 6.5), Vector2(10.5, 1.5),
+	Vector2(17.5, 10.5), Vector2(18.5, 10.5), Vector2(4.5, 11.5)]
+const BUSHES := [Vector2(1.5, 0.5), Vector2(11.5, 12.5), Vector2(18.5, 1.5),
+	Vector2(0.5, 8.5), Vector2(15.5, 12.5), Vector2(5.5, 0.5)]
 
 ## Coordenadas de atlas en ground_tiles.png.
 const GRASS_A := Vector2i(0, 0)
@@ -34,6 +38,7 @@ func _init() -> void:
 	root.name = "W1M1"
 	root.set_script(MapScene)
 	root.size = SIZE
+	root.path_width = PATH_WIDTH
 	root.y_sort_enabled = true
 
 	var ground := TileMapLayer.new()
@@ -69,6 +74,15 @@ func _init() -> void:
 		m.name = "Spot%d" % i
 		m.position = Iso.to_screen(BUILD_SPOTS[i])
 		_add(spots, m, root)
+
+	var hero_spawns := Node2D.new()
+	hero_spawns.name = "HeroSpawns"
+	_add(root, hero_spawns, root)
+	for i in HERO_SPAWNS.size():
+		var m := Marker2D.new()
+		m.name = "Hero%d" % i
+		m.position = Iso.to_screen(HERO_SPAWNS[i])
+		_add(hero_spawns, m, root)
 
 	# El suelo se pinta a partir de los datos de la propia escena.
 	var def = root.build_def()

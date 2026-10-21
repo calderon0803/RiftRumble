@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="SynergyDef" format=3]
+
+[ext_resource type="Script" path="res://src/content/synergy_def.gd" id="1_si2ki"]
+[ext_resource type="Resource" path="res://content/effects/corruption.tres" id="2_7o4rt"]
+
+[resource]
+script = ExtResource("1_si2ki")
+id = &"syn_corrupt_slowed"
+display_name = "Error de sistema"
+description = "La corrupción acumula más rápido en enemigos ralentizados o inmovilizados y, al llegar al máximo, se propaga a los cercanos."
+trigger_effect = ExtResource("2_7o4rt")
+requires_any_flags = 3
+extra_stacks = 1
+spread_radius = 1.8
+spread_max_targets = 3
+spread_stacks = 2

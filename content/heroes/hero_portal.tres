@@ -1,0 +1,41 @@
+[gd_resource type="Resource" script_class="HeroDef" format=3]
+
+[ext_resource type="Texture2D" path="res://art/placeholder/projectile_bit.png" id="1_pmjfr"]
+[ext_resource type="Script" path="res://src/content/tower_def.gd" id="2_7jpr0"]
+[ext_resource type="Script" path="res://src/content/hero_def.gd" id="3_0uu6i"]
+[ext_resource type="Texture2D" path="res://art/placeholder/hero_portal.png" id="4_xi7os"]
+
+[sub_resource type="Resource" id="Resource_yrijp"]
+script = ExtResource("2_7jpr0")
+id = &"hero_attack"
+damage_type = &"energy"
+damage = PackedFloat32Array(1.2)
+interval = PackedFloat32Array(0.9)
+range_tiles = PackedFloat32Array(2.6)
+projectile_speed = 12.0
+armor_pierce = PackedFloat32Array(0)
+bounces = PackedInt32Array(0)
+cost = PackedInt32Array(0)
+projectile_sprite = ExtResource("1_pmjfr")
+level_names = PackedStringArray("")
+
+[resource]
+script = ExtResource("3_0uu6i")
+max_hp = 45.0
+block_count = 2
+id = &"hero_portal"
+display_name = "Nexo"
+title = "Guardián del Umbral"
+description = "Equilibrado y táctico. Redirige el fuego de tus torres a través de portales."
+attack = SubResource("Resource_yrijp")
+ability_kind = &"portal"
+ability_name = "Umbral"
+ability_description = "Abre un portal: la entrada queda junto a Nexo y la salida donde elijas. Las torres cercanas a la entrada sin objetivo disparan a través de él (+25 % de daño)."
+ability_cooldown = 14.0
+ability_range = 9.0
+ability_duration = 6.0
+ability_radius = 2.5
+ability_damage_mult = 1.25
+sprite = ExtResource("4_xi7os")
+sprite_offset = Vector2(0, -22)
+color = Color(0.43529412, 0.9529412, 1, 1)
