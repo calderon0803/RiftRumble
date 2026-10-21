@@ -110,6 +110,8 @@ func sync(alpha: float) -> void:
 		var new_pos := Iso.to_screen(_lerp_slot(_prev_e_pos, world.e_pos, i, alpha))
 		v.update_view(_time, new_pos.x - v.position.x, world.e_hp[i] / world.e_max_hp[i],
 				world.effects.view_flags[i])
+		var revives: EnemyDef = world.e_revive_into[i]
+		v.set_timer(world.e_timer[i] / (revives.revive_delay * SimWorld.TICK_RATE) if revives else -1.0)
 		v.position = new_pos
 
 	for i in _hero_views.size():

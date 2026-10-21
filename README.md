@@ -2,8 +2,8 @@
 
 > *Defiende tu mundo. Rompe las reglas.*
 
-Tower defense isométrico 2.5D con héroes. Estado actual: **Fase 4 completada (héroes y efectos)**. Siguiente: Fase 5 (misión completa).
-Documentación: [decisión tecnológica](docs/01-decision-tecnologica.md) · [resultados de la PoC](docs/02-resultados-poc.md) · [Fase 2](docs/03-fase-2-mundo-y-rutas.md) · [Fase 3](docs/04-fase-3-combate-y-economia.md) · [Fase 4](docs/05-fase-4-heroes-y-efectos.md).
+Tower defense isométrico 2.5D con héroes. Estado actual: **Fase 5 completada: el MVP jugable** (una misión completa de 5 oleadas con jefe). Siguiente: Fase 6 (persistencia).
+Documentación: [decisión tecnológica](docs/01-decision-tecnologica.md) · [resultados de la PoC](docs/02-resultados-poc.md) · [Fase 2](docs/03-fase-2-mundo-y-rutas.md) · [Fase 3](docs/04-fase-3-combate-y-economia.md) · [Fase 4](docs/05-fase-4-heroes-y-efectos.md) · [Fase 5](docs/06-fase-5-mision-completa.md).
 
 ## Nombres provisionales
 Todos los nombres de torres, héroes, armas, enemigos, mundos y jefes son **provisionales**. Para que cambiarlos no afecte al código:
@@ -25,6 +25,8 @@ src/view/      Presentación isométrica (lee el estado de la simulación)
 src/poc/       Utilidades de pruebas de rendimiento
 maps/          Escenas de mapa editables y TileSets
 art/placeholder/  Arte PROVISIONAL generado (se sustituirá)
+audio/placeholder/ Sonido PROVISIONAL generado (se sustituirá)
+src/audio/     Director de audio (eventos → sonidos)
 tests/         Tests headless
 tools/         Generadores, benchmark, balance y servidor web local
 docs/          Decisiones y resultados por fase
@@ -39,6 +41,10 @@ godot --headless --path . --import
 
 ```bash
 godot --headless --path . --script res://tests/run_tests.gd
+```
+
+```bash
+godot --headless --path . --script res://tests/scene_tests.gd
 ```
 
 ```bash

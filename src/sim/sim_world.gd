@@ -21,6 +21,11 @@ const ARMOR_IGNORING_TYPE := &"magic"
 
 enum Outcome { PLAYING, VICTORY, DEFEAT }
 
+## Segundos entre oleadas antes de que la siguiente empiece sola.
+const BETWEEN_WAVES := 20.0
+## Oro por segundo adelantado al lanzar una oleada antes de tiempo.
+const EARLY_CALL_GOLD_PER_SECOND := 1.0
+
 var paths: Array = []  # Array[SimPath], una por ruta
 ## Carriles por ruta: lane_paths[ruta][carril]. El carril 0 es la línea central;
 ## los demás, desplazados a cada lado según el ancho del camino.
@@ -65,6 +70,9 @@ var e_blocker := PackedInt32Array()  # héroe que lo bloquea (-1 = ninguno)
 var e_melee_damage := PackedFloat32Array()
 var e_melee_ticks := PackedInt32Array()  # intervalo entre golpes al héroe
 var e_melee_cd := PackedInt32Array()
+var e_can_revive := PackedByteArray()
+var e_timer := PackedInt32Array()        # núcleo: ticks para revivir · invocador: para invocar
+var e_revive_into: Array = []            # núcleo: EnemyDef que revive (o null)
 var enemy_count := 0
 var _enemy_free: Array[int] = []
 
@@ -96,6 +104,11 @@ var build_spots := PackedVector2Array()
 # --- Oleadas ----------------------------------------------------------------
 var wave_index := -1          # última oleada lanzada (-1 = ninguna)
 var wave_active := false
+## Ticks hasta que la siguiente oleada empiece sola (-1 = espera al jugador).
+var next_wave_ticks := -1
+## Estadísticas de la partida (pantalla de resultados).
+var stats := {kills = 0, leaks = 0, gold_earned = 0, gold_spent = 0, towers_built = 0,
+	hero_kos = 0, abilities_used = 0, early_bonus = 0}
 var _spawn_queue: Array = []  # [tick, EnemyDef, ruta], ordenada por tick
 
 var _next_id := 1
@@ -191,6 +204,8 @@ func build(spot: int, tower_id: StringName) -> StringName:
 	if gold < price:
 		return &"no_gold"
 	gold -= price
+	stats.gold_spent += price
+	stats.towers_built += 1
 	var t := place_tower(def, build_spots[spot], 1, spot)
 	t.invested = price
 	events.append({type = &"tower_built", spot = spot, tower = tower_id})
@@ -216,6 +231,7 @@ func upgrade(spot: int) -> StringName:
 	if gold < price:
 		return &"no_gold"
 	gold -= price
+	stats.gold_spent += price
 	t.level += 1
 	t.invested += price
 	events.append({type = &"tower_upgraded", spot = spot, level = t.level})
@@ -234,7 +250,7 @@ func sell(spot: int) -> StringName:
 	if t.is_empty():
 		return &"empty"
 	var refund := sell_value(spot)
-	gold += refund
+	gold += refund  # no cuenta como oro ganado: es recuperar inversión
 	towers.erase(t)
 	events.append({type = &"tower_sold", spot = spot, refund = refund})
 	return &"ok"
@@ -263,6 +279,12 @@ func start_next_wave() -> StringName:
 		return &"wave_active"
 	if wave_index + 1 >= waves_total():
 		return &"no_more_waves"
+	if next_wave_ticks > 0:
+		var bonus := ceili(next_wave_ticks / float(TICK_RATE) * EARLY_CALL_GOLD_PER_SECOND)
+		_earn(bonus)
+		stats.early_bonus += bonus
+		events.append({type = &"early_call_bonus", gold = bonus})
+	next_wave_ticks = -1
 	wave_index += 1
 	wave_active = true
 	var wave: WaveDef = mission.waves[wave_index]
@@ -293,6 +315,9 @@ func spawn_enemy(hp: float, speed: float, start_dist: float = 0.0, route: int = 
 	e_base_damage[slot] = 1
 	e_melee_damage[slot] = 2.0
 	e_melee_ticks[slot] = TICK_RATE
+	e_can_revive[slot] = 0
+	e_timer[slot] = 0
+	e_revive_into[slot] = null
 	_finish_spawn(slot, route, start_dist, lane)
 	return slot
 
@@ -308,6 +333,9 @@ func spawn(def: EnemyDef, route: int = 0, start_dist: float = 0.0, lane: int = 0
 	e_base_damage[slot] = def.base_damage
 	e_melee_damage[slot] = def.melee_damage
 	e_melee_ticks[slot] = maxi(1, roundi(def.melee_interval * TICK_RATE))
+	e_can_revive[slot] = 1 if def.revive_core else 0
+	e_timer[slot] = maxi(1, roundi(def.summon_interval * TICK_RATE)) if def.summon_enemy else 0
+	e_revive_into[slot] = null
 	_finish_spawn(slot, route, start_dist, lane)
 	return slot
 
@@ -350,6 +378,9 @@ func _alloc_enemy() -> int:
 	e_pos.append(Vector2.ZERO)
 	e_def.append(null)
 	e_blocker.append(-1)
+	e_can_revive.append(0)
+	e_timer.append(0)
+	e_revive_into.append(null)
 	e_melee_damage.append(0.0)
 	e_melee_ticks.append(TICK_RATE)
 	e_melee_cd.append(0)
@@ -377,13 +408,52 @@ func step() -> void:
 	if is_over():
 		return
 	_spawn_due()
+	_update_wave_timer()
 	effects.step(self)
+	_update_special_enemies()
 	heroes.step(self)
 	_move_enemies()
 	_update_towers()
 	_update_projectiles()
 	_check_wave_and_outcome()
 	tick += 1
+
+
+func _update_wave_timer() -> void:
+	if next_wave_ticks > 0:
+		next_wave_ticks -= 1
+		if next_wave_ticks == 0:
+			next_wave_ticks = -1
+			start_next_wave()
+
+
+## Núcleos de reaparición e invocadores (jefes y enemigos especiales).
+func _update_special_enemies() -> void:
+	for i in e_alive.size():
+		if e_alive[i] == 0 or e_timer[i] <= 0:
+			continue
+		e_timer[i] -= 1
+		if e_timer[i] > 0:
+			continue
+		if e_revive_into[i] != null:
+			# El núcleo ha sobrevivido: el enemigo vuelve (una sola vez).
+			var def: EnemyDef = e_revive_into[i]
+			var route := e_route[i]
+			var lane := e_lane[i]
+			var dist := e_dist[i]
+			events.append({type = &"core_expired", slot = i})
+			_remove_enemy(i)
+			var revived := spawn(def, route, dist, lane)
+			e_hp[revived] = def.hp * def.revive_hp_ratio
+			e_can_revive[revived] = 0
+			events.append({type = &"enemy_revived", slot = revived})
+		elif e_def[i] != null and e_def[i].summon_enemy:
+			var def: EnemyDef = e_def[i]
+			for k in def.summon_count:
+				spawn(def.summon_enemy, e_route[i], maxf(e_dist[i] - 0.4 * (k + 1), 0.0),
+						rng.randi_range(0, lane_offsets.size() - 1))
+			e_timer[i] = maxi(1, roundi(def.summon_interval * TICK_RATE))
+			events.append({type = &"enemy_summoned", slot = i, count = def.summon_count})
 
 
 func _spawn_due() -> void:
@@ -401,6 +471,7 @@ func _move_enemies() -> void:
 		e_dist[i] = d
 		if d >= p.length:
 			base_hp -= e_base_damage[i]
+			stats.leaks += 1
 			events.append({type = &"enemy_leaked", slot = i, damage = e_base_damage[i]})
 			_remove_enemy(i)
 		else:
@@ -588,11 +659,35 @@ func damage_enemy(slot: int, amount: float, damage_type: StringName = &"kinetic"
 	e_hp[slot] -= final
 	events.append({type = &"enemy_hit", slot = slot, amount = final, damage_type = damage_type})
 	if e_hp[slot] <= 0.0:
-		gold += e_bounty[slot]
+		_earn(e_bounty[slot])
+		stats.kills += 1
 		events.append({type = &"enemy_killed", slot = slot, bounty = e_bounty[slot]})
+		var def: EnemyDef = e_def[slot]
+		var drops_core := e_can_revive[slot] == 1 and def != null and def.revive_core != null
+		var route := e_route[slot]
+		var lane := e_lane[slot]
+		var dist := e_dist[slot]
 		_remove_enemy(slot)
+		if drops_core:
+			var core := spawn(def.revive_core, route, dist, lane)
+			e_revive_into[core] = def
+			e_timer[core] = maxi(1, roundi(def.revive_delay * TICK_RATE))
+			events.append({type = &"core_dropped", slot = core, of = def.id})
 		return true
 	return false
+
+
+func _earn(amount: int) -> void:
+	gold += amount
+	stats.gold_earned += amount
+
+
+## Estrellas según la vida restante de la base (0 si no se ha ganado).
+func stars() -> int:
+	if outcome != Outcome.VICTORY:
+		return 0
+	var ratio := base_hp / float(mission.base_hp) if mission else 1.0
+	return 3 if ratio >= 0.9 else (2 if ratio >= 0.5 else 1)
 
 
 ## Compatibilidad con los tests de la PoC.
@@ -609,17 +704,20 @@ func _remove_enemy(slot: int) -> void:
 
 func _check_wave_and_outcome() -> void:
 	if base_hp <= 0:
+		base_hp = 0
 		outcome = Outcome.DEFEAT
 		events.append({type = &"defeat"})
 		return
 	if wave_active and _spawn_queue.is_empty() and enemy_count == 0:
 		wave_active = false
 		var bonus: int = mission.waves[wave_index].clear_bonus
-		gold += bonus
+		_earn(bonus)
 		events.append({type = &"wave_cleared", index = wave_index, bonus = bonus})
 		if wave_index + 1 >= waves_total():
 			outcome = Outcome.VICTORY
 			events.append({type = &"victory"})
+		else:
+			next_wave_ticks = roundi(BETWEEN_WAVES * TICK_RATE)
 
 
 ## Huella del estado para comprobar determinismo y regresiones.

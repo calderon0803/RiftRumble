@@ -34,6 +34,8 @@ func _init() -> void:
 	_save(_proj_ball(), "proj_ball.png")
 	_save(_hero_portal(), "hero_portal.png")
 	_save(_hero_blade(), "hero_blade.png")
+	_save(_boss_w1(), "enemy_boss_w1.png")
+	_save(_boss_core(), "enemy_core.png")
 	quit()
 
 
@@ -439,6 +441,78 @@ func _hero_blade() -> Image:
 			if x >= ox and y >= 0:
 				img.set_pixel(x + 8, y, blade)
 				img.set_pixel(x + 9, y, Color("6ff3ff"))
+	_outline(img)
+	return img
+
+
+## Jefe del mundo 1 (provisional): gran gota real con corona, capa y cetro.
+## Hoja 4 × 64×64, pie en (32, 60).
+func _boss_w1() -> Image:
+	var img := _img(256, 64)
+	var body := Color("8a3fd1")
+	var belly := Color("c79bff")
+	var cape := Color("c0283c")
+	var gold := Color("ffd34d")
+	for f in 4:
+		var ox := f * 64
+		var bob: int = [0, -1, -2, -1][f]
+		var step: int = [0, 2, 0, -2][f]
+		for leg in [-1, 1]:  # patas
+			for y in range(52, 60):
+				for x in range(ox + 32 + leg * 9 + step * leg - 2, ox + 32 + leg * 9 + step * leg + 3):
+					img.set_pixel(x, y, OUTLINE)
+		for y in range(20, 58):  # capa detrás
+			var half := 8 + (y - 20) / 2
+			for x in range(ox + 32 - half, ox + 32 + half):
+				if y > 30:
+					img.set_pixel(x, y, cape if (x + y) % 9 else cape.darkened(0.2))
+		var c := Vector2(ox + 32, 36 + bob)
+		for y in range(12, 58):  # cuerpo
+			for x in range(ox + 8, ox + 56):
+				var e := Vector2((x - c.x) / 19.0, (y - c.y) / 17.0)
+				if e.length() <= 1.0:
+					img.set_pixel(x, y, belly if (e.y > 0.3 and absf(e.x) < 0.45) else body)
+		var top := int(c.y - 17)
+		for i in 5:  # corona de 5 puntas
+			var px := ox + 20 + i * 6
+			for y in range(top - 8 + (i % 2) * 3, top + 2):
+				for x in range(px, px + 4):
+					img.set_pixel(x, y, gold)
+			img.set_pixel(px + 1, top - 3, Color("ff5fd2"))
+		for x in range(ox + 18, ox + 47):  # banda de la corona
+			img.set_pixel(x, top + 1, gold.darkened(0.25))
+			img.set_pixel(x, top + 2, gold.darkened(0.25))
+		for ex in [25, 37]:  # ojos con ceño
+			for y in range(int(c.y) - 6, int(c.y) - 2):
+				for x in range(ox + ex, ox + ex + 3):
+					img.set_pixel(x, y, Color.WHITE)
+			img.set_pixel(ox + ex + 1, int(c.y) - 4, OUTLINE)
+			img.set_pixel(ox + ex + 2, int(c.y) - 4, OUTLINE)
+		for x in range(ox + 24, ox + 41):
+			img.set_pixel(x, int(c.y) - 8 + (1 if x < ox + 32 else 0), OUTLINE)
+		for y in range(16 + bob, 50 + bob):  # cetro con moneda de «continue»
+			img.set_pixel(ox + 54, y, gold.darkened(0.3))
+			img.set_pixel(ox + 55, y, gold.darkened(0.3))
+		for y in range(9 + bob, 17 + bob):
+			for x in range(ox + 50, ox + 60):
+				if Vector2(x, y).distance_to(Vector2(ox + 54.5, 13 + bob)) < 4.6:
+					img.set_pixel(x, y, gold if f % 2 == 0 else Color("fff4c2"))
+	_outline(img)
+	return img
+
+
+## Núcleo de reaparición (provisional): gema que late. Hoja 4 × 24×24, pie en (12, 22).
+func _boss_core() -> Image:
+	var img := _img(96, 24)
+	for f in 4:
+		var ox := f * 24
+		var r: float = [6.0, 7.0, 8.0, 7.0][f]
+		var glow: Color = [Color("ff5fd2"), Color("ff8be0"), Color("ffd0f4"), Color("ff8be0")][f]
+		for y in 24:
+			for x in range(ox, ox + 24):
+				var d := absf(x - ox - 11.5) / r + absf(y - 13.0) / (r + 2.0)
+				if d <= 1.0:
+					img.set_pixel(x, y, glow if d > 0.55 else Color("7a1f6a"))
 	_outline(img)
 	return img
 

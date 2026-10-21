@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="EnemyDef" format=3]
+
+[ext_resource type="Resource" path="res://content/enemies/enemy_core.tres" id="1_rn4fp"]
+[ext_resource type="Script" path="res://src/content/enemy_def.gd" id="2_x33sq"]
+[ext_resource type="Texture2D" path="res://art/placeholder/enemy_boss_w1.png" id="3_nsjkj"]
+[ext_resource type="Resource" path="res://content/enemies/enemy_light.tres" id="4_8jc31"]
+
+[resource]
+script = ExtResource("2_x33sq")
+id = &"enemy_boss_w1"
+display_name = "Rey del Reinicio"
+hp = 420.0
+speed = 0.55
+armor = 0.35
+bounty = 60
+base_damage = 10
+melee_damage = 10.0
+melee_interval = 1.5
+revive_core = ExtResource("1_rn4fp")
+revive_delay = 8.0
+summon_enemy = ExtResource("4_8jc31")
+summon_interval = 7.0
+summon_count = 2
+is_boss = true
+sprite = ExtResource("3_nsjkj")
+sprite_offset = Vector2(0, -28)

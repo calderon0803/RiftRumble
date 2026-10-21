@@ -20,6 +20,7 @@ const Iso := preload("res://src/view/iso.gd")
 const CameraRig := preload("res://src/view/camera_rig.gd")
 const WorldView := preload("res://src/view/world_view.gd")
 const Hud := preload("res://src/ui/hud.gd")
+const AudioDirector := preload("res://src/audio/audio_director.gd")
 const BUILD_PAD := preload("res://art/placeholder/build_pad.png")
 
 ## Misión que se carga (más adelante la elegirá el menú de selección).
@@ -48,6 +49,7 @@ var _world_root: Node2D
 var _view: WorldView
 var _camera: CameraRig
 var _hud: Hud
+var _audio: AudioDirector
 var _press_pos := Vector2.ZERO
 var _pressing := false
 var _selected_hero := -1
@@ -89,6 +91,8 @@ func _ready() -> void:
 
 	_hud = Hud.new()
 	add_child(_hud)
+	_audio = AudioDirector.new()
+	add_child(_audio)
 	# Construir o vender cierra el menú; mejorar lo deja abierto (se puede seguir).
 	_hud.build_requested.connect(func(spot, id): if _command(world.build(spot, id)): _select(-1))
 	_hud.upgrade_requested.connect(func(spot): _command(world.upgrade(spot)))
@@ -119,8 +123,9 @@ func _restart() -> void:
 		for i in stress_enemies:
 			world.spawn_enemy(40.0, 1.2, world.rng.randf_range(0.0, world.path.length * 0.95))
 	_view.bind(world)
-	_view.handle_events(world.drain_events())
+	_audio.world = world
 	_hud.bind(world, content)
+	_dispatch_events()
 	_select(-1)
 	_select_hero(-1)
 
@@ -129,6 +134,8 @@ func _restart() -> void:
 func _command(result: StringName) -> bool:
 	if result != &"ok":
 		print("Comando rechazado: %s" % result)
+		if result in [&"no_gold", &"cooldown", &"out_of_range", &"dead"]:
+			_audio.play("denied")
 	_select(_view.selected_spot)  # refresca el menú abierto
 	return result == &"ok"
 
@@ -155,7 +162,16 @@ func _run_tick() -> void:
 	var t0 := Time.get_ticks_usec()
 	world.step()
 	_sim_ms_avg = lerpf(_sim_ms_avg, (Time.get_ticks_usec() - t0) / 1000.0, 0.05)
-	_view.handle_events(world.drain_events())
+	_dispatch_events()
+
+
+## Reparte los eventos del tick entre la vista, la interfaz y el audio.
+func _dispatch_events() -> void:
+	var events := world.drain_events()
+	_view.handle_events(events)
+	_hud.on_events(events)
+	if _audio:
+		_audio.on_events(events)
 
 
 # --- Selección en el mapa --------------------------------------------------------
@@ -341,6 +357,7 @@ func _maybe_capture_screenshot() -> void:
 	print("SCREENSHOT %s (err=%d) fps=%d sim_ms=%.3f enemigos=%d oro=%d vida=%d oleada=%d resultado=%s" % [
 		out, err, Engine.get_frames_per_second(), _sim_ms_avg, world.enemy_count, world.gold,
 		world.base_hp, world.wave_index + 1, SimWorld.Outcome.keys()[world.outcome]])
+	_audio.stop_all()
 	get_tree().quit()
 
 

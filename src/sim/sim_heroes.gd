@@ -75,6 +75,7 @@ func cast(world, index: int, target: Vector2) -> StringName:
 			push_error("Tipo de habilidad desconocido: %s" % def.ability_kind)
 			return &"unknown_ability"
 	h.ability_cd = maxi(1, roundi(def.ability_cooldown * world.TICK_RATE))
+	world.stats.abilities_used += 1
 	return &"ok"
 
 
@@ -152,6 +153,7 @@ func _enemy_melee(world, index: int) -> void:
 		h.engaged = []
 		h.dead_ticks = maxi(1, roundi(h.def.respawn_time * world.TICK_RATE))
 		h.charge = 0
+		world.stats.hero_kos += 1
 		world.events.append({type = &"hero_died", hero = index})
 
 

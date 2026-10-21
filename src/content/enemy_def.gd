@@ -20,8 +20,23 @@ extends Resource
 @export var melee_damage := 2.0
 @export var melee_interval := 1.0
 
+@export_group("Mecánicas especiales")
+## Al morir deja este «núcleo» (enemigo inmóvil). Si el núcleo sobrevive
+## `revive_delay` segundos, el enemigo reaparece con `revive_hp_ratio` de su
+## vida. Solo una vez por enemigo.
+@export var revive_core: EnemyDef
+@export var revive_delay := 6.0
+@export_range(0.05, 1.0, 0.05) var revive_hp_ratio := 0.5
+## Invoca `summon_count` enemigos de este tipo cada `summon_interval` segundos.
+@export var summon_enemy: EnemyDef
+@export var summon_interval := 0.0
+@export var summon_count := 0
+## Jefe: la interfaz muestra su barra de vida.
+@export var is_boss := false
+
 @export_group("Presentación")
 @export var sprite: Texture2D
 @export var hframes := 4
 ## Desplazamiento del sprite para que el origen del nodo sea el pie.
 @export var sprite_offset := Vector2(0, -14)
+@export var sprite_scale := 1.0

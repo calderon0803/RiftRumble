@@ -245,7 +245,7 @@ func _mission_world() -> SimWorld:
 
 func test_content_is_consistent() -> void:
 	var db = _db()
-	check(db.towers.size() == 3 and db.enemies.size() == 3, "3 torres y 3 enemigos cargados")
+	check(db.towers.size() == 3 and db.enemies.size() >= 3, "3 torres y al menos 3 enemigos cargados")
 	var mission: MissionDef = db.missions[&"w1_m1"]
 	for t in mission.towers:
 		check(db.towers.has(StringName(t)), "la misión usa una torre existente: %s" % t)
@@ -610,6 +610,134 @@ func test_hero_abilities_change_the_outcome() -> void:
 				break
 		leaks.append(leaked)
 	check(leaks[1] < leaks[0], "usar habilidades reduce las fugas (%d → %d)" % [leaks[0], leaks[1]])
+
+
+# --- Fase 5: jefe, núcleo, invocación, ritmo de oleadas y resultados -------------
+
+func test_core_revives_enemy_once_if_not_destroyed() -> void:
+	var w := _world()
+	var boss: EnemyDef = _db().enemies[&"enemy_boss_w1"]
+	var s := w.spawn(boss, 0, 4.0)
+	w.damage_enemy(s, 99999.0, &"magic")
+	var ev := w.drain_events()
+	check(_count(ev, &"core_dropped") == 1, "al morir deja un núcleo")
+	var core: int = ev.filter(func(e): return e.type == &"core_dropped")[0].slot
+	check(w.e_def[core] == boss.revive_core, "el núcleo es su EnemyDef de núcleo")
+	ev = _run(w, roundi(boss.revive_delay * SimWorld.TICK_RATE))
+	var revived := ev.filter(func(e): return e.type == &"enemy_revived")
+	check(revived.size() == 1, "si el núcleo sobrevive, el jefe reaparece")
+	var r: int = revived[0].slot
+	check(is_equal_approx(w.e_hp[r], boss.hp * boss.revive_hp_ratio), "con el %d %% de su vida" % roundi(boss.revive_hp_ratio * 100))
+	check(w.e_dist[r] >= 4.0 and w.e_dist[r] < 4.2, "en el mismo punto de la ruta")
+	w.damage_enemy(r, 99999.0, &"magic")
+	check(_count(w.drain_events(), &"core_dropped") == 0, "solo reaparece una vez")
+
+
+func test_destroying_core_prevents_revive() -> void:
+	var w := _world()
+	var boss: EnemyDef = _db().enemies[&"enemy_boss_w1"]
+	var s := w.spawn(boss, 0, 4.0)
+	w.damage_enemy(s, 99999.0, &"magic")
+	var core: int = w.drain_events().filter(func(e): return e.type == &"core_dropped")[0].slot
+	w.damage_enemy(core, 99999.0, &"magic")
+	var ev := _run(w, roundi(boss.revive_delay * SimWorld.TICK_RATE) + 5)
+	check(_count(ev, &"enemy_revived") == 0, "con el núcleo destruido no reaparece")
+	check(w.enemy_count == 0, "no queda nada en el mapa")
+
+
+func test_boss_summons_periodically() -> void:
+	var w := _world([Vector2(0, 0), Vector2(200, 0)])  # ruta larga: nadie escapa
+	var boss: EnemyDef = _db().enemies[&"enemy_boss_w1"]
+	w.spawn(boss, 0, 1.0)
+	var ev := _run(w, roundi(boss.summon_interval * SimWorld.TICK_RATE) * 2 + 1)
+	check(_count(ev, &"enemy_summoned") == 2, "invoca cada %.0f s" % boss.summon_interval)
+	check(w.enemy_count == 1 + 2 * boss.summon_count, "%d invocados en total" % (2 * boss.summon_count))
+
+
+func test_next_wave_starts_automatically_after_countdown() -> void:
+	var w := _mission_world()
+	w.start_next_wave()
+	var cleared_at := -1
+	for i in 30 * 60:
+		# Despeja la oleada al instante para medir solo la cuenta atrás.
+		for s in w.e_alive.size():
+			if w.e_alive[s] == 1:
+				w.damage_enemy(s, 99999.0, &"magic")
+		w.step()
+		var ev := w.drain_events()
+		if _count(ev, &"wave_cleared") > 0:
+			cleared_at = w.tick
+		if _count(ev, &"wave_started") > 0 and cleared_at >= 0:
+			var waited := (w.tick - cleared_at) / float(SimWorld.TICK_RATE)
+			check(absf(waited - SimWorld.BETWEEN_WAVES) < 0.1, "la oleada 2 empieza sola tras %.0f s (%.2f)" % [SimWorld.BETWEEN_WAVES, waited])
+			return
+	check(false, "la oleada 2 no empezó sola")
+
+
+func test_early_call_gives_gold_for_skipped_time() -> void:
+	var w := _mission_world()
+	w.start_next_wave()
+	for i in 30 * 60:
+		for s in w.e_alive.size():
+			if w.e_alive[s] == 1:
+				w.damage_enemy(s, 99999.0, &"magic")
+		w.step()
+		if not w.wave_active and w.next_wave_ticks > 0:
+			break
+	_run(w, 30 * 5)  # esperamos 5 s de los 20
+	var gold0 := w.gold
+	check(w.start_next_wave() == &"ok", "se puede adelantar")
+	check(w.gold - gold0 == 15, "oro extra por los 15 s adelantados (%d)" % (w.gold - gold0))
+	check(w.next_wave_ticks == -1, "la cuenta atrás se cancela")
+
+
+func test_stars_and_stats() -> void:
+	var w := _mission_world()
+	w.outcome = SimWorld.Outcome.VICTORY
+	w.base_hp = 20
+	check(w.stars() == 3, "base intacta: 3 estrellas")
+	w.base_hp = 12
+	check(w.stars() == 2, "60 %% de la base: 2 estrellas")
+	w.base_hp = 3
+	check(w.stars() == 1, "victoria apurada: 1 estrella")
+	w.outcome = SimWorld.Outcome.DEFEAT
+	check(w.stars() == 0, "derrota: 0 estrellas")
+	var w2 := _mission_world()
+	w2.build(0, &"tower_corrupt")
+	var s := w2.spawn(_db().enemies[&"enemy_light"])
+	w2.damage_enemy(s, 999.0, &"magic")
+	check(w2.stats.towers_built == 1 and w2.stats.gold_spent == 70, "estadísticas de construcción")
+	check(w2.stats.kills == 1 and w2.stats.gold_earned == _db().enemies[&"enemy_light"].bounty, "estadísticas de bajas y oro")
+
+
+## Aceptación de la Fase 5: la misión completa (5 oleadas + jefe) se puede ganar
+## con una defensa razonable y perder sin ella, sin bloqueos del flujo.
+func test_full_mission_flow() -> void:
+	for plan in [[], [[&"build", 1, &"tower_corrupt"], [&"build", 0, &"tower_seal"], [&"build", 2, &"tower_bounce"],
+			[&"upgrade", 1], [&"upgrade", 2], [&"upgrade", 0]]]:
+		var w := _mission_world()
+		w.start_next_wave()
+		w.move_hero(1, Vector2(14, 4.5))
+		var waves_started := 0  # el evento de la primera se recoge en el bucle
+		for i in 30 * 60 * 12:
+			for action in plan:
+				if action[0] == &"build" and w.tower_at(action[1]).is_empty():
+					w.build(action[1], action[2])
+				elif action[0] == &"upgrade" and not w.wave_active:
+					w.upgrade(action[1])
+			if w.enemy_count > 0:
+				w.cast_ability(1, Vector2(14, 10))
+			w.step()
+			waves_started += _count(w.drain_events(), &"wave_started")
+			if w.is_over():
+				break
+		if plan.is_empty():
+			check(w.outcome == SimWorld.Outcome.DEFEAT, "sin torres se pierde")
+		else:
+			check(w.outcome == SimWorld.Outcome.VICTORY, "con defensa razonable se gana la misión (base %d)" % w.base_hp)
+			check(waves_started == 5, "se juegan las 5 oleadas")
+			var minutes := w.tick / float(SimWorld.TICK_RATE) / 60.0
+			check(minutes >= 3.0 and minutes <= 6.0, "duración en el objetivo de 3–6 min (%.1f)" % minutes)
 
 
 # --- Determinismo -------------------------------------------------------------

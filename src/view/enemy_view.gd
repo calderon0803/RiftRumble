@@ -16,6 +16,7 @@ const TINTS := [
 
 var _hp_ratio := 1.0
 var _bar: HealthBar
+var _timer_ring: TimerRing
 var _phase := 0.0
 var _flash := 0.0
 var _frames := 4
@@ -25,6 +26,10 @@ func _init() -> void:
 	_bar = HealthBar.new()
 	_bar.visible = false
 	add_child(_bar)
+	_timer_ring = TimerRing.new()
+	_timer_ring.visible = false
+	_timer_ring.z_index = -3
+	add_child(_timer_ring)
 
 
 func reset(slot: int, def: EnemyDef) -> void:
@@ -32,13 +37,16 @@ func reset(slot: int, def: EnemyDef) -> void:
 		texture = def.sprite
 		_frames = def.hframes
 		offset = def.sprite_offset
+		scale = Vector2.ONE * def.sprite_scale
 	else:
 		texture = DEFAULT_SHEET
 		_frames = 4
 		offset = Vector2(0, -14)
+		scale = Vector2.ONE
 	hframes = _frames
 	_hp_ratio = 1.0
 	_bar.visible = false
+	_timer_ring.visible = false
 	_flash = 0.0
 	_phase = slot * 0.37  # desincroniza la animación entre enemigos
 
@@ -67,6 +75,25 @@ func update_view(time: float, screen_dx: float, hp_ratio: float, flags: int) -> 
 		_bar.visible = hp_ratio < 1.0
 		_bar.ratio = hp_ratio
 		_bar.queue_redraw()
+
+
+## Cuenta atrás visible (p. ej., núcleo de reaparición): `ratio` < 0 la oculta.
+func set_timer(ratio: float) -> void:
+	_timer_ring.visible = ratio >= 0.0
+	if _timer_ring.visible and not is_equal_approx(ratio, _timer_ring.ratio):
+		_timer_ring.ratio = ratio
+		_timer_ring.queue_redraw()
+
+
+## Anillo en el suelo que se vacía con el tiempo restante.
+class TimerRing extends Node2D:
+	var ratio := 1.0
+
+	func _draw() -> void:
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2(1.0, 0.5))
+		draw_arc(Vector2.ZERO, 26.0, 0.0, TAU, 40, Color(0, 0, 0, 0.45), 6.0)
+		draw_arc(Vector2.ZERO, 26.0, -PI / 2, -PI / 2 + TAU * ratio, 40, Color("ff5fd2"), 5.0)
+		draw_set_transform(Vector2.ZERO)
 
 
 class HealthBar extends Node2D:

@@ -47,6 +47,13 @@ static func build() -> Theme:
 	t.set_font_size("font_size", "MenuTitle", 13)
 	t.set_color("font_color", "MenuTitle", ACCENT)
 
+	var bar_bg := _box(Color(0, 0, 0, 0.6), Color("4a4380"), 1, 4)
+	bar_bg.set_content_margin_all(0)
+	var bar_fill := _box(Color("ff5c7a"), Color("ff5c7a"), 0, 4)
+	bar_fill.set_content_margin_all(0)
+	t.set_stylebox("background", "ProgressBar", bar_bg)
+	t.set_stylebox("fill", "ProgressBar", bar_fill)
+
 	t.set_type_variation(&"StatLabel", &"Label")
 	t.set_font_size("font_size", "StatLabel", 20)
 	t.set_color("font_color", "StatLabel", GOLD)

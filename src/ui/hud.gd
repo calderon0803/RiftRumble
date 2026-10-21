@@ -28,6 +28,14 @@ var _panel: PanelContainer
 var _panel_box: VBoxContainer
 var _overlay: PanelContainer
 var _overlay_label: Label
+var _overlay_stars: StarRow
+var _overlay_stats: GridContainer
+var _boss_panel: PanelContainer
+var _boss_name: Label
+var _boss_bar: ProgressBar
+var _boss_note: Label
+var _banner: Label
+var _banner_t := 0.0
 var _debug: Label
 var _hint: Label
 var _hero_box: VBoxContainer
@@ -88,7 +96,53 @@ func _ready() -> void:
 	_overlay_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_overlay_label.theme_type_variation = &"TitleLabel"
 	ov.add_child(_overlay_label)
+	_overlay_stars = StarRow.new()
+	_overlay_stars.custom_minimum_size = Vector2(180, 52)
+	_overlay_stars.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	ov.add_child(_overlay_stars)
+	_overlay_stats = GridContainer.new()
+	_overlay_stats.columns = 2
+	_overlay_stats.add_theme_constant_override("h_separation", 24)
+	ov.add_child(_overlay_stats)
 	_button(ov, "Jugar otra vez", restart_requested.emit)
+
+	# --- Barra del jefe (arriba, centrada) ---------------------------------------
+	# A la derecha, bajo la barra superior: no tapa la entrada de los enemigos.
+	_boss_panel = PanelContainer.new()
+	_boss_panel.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	_boss_panel.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	_boss_panel.offset_right = -8
+	_boss_panel.offset_top = 80
+	_boss_panel.visible = false
+	_boss_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(_boss_panel)
+	var bb := VBoxContainer.new()
+	_boss_panel.add_child(bb)
+	_boss_name = Label.new()
+	_boss_name.theme_type_variation = &"HeaderLabel"
+	_boss_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	bb.add_child(_boss_name)
+	_boss_bar = ProgressBar.new()
+	_boss_bar.custom_minimum_size = Vector2(260, 14)
+	_boss_bar.show_percentage = false
+	bb.add_child(_boss_bar)
+	_boss_note = Label.new()
+	_boss_note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_boss_note.add_theme_color_override("font_color", Color("ff8be0"))
+	bb.add_child(_boss_note)
+
+	# --- Cartel de oleada --------------------------------------------------------
+	_banner = Label.new()
+	_banner.theme_type_variation = &"TitleLabel"
+	_banner.set_anchors_preset(Control.PRESET_CENTER)
+	_banner.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_banner.grow_vertical = Control.GROW_DIRECTION_BOTH
+	_banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_banner.add_theme_color_override("font_outline_color", Color.BLACK)
+	_banner.add_theme_constant_override("outline_size", 10)
+	_banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_banner.visible = false
+	root.add_child(_banner)
 
 	# --- Indicación de objetivo (habilidades) -----------------------------------
 	_hint = Label.new()
@@ -129,7 +183,35 @@ func bind(new_world: SimWorld, content_db) -> void:
 	_panel_signature = ""
 	_panel.visible = false
 	_overlay.visible = false
+	_banner.visible = false
+	_boss_panel.visible = false
 	_build_hero_cards()
+
+
+## Eventos de la simulación relevantes para la interfaz (carteles).
+func on_events(events: Array[Dictionary]) -> void:
+	for ev in events:
+		match ev.type:
+			&"wave_started":
+				var last: bool = ev.index + 1 == world.waves_total()
+				_show_banner("OLEADA FINAL" if last else "OLEADA %d/%d" % [ev.index + 1, world.waves_total()])
+			&"early_call_bonus":
+				_show_banner("+%d oro por adelantarte" % ev.gold)
+			&"core_dropped":
+				_show_banner("¡Destruye el núcleo!")
+
+
+func _show_banner(text: String) -> void:
+	_banner.text = text
+	_banner.visible = true
+	_banner_t = 2.2
+
+
+func _process(delta: float) -> void:
+	if _banner_t > 0.0:
+		_banner_t -= delta
+		_banner.modulate.a = clampf(_banner_t / 0.6, 0.0, 1.0)
+		_banner.visible = _banner_t > 0.0
 
 
 func _build_hero_cards() -> void:
@@ -173,16 +255,83 @@ func refresh(paused: bool, debug_text: String, selected_hero := -1, targeting_he
 	_wave.text = "Oleada %d/%d" % [world.wave_index + 1, world.waves_total()]
 	_wave_button.disabled = world.wave_active or world.is_over() \
 			or world.wave_index + 1 >= world.waves_total()
-	_wave_button.text = "Oleada en curso" if world.wave_active else "Lanzar oleada"
+	if world.wave_active:
+		_wave_button.text = "Oleada en curso"
+	elif world.next_wave_ticks > 0:
+		var secs := ceili(world.next_wave_ticks / float(SimWorld.TICK_RATE))
+		_wave_button.text = "Siguiente en %d s (+%d oro)" % [secs, ceili(secs * SimWorld.EARLY_CALL_GOLD_PER_SECOND)]
+	else:
+		_wave_button.text = "Lanzar oleada"
+	_refresh_boss()
 	_pause_button.text = "Seguir" if paused else "Pausa"
 	_debug.text = debug_text
 	_refresh_panel()
 	_place_spot_menu()
 	if world.is_over() and not _overlay.visible:
-		_overlay.visible = true
-		_panel.visible = false
-		_overlay_label.text = "¡VICTORIA!\nVida restante: %d" % world.base_hp \
-				if world.outcome == SimWorld.Outcome.VICTORY else "La base ha caído"
+		_show_results()
+
+
+func _show_results() -> void:
+	_overlay.visible = true
+	_panel.visible = false
+	_boss_panel.visible = false
+	var won := world.outcome == SimWorld.Outcome.VICTORY
+	_overlay_label.text = "¡VICTORIA!" if won else "La base ha caído"
+	_overlay_stars.stars = world.stars()
+	_overlay_stars.queue_redraw()
+	for c in _overlay_stats.get_children():
+		c.queue_free()
+	var st: Dictionary = world.stats
+	var secs := world.tick / SimWorld.TICK_RATE
+	var rows := [
+		["Oleadas", "%d/%d" % [world.wave_index + 1 if won else world.wave_index, world.waves_total()]],
+		["Vida de la base", "%d/%d" % [world.base_hp, world.mission.base_hp]],
+		["Tiempo", "%d:%02d" % [secs / 60, secs % 60]],
+		["Enemigos eliminados", str(st.kills)],
+		["Enemigos que llegaron", str(st.leaks)],
+		["Torres construidas", str(st.towers_built)],
+		["Oro ganado / gastado", "%d / %d" % [st.gold_earned, st.gold_spent]],
+		["Oro por adelantar oleadas", str(st.early_bonus)],
+		["Habilidades usadas", str(st.abilities_used)],
+		["Héroes caídos", str(st.hero_kos)],
+	]
+	for r in rows:
+		for k in 2:
+			var l := Label.new()
+			l.text = r[k]
+			if k == 1:
+				l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+				l.add_theme_color_override("font_color", UiTheme.GOLD)
+			_overlay_stats.add_child(l)
+
+
+## Barra del jefe: visible mientras haya un jefe (o su núcleo) en el mapa.
+func _refresh_boss() -> void:
+	var boss := -1
+	var core := -1
+	for i in world.e_alive.size():
+		if world.e_alive[i] == 0:
+			continue
+		var def: EnemyDef = world.e_def[i]
+		if def and def.is_boss:
+			boss = i
+		elif world.e_revive_into[i] != null and world.e_revive_into[i].is_boss:
+			core = i
+	_boss_panel.visible = (boss >= 0 or core >= 0) and not world.is_over()
+	if boss >= 0:
+		var def: EnemyDef = world.e_def[boss]
+		_boss_name.text = def.display_name
+		_boss_bar.max_value = def.hp
+		_boss_bar.value = world.e_hp[boss]
+		_boss_note.text = "" if world.e_can_revive[boss] == 1 else "Sin núcleo: ¡último aliento!"
+		_boss_note.visible = _boss_note.text != ""
+	elif core >= 0:
+		var def: EnemyDef = world.e_revive_into[core]
+		_boss_name.text = "%s · núcleo" % def.display_name
+		_boss_bar.max_value = world.e_max_hp[core]
+		_boss_bar.value = world.e_hp[core]
+		_boss_note.text = "Destrúyelo antes de %d s o volverá" % ceili(world.e_timer[core] / float(SimWorld.TICK_RATE))
+		_boss_note.visible = true
 
 
 func _refresh_heroes(selected_hero: int, targeting_hero: int) -> void:
@@ -318,6 +467,23 @@ func _title(text: String) -> void:
 	l.text = text
 	l.theme_type_variation = &"MenuTitle"
 	_panel_box.add_child(l)
+
+
+## Tres estrellas dibujadas (no dependen de que la fuente tenga el glifo ★).
+class StarRow extends Control:
+	var stars := 0
+
+	func _draw() -> void:
+		for i in 3:
+			var c := Vector2(size.x * (i + 0.5) / 3.0, size.y * 0.5)
+			var pts := PackedVector2Array()
+			for k in 10:
+				var r := 22.0 if k % 2 == 0 else 9.0
+				var a := -PI / 2 + k * PI / 5
+				pts.append(c + Vector2(cos(a), sin(a)) * r)
+			draw_colored_polygon(pts, Color("ffd34d") if i < stars else Color(1, 1, 1, 0.15))
+			pts.append(pts[0])
+			draw_polyline(pts, Color("1e1830"), 2.0)
 
 
 func _stat(parent: Node, _name: String) -> Label:
