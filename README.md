@@ -2,8 +2,8 @@
 
 > *Defiende tu mundo. Rompe las reglas.*
 
-Tower defense isométrico 2.5D con héroes. Estado actual: **Fase 5 completada: el MVP jugable** (una misión completa de 5 oleadas con jefe). Siguiente: Fase 6 (persistencia).
-Documentación: [decisión tecnológica](docs/01-decision-tecnologica.md) · [resultados de la PoC](docs/02-resultados-poc.md) · [Fase 2](docs/03-fase-2-mundo-y-rutas.md) · [Fase 3](docs/04-fase-3-combate-y-economia.md) · [Fase 4](docs/05-fase-4-heroes-y-efectos.md) · [Fase 5](docs/06-fase-5-mision-completa.md).
+Tower defense isométrico 2.5D con héroes. Estado actual: **MVP jugable con progreso guardado en local** (Fases 1–6; la nube está preparada sin activar). Siguiente: Fase 7 (expansión).
+Documentación: [decisión tecnológica](docs/01-decision-tecnologica.md) · [resultados de la PoC](docs/02-resultados-poc.md) · [Fase 2](docs/03-fase-2-mundo-y-rutas.md) · [Fase 3](docs/04-fase-3-combate-y-economia.md) · [Fase 4](docs/05-fase-4-heroes-y-efectos.md) · [Fase 5](docs/06-fase-5-mision-completa.md) · [Fase 6](docs/07-fase-6-persistencia.md).
 
 ## Nombres provisionales
 Todos los nombres de torres, héroes, armas, enemigos, mundos y jefes son **provisionales**. Para que cambiarlos no afecte al código:
@@ -27,6 +27,9 @@ maps/          Escenas de mapa editables y TileSets
 art/placeholder/  Arte PROVISIONAL generado (se sustituirá)
 audio/placeholder/ Sonido PROVISIONAL generado (se sustituirá)
 src/audio/     Director de audio (eventos → sonidos)
+src/services/  Guardado (local / Supabase) y cliente HTTP
+supabase/      Migraciones del servidor (preparadas, sin activar)
+config/        Configuración del backend (backend.json; ver backend.example.json)
 tests/         Tests headless
 tools/         Generadores, benchmark, balance y servidor web local
 docs/          Decisiones y resultados por fase
@@ -45,6 +48,10 @@ godot --headless --path . --script res://tests/run_tests.gd
 
 ```bash
 godot --headless --path . --script res://tests/scene_tests.gd
+```
+
+```bash
+godot --headless --path . --script res://tests/service_tests.gd
 ```
 
 ```bash

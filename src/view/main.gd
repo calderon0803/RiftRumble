@@ -99,6 +99,7 @@ func _ready() -> void:
 	add_child(_save)
 	_save.status_changed.connect(_hud.set_cloud_status)
 	_save.result_processed.connect(_hud.show_reward)
+	_save.result_processed.connect(func(_r): _refresh_progress())
 	_save.configure_from_file()
 	_save.start()
 	# Construir o vender cierra el menú; mejorar lo deja abierto (se puede seguir).
@@ -133,6 +134,7 @@ func _restart() -> void:
 	_view.bind(world)
 	_audio.world = world
 	_hud.bind(world, content)
+	_refresh_progress()
 	_dispatch_events()
 	_select(-1)
 	_select_hero(-1)
@@ -173,6 +175,10 @@ func _run_tick() -> void:
 	_dispatch_events()
 
 
+func _refresh_progress() -> void:
+	_hud.set_progress(_save.best_stars(String(mission.id)), _save.shards())
+
+
 ## Resumen de la partida para el servidor (que recalcula estrellas y recompensas).
 func _match_summary() -> Dictionary:
 	var won := world.outcome == SimWorld.Outcome.VICTORY
@@ -184,6 +190,8 @@ func _match_summary() -> Dictionary:
 		duration_secs = world.tick / SimWorld.TICK_RATE,
 		stars = world.stars(),
 		stats = world.stats,
+		rewards = {first_clear = mission.first_clear_reward, per_star = mission.per_star_reward,
+			replay = mission.replay_reward},
 	}
 
 

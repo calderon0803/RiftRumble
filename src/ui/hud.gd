@@ -36,6 +36,7 @@ var _boss_bar: ProgressBar
 var _boss_note: Label
 var _banner: Label
 var _cloud_label: Label
+var _progress_label: Label
 var _cloud_status := ""
 var _reward_text := ""
 var _banner_t := 0.0
@@ -66,6 +67,10 @@ func _ready() -> void:
 	_gold = _stat(bar, "ui_gold")
 	_lives = _stat(bar, "ui_lives")
 	_wave = _stat(bar, "ui_wave")
+	_progress_label = Label.new()
+	_progress_label.add_theme_color_override("font_color", Color("6ff3ff"))
+	_progress_label.add_theme_font_size_override("font_size", 14)
+	bar.add_child(_progress_label)
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	bar.add_child(spacer)
@@ -198,6 +203,11 @@ func bind(new_world: SimWorld, content_db) -> void:
 	_build_hero_cards()
 
 
+## Progreso guardado del jugador (récord de la misión y fragmentos).
+func set_progress(best_stars: int, shards: int) -> void:
+	_progress_label.text = "Récord %d/3 ★ · %d fragmentos" % [best_stars, shards] if best_stars > 0 or shards > 0 			else ""
+
+
 ## Estado del guardado (servicio de persistencia).
 func set_cloud_status(text: String) -> void:
 	_cloud_status = text
@@ -213,6 +223,11 @@ func show_reward(response: Dictionary) -> void:
 	elif int(response.get("reward", 0)) > 0:
 		_reward_text = "+%d fragmentos%s · total %d" % [response.reward,
 			" (¡primera victoria!)" if response.get("first_clear", false) else "", response.get("shards", 0)]
+		if response.has("best_stars"):
+			_reward_text += "\nMejor resultado en esta misión: %d/3 estrellas" % response.best_stars
+	elif response.has("best_stars"):
+		_reward_text = "Mejor resultado en esta misión: %d/3 estrellas · fragmentos %d" % [
+			response.best_stars, response.get("shards", 0)]
 	_update_cloud_label()
 
 

@@ -1,7 +1,10 @@
-## Servicio de guardado: sesión de invitado, progreso local y envío de resultados.
+## Servicio de guardado: progreso del jugador, en local o en la nube.
 ##
-## - Funciona sin conexión: el progreso se refleja en local y los resultados
-##   quedan en cola (user://) hasta que el servidor los acepta.
+## - MODO LOCAL (sin config/backend.json): el progreso y los fragmentos se
+##   calculan y guardan en el dispositivo con las mismas reglas que el servidor.
+##   Limitación: un archivo local puede editarse; no protege datos (ver docs/07).
+## - MODO NUBE (con config/backend.json): los resultados quedan en cola (user://)
+##   hasta que el servidor los acepta.
 ## - Cada resultado lleva un `client_nonce` único y se reenvía con el MISMO nonce
 ##   tras un fallo: el servidor no duplica recompensas.
 ## - El servidor es la fuente de verdad de estrellas y monedas; lo local es una
@@ -50,7 +53,7 @@ func configure_from_file(path := "res://config/backend.json") -> void:
 ## Inicia sesión (o la renueva) y envía lo pendiente.
 func start() -> void:
 	if transport == null:
-		_set_status("Sin servidor: progreso guardado en este dispositivo")
+		_set_status("Progreso guardado en este dispositivo")
 		return
 	var ok := await _ensure_session()
 	online = ok
@@ -61,6 +64,11 @@ func start() -> void:
 
 ## Registra el resultado de una partida y lo intenta enviar.
 func submit_result(summary: Dictionary) -> void:
+	if transport == null:
+		var res := _apply_local_rewards(summary)
+		_save()
+		result_processed.emit(res)
+		return
 	var entry := summary.duplicate()
 	entry.client_nonce = _uuid_v4()
 	_pending.append(entry)
@@ -113,6 +121,10 @@ func pending_count() -> int:
 	return _pending.size()
 
 
+func progress_of(mission_id: String) -> Dictionary:
+	return _progress.get(mission_id, {})
+
+
 func best_stars(mission_id: String) -> int:
 	return _progress.get(mission_id, {}).get("best_stars", 0)
 
@@ -160,6 +172,35 @@ func _session_file_token() -> String:
 
 
 # --- Progreso -----------------------------------------------------------------
+
+## Modo local: misma lógica de recompensas que `submit_match_result` en SQL.
+## `summary.rewards` = {first_clear, per_star, replay} (de MissionDef).
+func _apply_local_rewards(summary: Dictionary) -> Dictionary:
+	var id: String = summary.mission_id
+	var p: Dictionary = _progress.get(id, {best_stars = 0, victories = 0, attempts = 0, best_time_secs = -1})
+	var rw: Dictionary = summary.get("rewards", {first_clear = 50, per_star = 20, replay = 5})
+	var won: bool = summary.outcome == "victory"
+	var stars: int = summary.get("stars", 0) if won else 0
+	var reward := 0
+	var first := false
+	if won:
+		if p.get("victories", 0) == 0:
+			first = true
+			reward = rw.first_clear + stars * rw.per_star
+		elif stars > p.best_stars:
+			reward = (stars - p.best_stars) * rw.per_star
+		else:
+			reward = rw.replay
+		p.victories = p.get("victories", 0) + 1
+		var t: int = summary.get("duration_secs", 0)
+		p.best_time_secs = t if p.get("best_time_secs", -1) < 0 else mini(p.best_time_secs, t)
+	p.attempts = p.get("attempts", 0) + 1
+	p.best_stars = maxi(p.get("best_stars", 0), stars)
+	_progress[id] = p
+	_progress.shards = _progress.get("shards", 0) + reward
+	return {duplicate = false, stars = stars, reward = reward, first_clear = first,
+		shards = _progress.shards, best_stars = p.best_stars, local = true}
+
 
 ## Copia local optimista (las estrellas se calculan igual que en el servidor).
 func _apply_local(entry: Dictionary) -> void:

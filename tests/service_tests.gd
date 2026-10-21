@@ -134,6 +134,33 @@ func _run() -> void:
 	check(s.pending_count() == 0, "un resultado rechazado no bloquea la cola")
 
 	s.queue_free()
+
+	# 7. Modo local (sin servidor): recompensas con las mismas reglas que el SQL.
+	_clean()
+	s = _service(null)
+	await s.start()
+	var got := []
+	s.result_processed.connect(func(r): got.append(r))
+	var v1 := _victory()
+	v1.stars = 1
+	await s.submit_result(v1)
+	check(got[-1].reward == 50 + 1 * 20 and got[-1].first_clear, "local: primera victoria (1★) = 70")
+	await s.submit_result(_victory())
+	check(got[-1].reward == 2 * 20, "local: mejorar de 1★ a 3★ = 40")
+	await s.submit_result(_victory())
+	check(got[-1].reward == 5, "local: repetir victoria = 5")
+	await s.submit_result({mission_id = "w1_m1", outcome = "defeat", base_hp = 0, waves_reached = 3,
+		duration_secs = 120, stars = 0})
+	check(got[-1].reward == 0, "local: derrota sin recompensa")
+	check(s.pending_count() == 0, "local: no acumula envíos pendientes")
+	s.queue_free()
+
+	# 8. El progreso local se conserva al «reabrir el juego».
+	s = _service(null)
+	var p := s.progress_of("w1_m1")
+	check(s.shards() == 115 and s.best_stars("w1_m1") == 3, "se conservan fragmentos (115) y mejores estrellas")
+	check(p.victories == 3 and p.attempts == 4 and p.best_time_secs == 240, "se conservan victorias, intentos y mejor tiempo")
+	s.queue_free()
 	_clean()
 	print("\n%d comprobaciones, %d fallos" % [_checks, _failures])
 	await process_frame
