@@ -3,11 +3,11 @@
 [ext_resource type="Resource" path="res://content/effects/corruption.tres" id="1_tltx7"]
 [ext_resource type="Texture2D" path="res://art/placeholder/proj_pixel.png" id="2_miv5l"]
 [ext_resource type="Script" path="res://src/content/tower_def.gd" id="3_sfv4h"]
-[ext_resource type="Texture2D" path="res://art/placeholder/tower_pixeladora.png" id="4_n1urx"]
+[ext_resource type="Texture2D" path="res://art/placeholder/tower_corrupt.png" id="4_n1urx"]
 
 [resource]
 script = ExtResource("3_sfv4h")
-id = &"pixeladora"
+id = &"tower_corrupt"
 display_name = "Pixeladora"
 description = "Dispara bloques de energía que corrompen: el objetivo recibe más daño de otros tipos."
 damage_type = &"digital"

@@ -3,7 +3,7 @@
 ## El origen del nodo es su «pie», que es lo que usa el Y-sort.
 extends Sprite2D
 
-const DEFAULT_SHEET := preload("res://art/placeholder/enemy_glitchling.png")
+const DEFAULT_SHEET := preload("res://art/placeholder/enemy_light.png")
 const FPS := 8.0
 const FLASH_TIME := 0.08
 

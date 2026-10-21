@@ -6,7 +6,7 @@ extends RefCounted
 ## Tamaño en casillas.
 var size := Vector2i.ZERO
 ## Rutas enemigas en casillas (la primera es la principal). Preparado para
-## rutas alternativas del Reino del Continue y mundos posteriores.
+## rutas alternativas del mundo 1 y posteriores.
 var routes: Array[PackedVector2Array] = []
 ## Centros de las posiciones de construcción, en casillas.
 var build_spots := PackedVector2Array()

@@ -5,6 +5,12 @@
 Tower defense isométrico 2.5D con héroes. Estado actual: **Fase 3 completada (combate y economía)**. Siguiente: Fase 4 (héroes y efectos).
 Documentación: [decisión tecnológica](docs/01-decision-tecnologica.md) · [resultados de la PoC](docs/02-resultados-poc.md) · [Fase 2](docs/03-fase-2-mundo-y-rutas.md) · [Fase 3](docs/04-fase-3-combate-y-economia.md).
 
+## Nombres provisionales
+Todos los nombres de torres, héroes, armas, enemigos, mundos y jefes son **provisionales**. Para que cambiarlos no afecte al código:
+- Los **ids internos, archivos y tests** usan identificadores neutros según la función: `tower_corrupt`, `tower_seal`, `tower_bounce`, `enemy_light`, `enemy_armored`, `enemy_fast`, `w1_m1` (mundo 1, misión 1), `hero_portal`, `hero_blade`…
+- Los **nombres visibles** solo están en cada `.tres` de `content/` (`display_name`, `level_names`, `description`). Renombrar un elemento = editar ese campo en el inspector.
+- Los sistemas no contienen ids de contenido escritos a mano: los toman de los datos (p. ej., la lista de torres de la misión).
+
 ## Requisitos
 - Godot **4.7.x** estable, versión estándar con GDScript (no la .NET).
 
@@ -20,7 +26,7 @@ src/poc/       Utilidades de pruebas de rendimiento
 maps/          Escenas de mapa editables y TileSets
 art/placeholder/  Arte PROVISIONAL generado (se sustituirá)
 tests/         Tests headless
-tools/         Generadores, benchmark y servidor web local
+tools/         Generadores, benchmark, balance y servidor web local
 docs/          Decisiones y resultados por fase
 ```
 

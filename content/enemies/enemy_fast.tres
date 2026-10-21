@@ -1,11 +1,11 @@
 [gd_resource type="Resource" script_class="EnemyDef" format=3]
 
 [ext_resource type="Script" path="res://src/content/enemy_def.gd" id="1_0mrlg"]
-[ext_resource type="Texture2D" path="res://art/placeholder/enemy_zumbador.png" id="2_vb77f"]
+[ext_resource type="Texture2D" path="res://art/placeholder/enemy_fast.png" id="2_vb77f"]
 
 [resource]
 script = ExtResource("1_0mrlg")
-id = &"zumbador"
+id = &"enemy_fast"
 display_name = "Zumbador"
 hp = 5.0
 speed = 2.6

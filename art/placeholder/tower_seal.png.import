@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cklqa5ryw3pqf"
-path="res://.godot/imported/tower_grimorio.png-02a08c0d3946cd68dc86329a677e961e.ctex"
+uid="uid://djy3m0xph7fb3"
+path="res://.godot/imported/tower_seal.png-f593d9e164012feaac408709020090b3.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/placeholder/tower_grimorio.png"
-dest_files=["res://.godot/imported/tower_grimorio.png-02a08c0d3946cd68dc86329a677e961e.ctex"]
+source_file="res://art/placeholder/tower_seal.png"
+dest_files=["res://.godot/imported/tower_seal.png-f593d9e164012feaac408709020090b3.ctex"]
 
 [params]
 

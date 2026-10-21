@@ -1,11 +1,11 @@
 [gd_resource type="Resource" script_class="EnemyDef" format=3]
 
 [ext_resource type="Script" path="res://src/content/enemy_def.gd" id="1_d62i0"]
-[ext_resource type="Texture2D" path="res://art/placeholder/enemy_glitchling.png" id="2_8s2br"]
+[ext_resource type="Texture2D" path="res://art/placeholder/enemy_light.png" id="2_8s2br"]
 
 [resource]
 script = ExtResource("1_d62i0")
-id = &"glitchling"
+id = &"enemy_light"
 display_name = "Glitchling"
 hp = 8.0
 bounty = 4

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b42v2lwuylo6y"
-path="res://.godot/imported/enemy_zumbador.png-cd9b9abb30faf9fd7373f67c7567dcff.ctex"
+uid="uid://bv61170uoxh23"
+path="res://.godot/imported/enemy_fast.png-59d9788ca5a9279b528dad03954ec681.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/placeholder/enemy_zumbador.png"
-dest_files=["res://.godot/imported/enemy_zumbador.png-cd9b9abb30faf9fd7373f67c7567dcff.ctex"]
+source_file="res://art/placeholder/enemy_fast.png"
+dest_files=["res://.godot/imported/enemy_fast.png-59d9788ca5a9279b528dad03954ec681.ctex"]
 
 [params]
 

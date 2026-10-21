@@ -19,7 +19,7 @@ enum ViewFlag { NONE = 0, SLOWED = 1, ROOTED = 2, CORRUPTED = 4, SEALED = 8 }
 ## Daño adicional recibido por pila (0.15 = +15 %).
 @export var damage_taken_bonus_per_stack := 0.0
 ## El daño de este tipo NO se amplifica (p. ej. la corrupción no potencia a la
-## propia Pixeladora: prepara al objetivo para *otros* tipos).
+## propia torre de corrupción: prepara al objetivo para *otros* tipos).
 @export var bonus_excludes_damage_type: StringName
 ## Al llegar a `max_stacks`: aplica este efecto y elimina las pilas propias.
 @export var on_max_stacks: EffectDef

@@ -5,7 +5,7 @@
 
 [sub_resource type="Resource" id="Resource_myrsw"]
 script = ExtResource("2_2sx8s")
-enemies = PackedStringArray("glitchling")
+enemies = PackedStringArray("enemy_light")
 counts = PackedInt32Array(10)
 spacing = PackedFloat32Array(0.9)
 start_delay = PackedFloat32Array(0)
@@ -13,7 +13,7 @@ route = PackedInt32Array()
 
 [sub_resource type="Resource" id="Resource_n47o7"]
 script = ExtResource("2_2sx8s")
-enemies = PackedStringArray("glitchling", "zumbador")
+enemies = PackedStringArray("enemy_light", "enemy_fast")
 counts = PackedInt32Array(10, 8)
 spacing = PackedFloat32Array(0.9, 0.6)
 start_delay = PackedFloat32Array(0, 3)
@@ -22,7 +22,7 @@ clear_bonus = 25
 
 [sub_resource type="Resource" id="Resource_ms6c2"]
 script = ExtResource("2_2sx8s")
-enemies = PackedStringArray("glitchling", "cascaron", "zumbador")
+enemies = PackedStringArray("enemy_light", "enemy_armored", "enemy_fast")
 counts = PackedInt32Array(12, 6, 10)
 spacing = PackedFloat32Array(0.7, 1.6, 0.4)
 start_delay = PackedFloat32Array(0, 2, 8)
@@ -31,9 +31,9 @@ clear_bonus = 30
 
 [resource]
 script = ExtResource("1_bi45v")
-id = &"continue_01"
+id = &"w1_m1"
 display_name = "Reino del Continue — Nivel 1"
-map_scene = "res://maps/continue_01.tscn"
+map_scene = "res://maps/w1/w1_m1.tscn"
 start_gold = 150
 waves = Array[ExtResource("2_2sx8s")]([SubResource("Resource_myrsw"), SubResource("Resource_n47o7"), SubResource("Resource_ms6c2")])
-towers = PackedStringArray("pixeladora", "grimorio", "rebote")
+towers = PackedStringArray("tower_corrupt", "tower_seal", "tower_bounce")

@@ -20,7 +20,8 @@ const WorldView := preload("res://src/view/world_view.gd")
 const Hud := preload("res://src/ui/hud.gd")
 const BUILD_PAD := preload("res://art/placeholder/build_pad.png")
 
-const MISSION_ID := &"continue_01"
+## Misión que se carga (más adelante la elegirá el menú de selección).
+const MISSION_ID := &"w1_m1"
 const STRESS_LEVELS := [150, 300, 500]
 const STRESS_TOWERS := 12
 ## Radio (en casillas) para considerar que un toque selecciona una posición.
@@ -100,9 +101,10 @@ func _restart() -> void:
 	world.setup_mission(content, mission, map_def)
 	if stress:
 		world.base_hp = 1_000_000_000
-		var reb: TowerDef = content.towers[&"rebote"]
-		for spot in StressLayout.tower_spots(map_def, STRESS_TOWERS):
-			world.place_tower(reb, spot)
+		# Torres de la misión en rotación (sin ids escritos a mano).
+		var spots := StressLayout.tower_spots(map_def, STRESS_TOWERS)
+		for i in spots.size():
+			world.place_tower(content.towers[StringName(mission.towers[i % mission.towers.size()])], spots[i])
 		for i in stress_enemies:
 			world.spawn_enemy(40.0, 1.2, world.rng.randf_range(0.0, world.path.length * 0.95))
 	_view.bind(world)
@@ -220,9 +222,10 @@ func _map_bounds() -> Rect2:
 
 ## Estrategia automática para capturas y pruebas de humo.
 func _autoplay_step() -> void:
-	for a in [[1, &"pixeladora"], [0, &"grimorio"], [2, &"rebote"]]:
-		if world.tower_at(a[0]).is_empty():
-			world.build(a[0], a[1])
+	# Una torre de cada tipo disponible, en orden, en las posiciones libres.
+	for spot in map_def.build_spots.size():
+		if world.tower_at(spot).is_empty():
+			world.build(spot, StringName(mission.towers[spot % mission.towers.size()]))
 	if not world.wave_active and not world.is_over():
 		world.start_next_wave()
 

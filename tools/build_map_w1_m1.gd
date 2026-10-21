@@ -1,7 +1,7 @@
-## Genera el andamiaje del primer mapa del Reino del Continue.
+## Genera el andamiaje del primer mapa del mundo 1 (misión 1).
 ## Uso (una vez; después el mapa se edita en el editor de Godot):
-##   godot --headless --path . --script res://tools/build_continue_map.gd
-## ATENCIÓN: sobrescribe maps/continue_01.tscn y maps/tilesets/continue_ground.tres.
+##   godot --headless --path . --script res://tools/build_map_w1_m1.gd
+## ATENCIÓN: sobrescribe maps/w1/w1_m1.tscn y maps/w1/w1_ground.tres.
 extends SceneTree
 
 const Iso := preload("res://src/view/iso.gd")
@@ -27,11 +27,11 @@ const PATH := Vector2i(3, 0)
 
 func _init() -> void:
 	var tileset := _make_tileset()
-	ResourceSaver.save(tileset, "res://maps/tilesets/continue_ground.tres")
-	tileset = load("res://maps/tilesets/continue_ground.tres")
+	ResourceSaver.save(tileset, "res://maps/w1/w1_ground.tres")
+	tileset = load("res://maps/w1/w1_ground.tres")
 
 	var root := Node2D.new()
-	root.name = "Continue01"
+	root.name = "W1M1"
 	root.set_script(MapScene)
 	root.size = SIZE
 	root.y_sort_enabled = true
@@ -95,8 +95,8 @@ func _init() -> void:
 
 	var scene := PackedScene.new()
 	scene.pack(root)
-	var err := ResourceSaver.save(scene, "res://maps/continue_01.tscn")
-	print("continue_01.tscn guardado (err=%d)" % err)
+	var err := ResourceSaver.save(scene, "res://maps/w1/w1_m1.tscn")
+	print("w1_m1.tscn guardado (err=%d)" % err)
 	root.free()
 	quit(err)
 

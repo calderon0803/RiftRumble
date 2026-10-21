@@ -20,13 +20,13 @@ func _init() -> void:
 	_save(_ground_atlas(), "ground_tiles.png")
 	_save(_block(), "prop_block.png")
 	_save(_bush(), "prop_bush.png")
-	_save(_enemy_sheet(Color("e2475a"), Color("ff8f9c"), &"light"), "enemy_glitchling.png")
-	_save(_enemy_sheet(Color("7d8aa6"), Color("b9c3d8"), &"armored"), "enemy_cascaron.png")
-	_save(_enemy_sheet(Color("ffcc33"), Color("fff0a0"), &"fast"), "enemy_zumbador.png")
+	_save(_enemy_sheet(Color("e2475a"), Color("ff8f9c"), &"light"), "enemy_light.png")
+	_save(_enemy_sheet(Color("7d8aa6"), Color("b9c3d8"), &"armored"), "enemy_armored.png")
+	_save(_enemy_sheet(Color("ffcc33"), Color("fff0a0"), &"fast"), "enemy_fast.png")
 	_save(_tower(), "tower_basic.png")
-	_save(_tower_pixeladora(), "tower_pixeladora.png")
-	_save(_tower_grimorio(), "tower_grimorio.png")
-	_save(_tower_rebote(), "tower_rebote.png")
+	_save(_tower_corrupt(), "tower_corrupt.png")
+	_save(_tower_seal(), "tower_seal.png")
+	_save(_tower_bounce(), "tower_bounce.png")
 	_save(_build_pad(), "build_pad.png")
 	_save(_projectile(), "projectile_bit.png")
 	_save(_proj_pixel(), "proj_pixel.png")
@@ -146,7 +146,7 @@ func _block() -> Image:
 					if n.x < 0 or n.y < 0 or n.x >= 64 or n.y >= 64 or img.get_pixelv(n).a == 0:
 						img.set_pixel(x, y, OUTLINE)
 						break
-	# Emblema: estrella de «continue» en la cara izquierda.
+	# Emblema: estrella en la cara izquierda.
 	for p in [Vector2i(15, 34), Vector2i(16, 33), Vector2i(16, 34), Vector2i(16, 35), Vector2i(17, 34),
 			Vector2i(14, 34), Vector2i(18, 34), Vector2i(16, 32), Vector2i(16, 36)]:
 		img.set_pixelv(p, Color("fff4c2"))
@@ -291,8 +291,8 @@ func _tower_base(img: Image, top_y: int, a: Color, b: Color) -> void:
 				img.set_pixel(x, y, Color("8a8fa8") if x < 16 else Color("6a6f88"))
 
 
-## Pixeladora: columna magenta coronada por un cubo de píxeles flotante.
-func _tower_pixeladora() -> Image:
+## Torre de corrupción: columna magenta coronada por un cubo de píxeles flotante.
+func _tower_corrupt() -> Image:
 	var img := _img(32, 64)
 	_tower_base(img, 22, Color("c03a9a"), Color("8e2273"))
 	for y in range(26, 50, 6):
@@ -309,8 +309,8 @@ func _tower_pixeladora() -> Image:
 	return img
 
 
-## Grimorio de Guardia: atril violeta con un libro abierto y runa dorada.
-func _tower_grimorio() -> Image:
+## Torre de sellos: atril violeta con un libro abierto y runa dorada.
+func _tower_seal() -> Image:
 	var img := _img(32, 64)
 	_tower_base(img, 30, Color("6a4bc4"), Color("4b3296"))
 	for y in range(20, 30):
@@ -331,8 +331,8 @@ func _tower_grimorio() -> Image:
 	return img
 
 
-## Rebote Supremo: torre turquesa con muelle y bola elástica arriba.
-func _tower_rebote() -> Image:
+## Torre de rebote: torre turquesa con muelle y bola elástica arriba.
+func _tower_bounce() -> Image:
 	var img := _img(32, 64)
 	_tower_base(img, 34, Color("2bb5a8"), Color("1d867c"))
 	for y in range(18, 34):

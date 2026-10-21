@@ -9,18 +9,18 @@ const ContentDB := preload("res://src/content/content_db.gd")
 ## [&"build", posición, torre] o [&"upgrade", posición] (solo entre oleadas).
 const STRATEGIES := {
 	"sin torres": [],
-	"solo pixeladora": [[&"build", 1, &"pixeladora"]],
-	"pix+grim+reb": [[&"build", 1, &"pixeladora"], [&"build", 0, &"grimorio"], [&"build", 2, &"rebote"],
+	"solo corrupción": [[&"build", 1, &"tower_corrupt"]],
+	"corrupción+sellos+rebote": [[&"build", 1, &"tower_corrupt"], [&"build", 0, &"tower_seal"], [&"build", 2, &"tower_bounce"],
 		[&"upgrade", 1], [&"upgrade", 2]],
-	"3 rebotes": [[&"build", 1, &"rebote"], [&"build", 0, &"rebote"], [&"build", 2, &"rebote"]],
-	"grim+pix (combo)": [[&"build", 1, &"grimorio"], [&"build", 0, &"pixeladora"], [&"build", 2, &"pixeladora"],
+	"3× rebote": [[&"build", 1, &"tower_bounce"], [&"build", 0, &"tower_bounce"], [&"build", 2, &"tower_bounce"]],
+	"sellos+2× corrupción": [[&"build", 1, &"tower_seal"], [&"build", 0, &"tower_corrupt"], [&"build", 2, &"tower_corrupt"],
 		[&"upgrade", 0], [&"upgrade", 2]],
 }
 
 
 func _init() -> void:
 	var db = ContentDB.load_all()
-	var mission: MissionDef = db.missions[&"continue_01"]
+	var mission: MissionDef = db.missions[&"w1_m1"]
 	var map: Node = load(mission.map_scene).instantiate()
 	var map_def = map.build_def()
 	map.free()

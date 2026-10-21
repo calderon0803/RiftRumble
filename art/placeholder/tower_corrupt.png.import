@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c7c41le7ne3o2"
-path="res://.godot/imported/enemy_cascaron.png-d82eb3670e1f1d1dd74f0d33b3e315fe.ctex"
+uid="uid://ddqdmqa554jy7"
+path="res://.godot/imported/tower_corrupt.png-4cd830b53c36dbe85cf5012891979069.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/placeholder/enemy_cascaron.png"
-dest_files=["res://.godot/imported/enemy_cascaron.png-d82eb3670e1f1d1dd74f0d33b3e315fe.ctex"]
+source_file="res://art/placeholder/tower_corrupt.png"
+dest_files=["res://.godot/imported/tower_corrupt.png-4cd830b53c36dbe85cf5012891979069.ctex"]
 
 [params]
 

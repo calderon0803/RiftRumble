@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b42hil81240vt"
-path="res://.godot/imported/tower_rebote.png-57ea387c4ee661c4718561a65be2d881.ctex"
+uid="uid://duwc4gy4hej4p"
+path="res://.godot/imported/enemy_armored.png-ce6cca74d80ab2c77f857ea1ffbd5396.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/placeholder/tower_rebote.png"
-dest_files=["res://.godot/imported/tower_rebote.png-57ea387c4ee661c4718561a65be2d881.ctex"]
+source_file="res://art/placeholder/enemy_armored.png"
+dest_files=["res://.godot/imported/enemy_armored.png-ce6cca74d80ab2c77f857ea1ffbd5396.ctex"]
 
 [params]
 

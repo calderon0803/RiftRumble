@@ -3,11 +3,11 @@
 [ext_resource type="Resource" path="res://content/effects/seal.tres" id="1_ruo8n"]
 [ext_resource type="Texture2D" path="res://art/placeholder/proj_seal.png" id="2_y6fqn"]
 [ext_resource type="Script" path="res://src/content/tower_def.gd" id="3_mvxw4"]
-[ext_resource type="Texture2D" path="res://art/placeholder/tower_grimorio.png" id="4_wepo5"]
+[ext_resource type="Texture2D" path="res://art/placeholder/tower_seal.png" id="4_wepo5"]
 
 [resource]
 script = ExtResource("3_mvxw4")
-id = &"grimorio"
+id = &"tower_seal"
 display_name = "Grimorio de Guardia"
 description = "Sellos que ralentizan. Con tres sellos, el enemigo queda inmovilizado un instante."
 damage_type = &"magic"

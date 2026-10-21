@@ -156,10 +156,10 @@ func test_slot_reuse_does_not_retarget_projectile() -> void:
 	check(w.e_hp[b] == 10.0, "B intacto")
 
 
-# --- Mapa del Reino del Continue ----------------------------------------------
+# --- Mapa del mundo 1, misión 1 ----------------------------------------------
 
 func _load_map() -> Node:
-	return load("res://maps/continue_01.tscn").instantiate()
+	return load("res://maps/w1/w1_m1.tscn").instantiate()
 
 
 func test_map_def_is_valid() -> void:
@@ -234,7 +234,7 @@ func _db():
 
 func _mission_world() -> SimWorld:
 	var db = _db()
-	var mission: MissionDef = db.missions[&"continue_01"]
+	var mission: MissionDef = db.missions[&"w1_m1"]
 	var map: Node = load(mission.map_scene).instantiate()
 	var def = map.build_def()
 	map.free()
@@ -246,7 +246,7 @@ func _mission_world() -> SimWorld:
 func test_content_is_consistent() -> void:
 	var db = _db()
 	check(db.towers.size() == 3 and db.enemies.size() == 3, "3 torres y 3 enemigos cargados")
-	var mission: MissionDef = db.missions[&"continue_01"]
+	var mission: MissionDef = db.missions[&"w1_m1"]
 	for t in mission.towers:
 		check(db.towers.has(StringName(t)), "la misión usa una torre existente: %s" % t)
 	for w in mission.waves:
@@ -270,7 +270,7 @@ func _straight_with(enemy_id: StringName) -> Array:
 
 
 func test_armor_reduces_by_damage_type() -> void:
-	var r := _straight_with(&"cascaron")  # armadura 0.6
+	var r := _straight_with(&"enemy_armored")  # armadura 0.6
 	var w: SimWorld = r[0]
 	var s: int = r[1]
 	var hp := w.e_hp[s]
@@ -285,10 +285,10 @@ func test_armor_reduces_by_damage_type() -> void:
 
 
 func test_corruption_amplifies_other_damage_types() -> void:
-	var r := _straight_with(&"glitchling")
+	var r := _straight_with(&"enemy_light")
 	var w: SimWorld = r[0]
 	var s: int = r[1]
-	var corr: EffectDef = _db().towers[&"pixeladora"].on_hit_effect
+	var corr: EffectDef = _db().towers[&"tower_corrupt"].on_hit_effect
 	for i in 5:
 		w.effects.apply(w, s, corr)
 	check(w.effects.stacks_of(s, &"corruption") == 3, "la corrupción se limita a 3 pilas")
@@ -304,10 +304,10 @@ func test_corruption_amplifies_other_damage_types() -> void:
 
 
 func test_three_seals_root_then_immunity() -> void:
-	var r := _straight_with(&"glitchling")
+	var r := _straight_with(&"enemy_light")
 	var w: SimWorld = r[0]
 	var s: int = r[1]
-	var seal: EffectDef = _db().towers[&"grimorio"].on_hit_effect
+	var seal: EffectDef = _db().towers[&"tower_seal"].on_hit_effect
 	w.effects.apply(w, s, seal)
 	check(is_equal_approx(w.effects.speed_mult[s], 0.8), "1 sello: velocidad × 0.8")
 	w.effects.apply(w, s, seal)
@@ -326,9 +326,9 @@ func test_three_seals_root_then_immunity() -> void:
 	check(w.effects.apply(w, s, seal), "acabada la inmunidad, acepta sellos de nuevo")
 
 
-func test_rebote_hits_distinct_targets() -> void:
+func test_bounce_hits_distinct_targets() -> void:
 	var w := _world()
-	var reb: TowerDef = _db().towers[&"rebote"]  # nivel 1: 2 rebotes → 3 objetivos
+	var reb: TowerDef = _db().towers[&"tower_bounce"]  # nivel 1: 2 rebotes → 3 objetivos
 	w.place_tower(reb, Vector2(4, 1), 1)
 	for d in [3.0, 3.6, 4.2, 4.8, 5.4]:
 		w.spawn_enemy(1000.0, 0.0, d)
@@ -341,9 +341,9 @@ func test_rebote_hits_distinct_targets() -> void:
 	check(hits[1].amount < hits[0].amount, "cada rebote hace menos daño")
 
 
-func test_rebote_weak_against_single_target() -> void:
+func test_bounce_weak_against_single_target() -> void:
 	var w := _world()
-	w.place_tower(_db().towers[&"rebote"], Vector2(4, 1), 1)
+	w.place_tower(_db().towers[&"tower_bounce"], Vector2(4, 1), 1)
 	w.spawn_enemy(1000.0, 0.0, 4.0)
 	var ev := _run(w, 25)
 	check(_count(ev, &"enemy_hit") == 1, "con un solo enemigo no hay rebote (no repite objetivo)")
@@ -354,12 +354,12 @@ func test_rebote_weak_against_single_target() -> void:
 func test_economy_rules() -> void:
 	var w := _mission_world()
 	check(w.gold == 150, "oro inicial 150")
-	check(w.build(0, &"pixeladora") == &"ok" and w.gold == 80, "construir cuesta 70")
-	check(w.build(0, &"grimorio") == &"occupied", "posición ocupada")
-	check(w.build(7, &"grimorio") == &"invalid_spot", "posición inexistente")
+	check(w.build(0, &"tower_corrupt") == &"ok" and w.gold == 80, "construir cuesta 70")
+	check(w.build(0, &"tower_seal") == &"occupied", "posición ocupada")
+	check(w.build(7, &"tower_seal") == &"invalid_spot", "posición inexistente")
 	check(w.build(1, &"no_existe") == &"unknown_tower", "torre desconocida")
-	check(w.build(1, &"rebote") == &"ok" and w.gold == 0, "construir Rebote con justo 80")
-	check(w.build(2, &"grimorio") == &"no_gold" and w.gold == 0, "sin oro no se construye ni se gasta")
+	check(w.build(1, &"tower_bounce") == &"ok" and w.gold == 0, "construir la torre de rebote con justo 80")
+	check(w.build(2, &"tower_seal") == &"no_gold" and w.gold == 0, "sin oro no se construye ni se gasta")
 	check(w.upgrade(0) == &"no_gold", "sin oro no se mejora")
 	w.gold = 1000
 	check(w.upgrade(0) == &"ok" and w.gold == 945, "mejorar a nivel 2 cuesta 55")
@@ -373,7 +373,7 @@ func test_economy_rules() -> void:
 
 func test_kill_bounty_and_leak_damage() -> void:
 	var w := _mission_world()
-	var casc: EnemyDef = _db().enemies[&"cascaron"]
+	var casc: EnemyDef = _db().enemies[&"enemy_armored"]
 	var s := w.spawn(casc)
 	var gold0 := w.gold
 	w.damage_enemy(s, 1000.0, &"magic")
@@ -420,7 +420,7 @@ func test_mission_without_towers_is_lost() -> void:
 
 func test_mission_with_sensible_defense_is_won() -> void:
 	var w := _mission_world()
-	var plan := [[&"build", 1, &"pixeladora"], [&"build", 0, &"grimorio"], [&"build", 2, &"rebote"],
+	var plan := [[&"build", 1, &"tower_corrupt"], [&"build", 0, &"tower_seal"], [&"build", 2, &"tower_bounce"],
 		[&"upgrade", 1], [&"upgrade", 2]]
 	var outcome := _play(w, plan)
 	check(outcome == SimWorld.Outcome.VICTORY, "con una defensa razonable se gana (vida base %d)" % w.base_hp)

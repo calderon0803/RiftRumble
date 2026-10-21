@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://k5wm0vt7eri0"
-path="res://.godot/imported/enemy_glitchling.png-cab5e743f7e41a4bd5fd4200357f8ffc.ctex"
+uid="uid://c2rob4g2hikcs"
+path="res://.godot/imported/enemy_light.png-7c25a4be92217b5020f68d3c255e58d6.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/placeholder/enemy_glitchling.png"
-dest_files=["res://.godot/imported/enemy_glitchling.png-cab5e743f7e41a4bd5fd4200357f8ffc.ctex"]
+source_file="res://art/placeholder/enemy_light.png"
+dest_files=["res://.godot/imported/enemy_light.png-7c25a4be92217b5020f68d3c255e58d6.ctex"]
 
 [params]
 

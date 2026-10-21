@@ -2,11 +2,11 @@
 
 [ext_resource type="Texture2D" path="res://art/placeholder/proj_ball.png" id="1_d3js8"]
 [ext_resource type="Script" path="res://src/content/tower_def.gd" id="2_6x1ic"]
-[ext_resource type="Texture2D" path="res://art/placeholder/tower_rebote.png" id="3_clrkv"]
+[ext_resource type="Texture2D" path="res://art/placeholder/tower_bounce.png" id="3_clrkv"]
 
 [resource]
 script = ExtResource("2_6x1ic")
-id = &"rebote"
+id = &"tower_bounce"
 display_name = "Rebote Supremo"
 description = "Proyectiles que rebotan entre enemigos cercanos. Brilla contra grupos; flojea contra un objetivo aislado."
 damage = PackedFloat32Array(3.5, 4.5, 5.5)
