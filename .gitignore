@@ -1,0 +1,13 @@
+# Godot
+.godot/
+*.import.tmp
+export/
+build/
+
+# Herramientas locales (binario de Godot portable, etc.)
+.tools/
+
+# SO / editores
+.DS_Store
+Thumbs.db
+.vscode/
