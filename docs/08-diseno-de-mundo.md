@@ -7,7 +7,8 @@
 1. **Cada mundo rompe una regla distinta.** Además de su estética, cada mundo trae 1 o 2 mecánicas propias del mapa y un tipo de enemigo que obliga a cambiar de táctica. El lema «Rompe las reglas» se aplica a la jugabilidad, no solo a la narrativa.
 2. **Una mecánica nueva cada vez.** Cada misión presenta como mucho una idea nueva y la combina con las anteriores. El jefe del mundo es el examen de todas ellas.
 3. **Partidas cortas, campaña larga.** Misiones de 3 a 6 min. Unos 5 por mundo dan unos 25 min de campaña por mundo, más la rejugabilidad por estrellas.
-4. **Héroes por tiradas; torres por historia.** Los héroes se consiguen con **tiradas** (estilo gacha) pagadas con fragmentos ganados jugando. Las torres llegan con el avance de la campaña (ver §5).
+4. **Héroes y torres por tiradas.** Ambos se consiguen con **tiradas** (estilo gacha) pagadas con fragmentos ganados jugando (ver §5). Antes de cada misión se elige un **equipo**: 2 héroes y hasta 4 torres de las que se tengan.
+6. **Ganable con lo inicial.** Toda misión debe poder ganarse con los héroes y torres **iniciales** y buen juego. Lo obtenido por tiradas amplía estrategias y sinergias, pero nunca es obligatorio.
 5. **La lectura táctica manda.** Ninguna mecánica de mundo puede tapar rutas, proyectiles o enemigos importantes sin dar una forma clara de contrarrestarla.
 
 ## 2. Estructura de la campaña
@@ -29,9 +30,9 @@ La Trama (mapa de campaña)
   - **Retos diarios:** más adelante; una misión ya jugada con modificadores aleatorios fijados por semilla. Encaja con la simulación determinista.
 - **Mapa de campaña:** la Trama como tapiz de hilos que conecta islas-mundo. Cada misión es un nodo con su récord de estrellas. Entre mundos hay escenas breves de diálogo, 3 o 4 líneas como máximo.
 
-## 3. Reparto por mundo (torres y sinergias; héroes por definir)
+## 3. Temática por mundo (referencia; héroes y torres se obtienen por tiradas)
 
-> **Pendiente:** el reparto de héroes está por definir (decisión del 2026-10-21). Como los héroes se obtienen por tiradas, no van ligados a un mundo; la columna de héroes queda como referencia temática para el diseño de personajes. Lo que sí se mantiene: **qué torre y qué sinergia presenta cada mundo**.
+> **Decisión (2026-10-21):** héroes **y torres** se obtienen por tiradas, así que **no van ligados a ningún mundo**. Esta tabla queda como **referencia temática**: qué personajes, torres y sinergias encajan con la estética y las mecánicas de cada mundo (útil para «destacados» de tiradas o recomendaciones en la preparación). La lista de héroes sigue pendiente de definir.
 
 | Mundo | Héroes nuevos | Torre nueva | Sinergia que se presenta |
 |---|---|---|---|
@@ -43,7 +44,7 @@ La Trama (mapa de campaña)
 | 6 · Frontera Imposible | — (todo el reparto) | — | Todas, combinadas |
 
 - **Héroes por misión:** se eligen **2** de los que el jugador tenga antes de cada misión. Se empieza con dos héroes iniciales (hoy, Nexo y Kira Volt) para que el tutorial y el mundo 1 sean jugables sin tiradas.
-- **Torres por misión:** cada misión define qué torres permite, como ya hace `MissionDef.towers`. Eso permite presentar una torre nueva aislada antes de mezclarla.
+- **Torres por misión:** se eligen **hasta 4** de las que tenga el jugador. Las tres torres iniciales (corrupción, sellos y rebote) están disponibles desde el principio. Una misión puede **restringir** torres de forma opcional (`MissionDef.towers`, por historia o como reto); vacía = cualquiera.
 
 ## 4. Los seis mundos
 
@@ -107,19 +108,20 @@ La Trama (mapa de campaña)
 
 **Fuentes de fragmentos:** las recompensas por misión actuales (primera victoria, estrellas nuevas, repetición), con más en el modo «Rompe las reglas» y en los retos.
 
-### Tiradas (gacha) de héroes
+### Tiradas (gacha) de héroes y torres
 - **Coste:** fragmentos ganados jugando. **Sin dinero real** en el alcance actual.
 - **Rarezas** (provisional): común, rara y épica. Las **probabilidades se muestran** siempre en la pantalla de tiradas.
 - **Garantía («pity»):** al cabo de N tiradas sin un héroe de la rareza más alta, la siguiente lo garantiza. El contador se guarda y se muestra.
-- **Repetidos:** se convierten en **ecos** del héroe, que lo mejoran (más vida, menos recarga, variantes de habilidad) hasta un límite. Nunca son una tirada perdida.
-- **Héroes iniciales:** dos gratuitos desde el principio.
+- **Repetidos:** se convierten en **ecos**, que mejoran ese héroe o torre hasta un límite. En las torres, los ecos desbloquean sus **ramas de nivel 3**. Nunca son una tirada perdida.
+- **Iniciales:** dos héroes y tres torres gratuitos desde el principio. Con ellos toda misión es ganable.
+- **Por decidir:** un único banner con héroes y torres o banners separados; tasas y tamaño de la garantía.
 - **Determinismo y seguridad:**
   - En **local** la tirada se resuelve en el dispositivo y, como el resto del progreso local, es manipulable.
   - Con la **nube** activa, la tirada la resolverá **el servidor** (función SQL con su propio generador aleatorio). El cliente nunca decide el resultado.
 - **Riesgo regulatorio (si algún día hay dinero real):** las cajas de botín de pago están reguladas o prohibidas en algunos países (p. ej., Bélgica), y las tiendas de aplicaciones exigen publicar las probabilidades. Habría que revisarlo antes de monetizar.
 
 ### Otros usos de los fragmentos
-- **Ramas de mejora de torres:** el nivel 3 pasa a ser una elección entre dos especializaciones del diseño original (p. ej., Pixeladora: *Desfragmentación* frente a *Cadena de errores*). Se desbloquean con fragmentos.
+- **Ramas de mejora de torres:** el nivel 3 pasa a ser una elección entre dos especializaciones del diseño original (p. ej., Pixeladora: *Desfragmentación* frente a *Cadena de errores*). Se desbloquean con **ecos** de la torre (repetidos de tiradas).
 - Más adelante, aspectos cosméticos y mejoras de la base, con límite.
 
 ## 6. Tipos de misión y modificadores
@@ -171,8 +173,9 @@ Cada entrega tendrá criterios verificables, como hasta ahora: tests de simulaci
 |---|---|
 | Misiones por mundo | **5** (4 + jefe) |
 | Obtención de héroes | **Tiradas estilo gacha** con fragmentos (§5) |
+| Obtención de torres | **También por tiradas**; equipo de hasta 4 torres por misión; misiones ganables con las iniciales |
 | Reparto de héroes | **Por definir**: sesión de diseño de personajes pendiente |
-| Torres y sinergias por mundo | Según la tabla §3 (no cuestionado; revisable) |
+| Torres y sinergias por mundo | La tabla §3 queda como referencia temática (no reparto) |
 | Primera entrega | **7.1 · Campaña mínima** |
 | Misión actual | Pasa a ser la 5.ª del mundo 1 (`w1_m5`) |
 

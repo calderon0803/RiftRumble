@@ -22,10 +22,9 @@ const WorldView := preload("res://src/view/world_view.gd")
 const Hud := preload("res://src/ui/hud.gd")
 const AudioDirector := preload("res://src/audio/audio_director.gd")
 const SaveService := preload("res://src/services/save_service.gd")
+const CAMPAIGN_SCENE := "res://src/ui/campaign.tscn"
 const BUILD_PAD := preload("res://art/placeholder/build_pad.png")
 
-## Misión que se carga (más adelante la elegirá el menú de selección).
-const MISSION_ID := &"w1_m1"
 const STRESS_LEVELS := [150, 300, 500]
 const STRESS_TOWERS := 12
 ## Radio (en casillas) para considerar que un toque selecciona una posición.
@@ -69,7 +68,9 @@ func _ready() -> void:
 			Engine.time_scale = float(arg.trim_prefix("--speed="))
 
 	content = ContentDB.load_all()
-	mission = content.missions[MISSION_ID]
+	# La misión y los héroes los elige la campaña (autoload Session); si la escena
+	# se abre directamente (pruebas, capturas), se usa la misión por defecto.
+	mission = content.missions[StringName(Session.mission_or_default())]
 
 	# Mapa y entidades comparten un antecesor con Y-sort para ordenarse entre sí.
 	_world_root = Node2D.new()
@@ -95,13 +96,14 @@ func _ready() -> void:
 	add_child(_hud)
 	_audio = AudioDirector.new()
 	add_child(_audio)
-	_save = SaveService.new()
-	add_child(_save)
+	_hud.map_requested.connect(_go_to_campaign)
+	# Guardado global (autoload): sus señales se conectan a métodos de nodos de
+	# esta escena, que Godot desconecta solo al cambiar de pantalla.
+	_save = Save
 	_save.status_changed.connect(_hud.set_cloud_status)
 	_save.result_processed.connect(_hud.show_reward)
-	_save.result_processed.connect(func(_r): _refresh_progress())
-	_save.configure_from_file()
-	_save.start()
+	_save.result_processed.connect(_on_result_processed)
+	_save.ensure_started()
 	# Construir o vender cierra el menú; mejorar lo deja abierto (se puede seguir).
 	_hud.build_requested.connect(func(spot, id): if _command(world.build(spot, id)): _select(-1))
 	_hud.upgrade_requested.connect(func(spot): _command(world.upgrade(spot)))
@@ -122,13 +124,13 @@ func _restart() -> void:
 	_sim_ms_avg = 0.0
 	paused = false
 	world = SimWorld.new(map_def.routes, 1234)
-	world.setup_mission(content, mission, map_def)
+	world.setup_mission(content, mission, map_def, _chosen_heroes(), _chosen_towers())
 	if stress:
 		world.base_hp = 1_000_000_000
 		# Torres de la misión en rotación (sin ids escritos a mano).
 		var spots := StressLayout.tower_spots(map_def, STRESS_TOWERS)
 		for i in spots.size():
-			world.place_tower(content.towers[StringName(mission.towers[i % mission.towers.size()])], spots[i])
+			world.place_tower(content.towers[StringName(world.allowed_towers[i % world.allowed_towers.size()])], spots[i])
 		for i in stress_enemies:
 			world.spawn_enemy(40.0, 1.2, world.rng.randf_range(0.0, world.path.length * 0.95))
 	_view.bind(world)
@@ -173,6 +175,39 @@ func _run_tick() -> void:
 	world.step()
 	_sim_ms_avg = lerpf(_sim_ms_avg, (Time.get_ticks_usec() - t0) / 1000.0, 0.05)
 	_dispatch_events()
+
+
+## Héroes elegidos en la campaña, si son válidos para esta misión.
+func _chosen_heroes() -> PackedStringArray:
+	var ids := Session.hero_ids
+	if ids.size() != mission.heroes.size():
+		return PackedStringArray()
+	for id in ids:
+		if not content.heroes.has(StringName(id)):
+			return PackedStringArray()
+	return ids
+
+
+## Equipo de torres elegido en la campaña, si es válido para esta misión.
+func _chosen_towers() -> PackedStringArray:
+	var ids := Session.tower_ids
+	if ids.is_empty() or ids.size() > mission.max_towers:
+		return PackedStringArray()
+	for id in ids:
+		if not content.towers.has(StringName(id)):
+			return PackedStringArray()
+		if not mission.towers.is_empty() and not id in mission.towers:
+			return PackedStringArray()
+	return ids
+
+
+func _on_result_processed(_response: Dictionary) -> void:
+	_refresh_progress()
+
+
+func _go_to_campaign() -> void:
+	Engine.time_scale = 1.0
+	get_tree().change_scene_to_file(CAMPAIGN_SCENE)
 
 
 func _refresh_progress() -> void:
@@ -349,9 +384,10 @@ func _map_bounds() -> Rect2:
 ## Estrategia automática para capturas y pruebas de humo.
 func _autoplay_step() -> void:
 	# Una torre de cada tipo disponible, en orden, en las posiciones libres.
+	var team := world.allowed_towers
 	for spot in map_def.build_spots.size():
 		if world.tower_at(spot).is_empty():
-			world.build(spot, StringName(mission.towers[spot % mission.towers.size()]))
+			world.build(spot, StringName(team[spot % team.size()]))
 	if not world.wave_active and not world.is_over():
 		world.start_next_wave()
 	# Héroes: cada uno lanza su habilidad cuando está lista y hay enemigos, apuntando

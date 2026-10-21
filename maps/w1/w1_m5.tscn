@@ -11,7 +11,7 @@ _data = {
 }
 point_count = 6
 
-[node name="W1M1" type="Node2D" unique_id=2115470826]
+[node name="W1M5" type="Node2D" unique_id=2115470826]
 y_sort_enabled = true
 script = ExtResource("1_o5aj2")
 size = Vector2i(20, 14)

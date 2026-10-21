@@ -4,6 +4,7 @@ extends CanvasLayer
 
 const SimWorld := preload("res://src/sim/sim_world.gd")
 const UiTheme := preload("res://src/ui/ui_theme.gd")
+const StarRow := preload("res://src/ui/star_row.gd")
 
 signal build_requested(spot: int, tower_id: StringName)
 signal upgrade_requested(spot: int)
@@ -12,6 +13,7 @@ signal start_wave_requested
 signal pause_toggled
 signal restart_requested
 signal close_panel_requested
+signal map_requested
 signal hero_selected(index: int)
 signal ability_requested(index: int)
 
@@ -78,6 +80,7 @@ func _ready() -> void:
 	_wave_button.theme_type_variation = &"AccentButton"
 	_pause_button = _button(bar, "Pausa", pause_toggled.emit)
 	_button(bar, "Reiniciar", restart_requested.emit)
+	_button(bar, "Mapa", map_requested.emit)
 
 	# --- Menú contextual sobre la plataforma (construir / mejorar / vender) ----------
 	# Se coloca cada frame encima de la posición seleccionada (sigue a la cámara).
@@ -117,7 +120,14 @@ func _ready() -> void:
 	_cloud_label.add_theme_color_override("font_color", Color("6ff3ff"))
 	_cloud_label.add_theme_font_size_override("font_size", 13)
 	ov.add_child(_cloud_label)
-	_button(ov, "Jugar otra vez", restart_requested.emit)
+	var ov_row := HBoxContainer.new()
+	ov_row.add_theme_constant_override("separation", 8)
+	ov_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	ov.add_child(ov_row)
+	_button(ov_row, "Jugar otra vez", restart_requested.emit).custom_minimum_size = Vector2(170, 48)
+	var to_map := _button(ov_row, "Volver al mapa", map_requested.emit)
+	to_map.custom_minimum_size = Vector2(170, 48)
+	to_map.theme_type_variation = &"AccentButton"
 
 	# --- Barra del jefe (arriba, centrada) ---------------------------------------
 	# A la derecha, bajo la barra superior: no tapa la entrada de los enemigos.
@@ -326,8 +336,7 @@ func _show_results() -> void:
 	_boss_panel.visible = false
 	var won := world.outcome == SimWorld.Outcome.VICTORY
 	_overlay_label.text = "¡VICTORIA!" if won else "La base ha caído"
-	_overlay_stars.stars = world.stars()
-	_overlay_stars.queue_redraw()
+	_overlay_stars.set_stars(world.stars())
 	for c in _overlay_stats.get_children():
 		c.queue_free()
 	var st: Dictionary = world.stats
@@ -418,7 +427,7 @@ func _refresh_panel() -> void:
 	# puede pagar, no el oro exacto: si no, cada baja reconstruiría los botones).
 	var affordable := ""
 	if t.is_empty():
-		for id in world.mission.towers:
+		for id in world.allowed_towers:
 			affordable += "1" if world.gold >= content.towers[StringName(id)].cost[0] else "0"
 	else:
 		affordable = str(world.gold >= world.upgrade_cost(selected_spot))
@@ -454,7 +463,7 @@ func _build_options() -> void:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 4)
 	_panel_box.add_child(row)
-	for id in world.mission.towers:
+	for id in world.allowed_towers:
 		var def: TowerDef = content.towers[StringName(id)]
 		var b := _icon_button(row, def.sprite, str(def.cost[0]), build_requested.emit.bind(selected_spot, def.id))
 		b.tooltip_text = "%s — %s" % [def.display_name, def.description]
@@ -516,23 +525,6 @@ func _title(text: String) -> void:
 	l.text = text
 	l.theme_type_variation = &"MenuTitle"
 	_panel_box.add_child(l)
-
-
-## Tres estrellas dibujadas (no dependen de que la fuente tenga el glifo ★).
-class StarRow extends Control:
-	var stars := 0
-
-	func _draw() -> void:
-		for i in 3:
-			var c := Vector2(size.x * (i + 0.5) / 3.0, size.y * 0.5)
-			var pts := PackedVector2Array()
-			for k in 10:
-				var r := 22.0 if k % 2 == 0 else 9.0
-				var a := -PI / 2 + k * PI / 5
-				pts.append(c + Vector2(cos(a), sin(a)) * r)
-			draw_colored_polygon(pts, Color("ffd34d") if i < stars else Color(1, 1, 1, 0.15))
-			pts.append(pts[0])
-			draw_polyline(pts, Color("1e1830"), 2.0)
 
 
 func _stat(parent: Node, _name: String) -> Label:

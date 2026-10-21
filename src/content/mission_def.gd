@@ -8,8 +8,11 @@ extends Resource
 @export var start_gold := 100
 @export var base_hp := 20
 @export var waves: Array[WaveDef] = []
-## Ids de las torres que el jugador puede construir.
+## Restricción OPCIONAL de torres (historia o reto). Vacía = cualquiera de las
+## que tenga el jugador. Las torres se obtienen por tiradas.
 @export var towers := PackedStringArray()
+## Máximo de torres distintas que se llevan a la misión.
+@export var max_towers := 4
 ## Ids de los héroes desplegados en la misión (uno por posición de inicio del mapa).
 @export var heroes := PackedStringArray()
 

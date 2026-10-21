@@ -48,7 +48,7 @@ async function guest() {
 }
 
 const submit = (u, p) => call("POST", "/rest/v1/rpc/submit_match_result", {
-  p_mission_id: "w1_m1", p_client_nonce: randomUUID(), p_outcome: "victory",
+  p_mission_id: "w1_m5", p_client_nonce: randomUUID(), p_outcome: "victory",
   p_base_hp: 20, p_waves_reached: 5, p_duration_secs: 240, p_stats: {}, ...p,
 }, u?.token);
 
@@ -83,8 +83,8 @@ console.log("\nEscrituras directas (deben fallar)");
 const before = (await call("GET", "/rest/v1/wallets?select=shards", undefined, a.token)).data[0].shards;
 const w1 = await call("PATCH", `/rest/v1/wallets?user_id=eq.${a.id}`, { shards: 999999 }, a.token);
 const w2 = await call("POST", "/rest/v1/wallets", { user_id: a.id, shards: 999999 }, a.token);
-const w3 = await call("POST", "/rest/v1/campaign_progress", { user_id: a.id, mission_id: "w1_m1", best_stars: 3 }, a.token);
-const w4 = await call("POST", "/rest/v1/match_results", { user_id: a.id, mission_id: "w1_m1",
+const w3 = await call("POST", "/rest/v1/campaign_progress", { user_id: a.id, mission_id: "w1_m5", best_stars: 3 }, a.token);
+const w4 = await call("POST", "/rest/v1/match_results", { user_id: a.id, mission_id: "w1_m5",
   client_nonce: randomUUID(), outcome: "victory", stars: 3, base_hp: 20, waves_reached: 5, duration_secs: 999, reward: 9999 }, a.token);
 const after = (await call("GET", "/rest/v1/wallets?select=shards", undefined, a.token)).data[0].shards;
 check(!w1.ok || (Array.isArray(w1.data) && w1.data.length === 0), `no se pueden modificar las monedas (HTTP ${w1.status})`);

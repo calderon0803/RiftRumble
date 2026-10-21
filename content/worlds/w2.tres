@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="WorldDef" format=3]
+
+[ext_resource type="Script" path="res://src/content/world_def.gd" id="1_d3ave"]
+
+[resource]
+script = ExtResource("1_d3ave")
+id = &"w2"
+order = 2
+display_name = "Academia del Último Hechizo"
+subtitle = "Magia, islas flotantes y exámenes eternos."
+rule_text = "Resonancia: los cristales potencian a las torres cercanas."
+color = Color(0.6431373, 0.41960785, 1, 1)
+mission_slots = PackedStringArray("w2_m1", "w2_m2", "w2_m3", "w2_m4", "w2_m5")
+slot_names = PackedStringArray("Primer curso", "Biblioteca flotante", "Hechizo interrumpido", "Examen sorpresa", "El Alumno Eterno")

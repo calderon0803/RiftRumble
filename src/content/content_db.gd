@@ -10,6 +10,7 @@ var enemies := {}  # StringName → EnemyDef
 var missions := {}  # StringName → MissionDef
 var heroes := {}   # StringName → HeroDef
 var synergies := {}  # StringName → SynergyDef
+var worlds := {}   # StringName → WorldDef
 
 
 static func load_all() -> RefCounted:
@@ -19,6 +20,7 @@ static func load_all() -> RefCounted:
 	db.missions = _load_dir(ROOT + "missions/")
 	db.heroes = _load_dir(ROOT + "heroes/")
 	db.synergies = _load_dir(ROOT + "synergies/")
+	db.worlds = _load_dir(ROOT + "worlds/")
 	return db
 
 

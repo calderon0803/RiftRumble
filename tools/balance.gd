@@ -32,7 +32,7 @@ const STRATEGIES := {
 
 func _init() -> void:
 	var db = ContentDB.load_all()
-	var mission: MissionDef = db.missions[&"w1_m1"]
+	var mission: MissionDef = db.missions[&"w1_m5"]
 	var map: Node = load(mission.map_scene).instantiate()
 	var map_def = map.build_def()
 	map.free()

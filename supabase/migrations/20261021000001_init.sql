@@ -25,7 +25,7 @@ create table public.missions (
 );
 
 insert into public.missions (id, waves_total, base_hp, min_victory_secs)
-values ('w1_m1', 5, 20, 150);
+values ('w1_m5', 5, 20, 150);
 
 -- ---------------------------------------------------------------------------
 -- Datos por jugador

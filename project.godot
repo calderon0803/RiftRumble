@@ -6,9 +6,14 @@ config_version=5
 [application]
 
 config/name="RIFT RUMBLE"
-config/description="Tower defense isométrico 2.5D — prueba de concepto"
-run/main_scene="res://src/view/main.tscn"
+config/description="Tower defense isométrico 2.5D"
+run/main_scene="res://src/ui/campaign.tscn"
 config/features=PackedStringArray("4.7")
+
+[autoload]
+
+Save="*res://src/services/save_service.gd"
+Session="*res://src/services/session.gd"
 
 [display]
 

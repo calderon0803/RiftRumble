@@ -159,7 +159,7 @@ func test_slot_reuse_does_not_retarget_projectile() -> void:
 # --- Mapa del mundo 1, misión 1 ----------------------------------------------
 
 func _load_map() -> Node:
-	return load("res://maps/w1/w1_m1.tscn").instantiate()
+	return load("res://maps/w1/w1_m5.tscn").instantiate()
 
 
 func test_map_def_is_valid() -> void:
@@ -234,7 +234,7 @@ func _db():
 
 func _mission_world() -> SimWorld:
 	var db = _db()
-	var mission: MissionDef = db.missions[&"w1_m1"]
+	var mission: MissionDef = db.missions[&"w1_m5"]
 	var map: Node = load(mission.map_scene).instantiate()
 	var def = map.build_def()
 	map.free()
@@ -246,7 +246,7 @@ func _mission_world() -> SimWorld:
 func test_content_is_consistent() -> void:
 	var db = _db()
 	check(db.towers.size() == 3 and db.enemies.size() >= 3, "3 torres y al menos 3 enemigos cargados")
-	var mission: MissionDef = db.missions[&"w1_m1"]
+	var mission: MissionDef = db.missions[&"w1_m5"]
 	for t in mission.towers:
 		check(db.towers.has(StringName(t)), "la misión usa una torre existente: %s" % t)
 	for w in mission.waves:
@@ -738,6 +738,62 @@ func test_full_mission_flow() -> void:
 			check(waves_started == 5, "se juegan las 5 oleadas")
 			var minutes := w.tick / float(SimWorld.TICK_RATE) / 60.0
 			check(minutes >= 3.0 and minutes <= 6.0, "duración en el objetivo de 3–6 min (%.1f)" % minutes)
+
+
+# --- Campaña (7.1) ----------------------------------------------------------------
+
+const CampaignRules := preload("res://src/content/campaign_rules.gd")
+
+
+func test_worlds_content() -> void:
+	var worlds: Array = CampaignRules.worlds_in_order(_db())
+	check(worlds.size() == 6, "6 mundos")
+	for i in worlds.size():
+		var w: WorldDef = worlds[i]
+		check(w.order == i + 1, "orden correcto de %s" % w.id)
+		check(w.mission_slots.size() == 5 and w.slot_names.size() == 5, "%s: 5 huecos de misión con nombre" % w.id)
+	var w1: WorldDef = worlds[0]
+	check(_db().missions.has(StringName(w1.mission_slots[4])), "el hueco del jefe del mundo 1 existe (w1_m5)")
+	for id in _db().missions:
+		var found := false
+		for w: WorldDef in worlds:
+			found = found or String(id) in w.mission_slots
+		check(found, "la misión %s pertenece a un mundo" % id)
+
+
+## Campaña de prueba con progreso simulado (sin depender del contenido real).
+func _fake_campaign(built: Array) -> Dictionary:
+	var db := {worlds = {}, missions = {}}
+	for wi in 2:
+		var w := WorldDef.new()
+		w.id = StringName("t%d" % (wi + 1))
+		w.order = wi + 1
+		w.mission_slots = PackedStringArray()
+		for m in 3:
+			var id := "t%d_m%d" % [wi + 1, m + 1]
+			w.mission_slots.append(id)
+			if id in built:
+				db.missions[StringName(id)] = MissionDef.new()
+		db.worlds[w.id] = w
+	return db
+
+
+func test_campaign_unlock_rules() -> void:
+	var S := CampaignRules.State
+	var db := _fake_campaign(["t1_m1", "t1_m3", "t2_m1"])  # t1_m2 aún no construida
+	var done := {}
+	var progress := func(id): return {victories = 1} if done.has(id) else {}
+	check(CampaignRules.mission_state(db, 0, 0, progress) == S.AVAILABLE, "la primera misión está disponible")
+	check(CampaignRules.mission_state(db, 0, 1, progress) == S.PLANNED, "un hueco sin misión está en construcción")
+	check(CampaignRules.mission_state(db, 0, 2, progress) == S.LOCKED, "la siguiente construida está bloqueada")
+	check(not CampaignRules.world_unlocked(db, 1, progress), "el mundo 2 está cerrado")
+	done["t1_m1"] = true
+	check(CampaignRules.mission_state(db, 0, 0, progress) == S.COMPLETED, "completada tras ganarla")
+	check(CampaignRules.mission_state(db, 0, 2, progress) == S.AVAILABLE, "el hueco en construcción no bloquea")
+	check(not CampaignRules.world_unlocked(db, 1, progress), "el mundo 2 sigue cerrado sin el jefe")
+	done["t1_m3"] = true
+	check(CampaignRules.world_unlocked(db, 1, progress), "al completar el mundo 1 se abre el 2")
+	check(CampaignRules.mission_state(db, 1, 0, progress) == S.AVAILABLE, "primera misión del mundo 2 disponible")
 
 
 # --- Determinismo -------------------------------------------------------------

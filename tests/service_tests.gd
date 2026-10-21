@@ -74,7 +74,7 @@ func _service(server) -> SaveService:
 
 
 func _victory(duration := 240) -> Dictionary:
-	return {mission_id = "w1_m1", outcome = "victory", base_hp = 20, waves_reached = 5,
+	return {mission_id = "w1_m5", outcome = "victory", base_hp = 20, waves_reached = 5,
 		duration_secs = duration, stars = 3, stats = {kills = 100}}
 
 
@@ -94,7 +94,7 @@ func _run() -> void:
 	await s.start()
 	await s.submit_result(_victory())
 	check(s.pending_count() == 1, "sin conexión el resultado queda en cola")
-	check(s.best_stars("w1_m1") == 3, "el progreso local se actualiza igualmente")
+	check(s.best_stars("w1_m5") == 3, "el progreso local se actualiza igualmente")
 	s.queue_free()
 
 	# 2. La cola sobrevive a reiniciar el juego y se envía al recuperar la conexión.
@@ -149,7 +149,7 @@ func _run() -> void:
 	check(got[-1].reward == 2 * 20, "local: mejorar de 1★ a 3★ = 40")
 	await s.submit_result(_victory())
 	check(got[-1].reward == 5, "local: repetir victoria = 5")
-	await s.submit_result({mission_id = "w1_m1", outcome = "defeat", base_hp = 0, waves_reached = 3,
+	await s.submit_result({mission_id = "w1_m5", outcome = "defeat", base_hp = 0, waves_reached = 3,
 		duration_secs = 120, stars = 0})
 	check(got[-1].reward == 0, "local: derrota sin recompensa")
 	check(s.pending_count() == 0, "local: no acumula envíos pendientes")
@@ -157,9 +157,25 @@ func _run() -> void:
 
 	# 8. El progreso local se conserva al «reabrir el juego».
 	s = _service(null)
-	var p := s.progress_of("w1_m1")
-	check(s.shards() == 115 and s.best_stars("w1_m1") == 3, "se conservan fragmentos (115) y mejores estrellas")
+	var p := s.progress_of("w1_m5")
+	check(s.shards() == 115 and s.best_stars("w1_m5") == 3, "se conservan fragmentos (115) y mejores estrellas")
 	check(p.victories == 3 and p.attempts == 4 and p.best_time_secs == 240, "se conservan victorias, intentos y mejor tiempo")
+	s.queue_free()
+
+	# 9. Migración: el progreso guardado con el id antiguo (w1_m1) pasa a w1_m5.
+	_clean()
+	var f := FileAccess.open(DIR.path_join("rift_progress.json"), FileAccess.WRITE)
+	f.store_string(JSON.stringify({w1_m1 = {best_stars = 2, victories = 1}, shards = 30}))
+	f.close()
+	s = _service(null)
+	check(s.best_stars("w1_m5") == 2 and s.best_stars("w1_m1") == 0, "migra el progreso de w1_m1 a w1_m5")
+	check(s.shards() == 30, "conserva los fragmentos al migrar")
+	check(Array(s.owned_heroes()) == SaveService.STARTER_HEROES, "un jugador empieza con los héroes iniciales")
+	check(Array(s.owned_towers()) == SaveService.STARTER_TOWERS, "y con las torres iniciales")
+	s.set_last_heroes(PackedStringArray(["hero_blade", "hero_portal"]))
+	s.queue_free()
+	s = _service(null)
+	check(Array(s.last_heroes()) == ["hero_blade", "hero_portal"], "recuerda los últimos héroes elegidos")
 	s.queue_free()
 	_clean()
 	print("\n%d comprobaciones, %d fallos" % [_checks, _failures])

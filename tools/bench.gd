@@ -14,7 +14,7 @@ func _init() -> void:
 	var interval := float(args[2]) if args.size() > 2 else 0.5
 	var proj_speed := float(args[3]) if args.size() > 3 else 10.0
 
-	var map: Node = load("res://maps/w1/w1_m1.tscn").instantiate()
+	var map: Node = load("res://maps/w1/w1_m5.tscn").instantiate()
 	var def = map.build_def()
 	map.free()
 	var w := SimWorld.new(def.routes[0], 1)

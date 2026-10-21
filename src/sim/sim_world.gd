@@ -147,7 +147,11 @@ func _build_lanes(path_width: float) -> void:
 
 
 ## Configura una partida completa a partir de una misión y del mapa ya leído.
-func setup_mission(content_db, mission_def: MissionDef, map_def) -> void:
+## `hero_ids`: héroes elegidos por el jugador (si se omite, los de la misión).
+## `tower_ids`: equipo de torres elegido (si se omite, las de la misión).
+func setup_mission(content_db, mission_def: MissionDef, map_def, hero_ids := PackedStringArray(),
+		tower_ids := PackedStringArray()) -> void:
+	allowed_towers = tower_ids if not tower_ids.is_empty() else mission_def.towers
 	content = content_db
 	mission = mission_def
 	gold = mission_def.start_gold
@@ -156,8 +160,9 @@ func setup_mission(content_db, mission_def: MissionDef, map_def) -> void:
 	map_size = map_def.size
 	_build_lanes(map_def.path_width)
 	synergies = content_db.synergies.values()
-	for i in mission_def.heroes.size():
-		var def: HeroDef = content_db.heroes[StringName(mission_def.heroes[i])]
+	var chosen: PackedStringArray = hero_ids if not hero_ids.is_empty() else mission_def.heroes
+	for i in chosen.size():
+		var def: HeroDef = content_db.heroes[StringName(chosen[i])]
 		var spawns: PackedVector2Array = map_def.hero_spawns if not map_def.hero_spawns.is_empty() 				else map_def.build_spots
 		heroes.add_hero(def, spawns[i % spawns.size()])
 
@@ -186,8 +191,12 @@ func tower_at(spot: int) -> Dictionary:
 	return {}
 
 
+## Torres que se pueden construir en esta partida (equipo elegido).
+var allowed_towers := PackedStringArray()
+
+
 func can_build(tower_id: StringName) -> bool:
-	return mission == null or tower_id in mission.towers
+	return mission == null or String(tower_id) in allowed_towers
 
 
 func build(spot: int, tower_id: StringName) -> StringName:

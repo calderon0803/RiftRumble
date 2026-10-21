@@ -55,7 +55,41 @@ func _run() -> void:
 	check(main.world.tick > t0, "al reanudar vuelve a avanzar")
 
 	Engine.time_scale = 1.0
-	print("\n%d comprobaciones, %d fallos" % [_checks, _failures])
 	main.queue_free()
 	await _frames(2)
+
+	# Flujo de pantallas: campaña → preparación → partida → volver al mapa.
+	var camp: Node = load("res://src/ui/campaign.tscn").instantiate()
+	root.add_child(camp)
+	current_scene = camp
+	await _frames(10)
+	camp._open_prep("w1_m5")
+	await _frames(5)
+	check(not camp._play_button.disabled, "con 2 héroes elegidos se puede jugar")
+	camp._toggle_hero(false, camp._chosen[0])
+	check(camp._play_button.disabled, "con 1 héroe no se puede jugar")
+	camp._toggle_hero(true, "hero_portal" if not "hero_portal" in camp._chosen else "hero_blade")
+	var chosen: PackedStringArray = camp._chosen.duplicate()
+	# Quita una torre del equipo: la partida solo debe permitir las elegidas.
+	var dropped: String = camp._chosen_towers[0]
+	camp._toggle_tower(false, dropped, Button.new())
+	var camp_towers: PackedStringArray = camp._chosen_towers.duplicate()
+	camp._play()
+	await _frames(10)
+	var game: Node = current_scene
+	check(game != null and game.name == "Main", "jugar abre la partida")
+	check(root.get_node("Session").mission_id == "w1_m5", "la sesión lleva la misión elegida")
+	var hero_ids := []
+	for h in game.world.heroes.heroes:
+		hero_ids.append(String(h.def.id))
+	check(hero_ids == Array(chosen), "la partida usa los héroes elegidos, en ese orden")
+	check(Array(game.world.allowed_towers) == Array(camp_towers), "la partida usa el equipo de torres elegido")
+	check(game.world.build(0, StringName(dropped)) == &"unknown_tower", "no se puede construir una torre fuera del equipo")
+	game._go_to_campaign()
+	await _frames(10)
+	check(current_scene != null and current_scene.name == "Campaign", "«Volver al mapa» regresa a la campaña")
+	current_scene.queue_free()
+	await _frames(2)
+
+	print("\n%d comprobaciones, %d fallos" % [_checks, _failures])
 	quit(1 if _failures > 0 else 0)

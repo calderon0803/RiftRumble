@@ -18,6 +18,12 @@ const SupabaseClient := preload("res://src/services/supabase_client.gd")
 signal status_changed(text: String)
 signal result_processed(response: Dictionary)
 
+## Héroes y torres con los que empieza cualquier jugador (el resto, por tiradas).
+const STARTER_HEROES := ["hero_portal", "hero_blade"]
+const STARTER_TOWERS := ["tower_corrupt", "tower_seal", "tower_bounce"]
+## Ids de misión renombrados (migración de partidas guardadas antiguas).
+const RENAMED_MISSIONS := {"w1_m1": "w1_m5"}
+
 ## Máximo de resultados en cola (si nunca hay conexión, se descartan los más antiguos).
 const MAX_PENDING := 50
 
@@ -30,6 +36,7 @@ var _session := {}       # access_token, refresh_token, user_id
 var _pending: Array = [] # resultados por enviar
 var _progress := {}      # mission_id → {best_stars, victories}, shards
 var _flushing := false
+var _started := false
 
 
 func _ready() -> void:
@@ -48,6 +55,15 @@ func configure_from_file(path := "res://config/backend.json") -> void:
 	client.api_key = cfg.publishable_key
 	add_child(client)
 	transport = client
+
+
+## Configura y arranca una sola vez (lo llaman las pantallas que lo usan).
+func ensure_started() -> void:
+	if _started:
+		return
+	_started = true
+	configure_from_file()
+	await start()
 
 
 ## Inicia sesión (o la renueva) y envía lo pendiente.
@@ -119,6 +135,35 @@ func flush() -> void:
 
 func pending_count() -> int:
 	return _pending.size()
+
+
+## Héroes que posee el jugador (ids).
+func owned_heroes() -> PackedStringArray:
+	return PackedStringArray(_progress.get("heroes", STARTER_HEROES))
+
+
+## Torres que posee el jugador (ids).
+func owned_towers() -> PackedStringArray:
+	return PackedStringArray(_progress.get("towers", STARTER_TOWERS))
+
+
+func last_towers() -> PackedStringArray:
+	return PackedStringArray(_progress.get("last_towers", []))
+
+
+func set_last_towers(ids: PackedStringArray) -> void:
+	_progress.last_towers = Array(ids)
+	_save()
+
+
+## Últimos héroes elegidos para jugar (para preseleccionarlos).
+func last_heroes() -> PackedStringArray:
+	return PackedStringArray(_progress.get("last_heroes", []))
+
+
+func set_last_heroes(ids: PackedStringArray) -> void:
+	_progress.last_heroes = Array(ids)
+	_save()
 
 
 func progress_of(mission_id: String) -> Dictionary:
@@ -226,6 +271,12 @@ func _apply_server(mission_id: String, data) -> void:
 func _load() -> void:
 	_pending = _read_json("rift_pending.json").get("pending", [])
 	_progress = _read_json("rift_progress.json")
+	for old in RENAMED_MISSIONS:
+		if _progress.has(old) and not _progress.has(RENAMED_MISSIONS[old]):
+			_progress[RENAMED_MISSIONS[old]] = _progress[old]
+			_progress.erase(old)
+	for entry in _pending:
+		entry.mission_id = RENAMED_MISSIONS.get(entry.mission_id, entry.mission_id)
 
 
 func _save() -> void:

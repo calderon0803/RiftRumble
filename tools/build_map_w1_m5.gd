@@ -1,7 +1,7 @@
-## Genera el andamiaje del primer mapa del mundo 1 (misión 1).
+## Genera el andamiaje del primer mapa del mundo 1 (misión 5, jefe).
 ## Uso (una vez; después el mapa se edita en el editor de Godot):
-##   godot --headless --path . --script res://tools/build_map_w1_m1.gd
-## ATENCIÓN: sobrescribe maps/w1/w1_m1.tscn y maps/w1/w1_ground.tres.
+##   godot --headless --path . --script res://tools/build_map_w1_m5.gd
+## ATENCIÓN: sobrescribe maps/w1/w1_m5.tscn y maps/w1/w1_ground.tres.
 extends SceneTree
 
 const Iso := preload("res://src/view/iso.gd")
@@ -35,7 +35,7 @@ func _init() -> void:
 	tileset = load("res://maps/w1/w1_ground.tres")
 
 	var root := Node2D.new()
-	root.name = "W1M1"
+	root.name = "W1M5"
 	root.set_script(MapScene)
 	root.size = SIZE
 	root.path_width = PATH_WIDTH
@@ -109,8 +109,8 @@ func _init() -> void:
 
 	var scene := PackedScene.new()
 	scene.pack(root)
-	var err := ResourceSaver.save(scene, "res://maps/w1/w1_m1.tscn")
-	print("w1_m1.tscn guardado (err=%d)" % err)
+	var err := ResourceSaver.save(scene, "res://maps/w1/w1_m5.tscn")
+	print("w1_m5.tscn guardado (err=%d)" % err)
 	root.free()
 	quit(err)
 

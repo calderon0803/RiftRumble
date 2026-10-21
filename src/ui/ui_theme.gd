@@ -54,6 +54,10 @@ static func build() -> Theme:
 	t.set_stylebox("background", "ProgressBar", bar_bg)
 	t.set_stylebox("fill", "ProgressBar", bar_fill)
 
+	# Nodo de campaña bloqueado: opaco (el hilo del recorrido no se ve a través).
+	t.set_type_variation(&"LockedNode", &"Button")
+	t.set_stylebox("disabled", "LockedNode", _box(Color("1b1630"), Color("332d55"), 2, 6))
+
 	t.set_type_variation(&"StatLabel", &"Label")
 	t.set_font_size("font_size", "StatLabel", 20)
 	t.set_color("font_color", "StatLabel", GOLD)

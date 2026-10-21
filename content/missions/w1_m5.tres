@@ -49,9 +49,9 @@ clear_bonus = 0
 
 [resource]
 script = ExtResource("1_bi45v")
-id = &"w1_m1"
-display_name = "Reino del Continue — Nivel 1"
-map_scene = "res://maps/w1/w1_m1.tscn"
+id = &"w1_m5"
+display_name = "El Rey del Reinicio"
+map_scene = "res://maps/w1/w1_m5.tscn"
 start_gold = 150
 waves = Array[ExtResource("2_2sx8s")]([SubResource("Resource_bll0d"), SubResource("Resource_tbm22"), SubResource("Resource_717tx"), SubResource("Resource_ennd1"), SubResource("Resource_gatys")])
 towers = PackedStringArray("tower_corrupt", "tower_seal", "tower_bounce")
