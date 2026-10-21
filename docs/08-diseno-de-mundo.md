@@ -1,13 +1,13 @@
 # RIFT RUMBLE — Diseño de mundo y campaña (propuesta)
 
-> Estado: **propuesta para revisar**. Todos los nombres son provisionales; en datos y código se usarán ids neutros (`w1`…`w6`, `w1_m1`…).
+> Estado: **revisada con decisiones del 2026-10-21** (ver §10). Todos los nombres son provisionales; en datos y código se usarán ids neutros (`w1`…`w6`, `w1_m1`…).
 
 ## 1. Principios
 
 1. **Cada mundo rompe una regla distinta.** Además de su estética, cada mundo trae 1 o 2 mecánicas propias del mapa y un tipo de enemigo que obliga a cambiar de táctica. El lema «Rompe las reglas» se aplica a la jugabilidad, no solo a la narrativa.
 2. **Una mecánica nueva cada vez.** Cada misión presenta como mucho una idea nueva y la combina con las anteriores. El jefe del mundo es el examen de todas ellas.
 3. **Partidas cortas, campaña larga.** Misiones de 3 a 6 min. Unos 5 por mundo dan unos 25 min de campaña por mundo, más la rejugabilidad por estrellas.
-4. **El reparto de personajes se gana con la historia.** Los héroes y las torres se reclutan al avanzar, no se compran. Los fragmentos sirven para **mejoras permanentes y ramas alternativas**, no para comprar personajes (ver §5).
+4. **Héroes por tiradas; torres por historia.** Los héroes se consiguen con **tiradas** (estilo gacha) pagadas con fragmentos ganados jugando. Las torres llegan con el avance de la campaña (ver §5).
 5. **La lectura táctica manda.** Ninguna mecánica de mundo puede tapar rutas, proyectiles o enemigos importantes sin dar una forma clara de contrarrestarla.
 
 ## 2. Estructura de la campaña
@@ -29,9 +29,9 @@ La Trama (mapa de campaña)
   - **Retos diarios:** más adelante; una misión ya jugada con modificadores aleatorios fijados por semilla. Encaja con la simulación determinista.
 - **Mapa de campaña:** la Trama como tapiz de hilos que conecta islas-mundo. Cada misión es un nodo con su récord de estrellas. Entre mundos hay escenas breves de diálogo, 3 o 4 líneas como máximo.
 
-## 3. Reparto por mundo (qué se recluta y dónde)
+## 3. Reparto por mundo (torres y sinergias; héroes por definir)
 
-El orden está pensado para que **cada sinergia del diseño aparezca en el mundo cuyo tema mejor la justifica**:
+> **Pendiente:** el reparto de héroes está por definir (decisión del 2026-10-21). Como los héroes se obtienen por tiradas, no van ligados a un mundo; la columna de héroes queda como referencia temática para el diseño de personajes. Lo que sí se mantiene: **qué torre y qué sinergia presenta cada mundo**.
 
 | Mundo | Héroes nuevos | Torre nueva | Sinergia que se presenta |
 |---|---|---|---|
@@ -42,7 +42,7 @@ El orden está pensado para que **cada sinergia del diseño aparezca en el mundo
 | 5 · Vertedero de Ideas | Bric, Miga | Gallinámbula | Multibola (Rebote + Miga) |
 | 6 · Frontera Imposible | — (todo el reparto) | — | Todas, combinadas |
 
-- **Héroes por misión:** se eligen **2** de los reclutados antes de cada misión. Algunas misiones recomiendan o imponen uno por motivos de historia.
+- **Héroes por misión:** se eligen **2** de los que el jugador tenga antes de cada misión. Se empieza con dos héroes iniciales (hoy, Nexo y Kira Volt) para que el tutorial y el mundo 1 sean jugables sin tiradas.
 - **Torres por misión:** cada misión define qué torres permite, como ya hace `MissionDef.towers`. Eso permite presentar una torre nueva aislada antes de mezclarla.
 
 ## 4. Los seis mundos
@@ -103,14 +103,24 @@ El orden está pensado para que **cada sinergia del diseño aparezca en el mundo
 - **Jefe final:** **el Editor.** **Altera las reglas del combate** por fases: desactiva un tipo de torre, invierte la ruta, copia una habilidad de tus héroes. Cada fase se anuncia y tiene respuesta. El combate final se gana usando lo aprendido en los cinco mundos.
 - **Narrativa:** el Editor no es malvado sin más: cree que la imprevisibilidad causa sufrimiento. El desenlace celebra que la diferencia y el caos también crean.
 
-## 5. Progresión y uso de los fragmentos
+## 5. Progresión, fragmentos y tiradas de héroes
 
-- **Recompensas por misión:** las actuales (primera victoria, estrellas nuevas, repetición). El modo «Rompe las reglas» y los retos dan más.
-- **Gastos de fragmentos:**
-  1. **Ramas de mejora de torres.** El nivel 3 deja de ser lineal y se convierte en una **elección entre dos especializaciones**, las del diseño original. Por ejemplo, Pixeladora: *Desfragmentación* (contra acorazados) frente a *Cadena de errores* (propaga la corrupción). Comprar una rama la deja disponible en todas las partidas; dentro de la partida se elige cuál construir.
-  2. **Mejoras de héroe:** un pequeño árbol por héroe (más carga, menos recarga, una variante de habilidad).
-  3. **Más adelante:** aspectos cosméticos y una mejora de la base (vida inicial +2, etc., con límite).
-- **Lo que no se compra:** héroes, torres y el avance en la campaña. La historia los da; los fragmentos aportan profundidad.
+**Fuentes de fragmentos:** las recompensas por misión actuales (primera victoria, estrellas nuevas, repetición), con más en el modo «Rompe las reglas» y en los retos.
+
+### Tiradas (gacha) de héroes
+- **Coste:** fragmentos ganados jugando. **Sin dinero real** en el alcance actual.
+- **Rarezas** (provisional): común, rara y épica. Las **probabilidades se muestran** siempre en la pantalla de tiradas.
+- **Garantía («pity»):** al cabo de N tiradas sin un héroe de la rareza más alta, la siguiente lo garantiza. El contador se guarda y se muestra.
+- **Repetidos:** se convierten en **ecos** del héroe, que lo mejoran (más vida, menos recarga, variantes de habilidad) hasta un límite. Nunca son una tirada perdida.
+- **Héroes iniciales:** dos gratuitos desde el principio.
+- **Determinismo y seguridad:**
+  - En **local** la tirada se resuelve en el dispositivo y, como el resto del progreso local, es manipulable.
+  - Con la **nube** activa, la tirada la resolverá **el servidor** (función SQL con su propio generador aleatorio). El cliente nunca decide el resultado.
+- **Riesgo regulatorio (si algún día hay dinero real):** las cajas de botín de pago están reguladas o prohibidas en algunos países (p. ej., Bélgica), y las tiendas de aplicaciones exigen publicar las probabilidades. Habría que revisarlo antes de monetizar.
+
+### Otros usos de los fragmentos
+- **Ramas de mejora de torres:** el nivel 3 pasa a ser una elección entre dos especializaciones del diseño original (p. ej., Pixeladora: *Desfragmentación* frente a *Cadena de errores*). Se desbloquean con fragmentos.
+- Más adelante, aspectos cosméticos y mejoras de la base, con límite.
 
 ## 6. Tipos de misión y modificadores
 
@@ -155,9 +165,15 @@ Todo encaja en la estructura actual de **datos + sistemas genéricos**:
 
 Cada entrega tendrá criterios verificables, como hasta ahora: tests de simulación de cada mecánica nueva, balance con la herramienta y prueba en el iPhone.
 
-## 10. Decisiones abiertas
-1. Número de misiones por mundo (propuesta: 5).
-2. Uso de los fragmentos (propuesta: ramas de mejora y mejoras de héroe; los personajes llegan con la historia).
-3. Reparto de héroes y torres por mundo (tabla §3).
-4. Que la misión actual pase a ser la 5.ª del mundo 1 y se creen 4 previas, una de ellas tutorial.
-5. Cantidad de narrativa: diálogos breves entre misiones y al inicio de cada mundo.
+## 10. Decisiones
+
+| Tema | Decisión (2026-10-21) |
+|---|---|
+| Misiones por mundo | **5** (4 + jefe) |
+| Obtención de héroes | **Tiradas estilo gacha** con fragmentos (§5) |
+| Reparto de héroes | **Por definir**: sesión de diseño de personajes pendiente |
+| Torres y sinergias por mundo | Según la tabla §3 (no cuestionado; revisable) |
+| Primera entrega | **7.1 · Campaña mínima** |
+| Misión actual | Pasa a ser la 5.ª del mundo 1 (`w1_m5`) |
+
+Abiertas: cantidad de narrativa (propuesta: diálogos breves), tasas y tamaño de la garantía de las tiradas, rarezas y lista de héroes.
