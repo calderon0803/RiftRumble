@@ -1,6 +1,6 @@
 # RIFT RUMBLE — Fase 1: decisión tecnológica
 
-> Estado: **propuesta pendiente de validar con la prueba de concepto (PoC)**.
+> Estado: **validada por la PoC (GO)**. Resultados en [02-resultados-poc.md](02-resultados-poc.md).
 > Fecha: 2026-10-21. Versiones consultadas: Godot 4.7.2 (estable, 18-ago-2026), Phaser 4.x (v4.0.0 estable desde abril de 2026), Unity 6.x (6.3 LTS).
 
 ---

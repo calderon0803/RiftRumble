@@ -37,4 +37,16 @@ godot --headless --path . --script res://tools/bench.gd -- 500 600
 godot --path .
 ```
 
-En el juego: **S** alterna el modo estrés (500 enemigos, 12 torres), **R** reinicia, **Espacio** pausa, la rueda hace zoom y el botón derecho arrastra la cámara.
+Exportar a web y probar en red local (Godot exige HTTPS fuera de `localhost`):
+
+```bash
+godot --headless --path . --export-release "Web" build/web/index.html
+```
+
+```bash
+node tools/serve_web.mjs build/web 8443 --https
+```
+
+El modo `--https` necesita `.tools/dev-cert.pem` y `.tools/dev-key.pem` (certificado autofirmado, no versionado).
+
+En el juego: **S** o el botón *Estrés* recorre 150/300/500 enemigos con 12 torres, **R** reinicia, **Espacio** pausa, la rueda hace zoom y el botón derecho arrastra la cámara.

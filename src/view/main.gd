@@ -13,11 +13,13 @@ const EnemyView := preload("res://src/view/enemy_view.gd")
 const ProjectileView := preload("res://src/view/projectile_view.gd")
 const TowerView := preload("res://src/view/tower_view.gd")
 
-const STRESS_ENEMIES := 500
+## Niveles del modo estrés; el botón/tecla recorre 150 → 300 → 500 → normal.
+const STRESS_LEVELS := [150, 300, 500]
 const NORMAL_SPAWN_EVERY_TICKS := 20
 
 var world: SimWorld
 var stress := false
+var stress_enemies := 500
 var paused := false
 
 var _acc := 0.0
@@ -60,6 +62,18 @@ func _ready() -> void:
 	_hud.add_theme_constant_override("outline_size", 4)
 	layer.add_child(_hud)
 
+	# Botones táctiles (equivalen a S y R) para probar en móvil.
+	var buttons := HBoxContainer.new()
+	buttons.position = Vector2(12, 150)
+	layer.add_child(buttons)
+	for spec in [["Estrés", _toggle_stress], ["Reiniciar", _restart]]:
+		var b := Button.new()
+		b.text = spec[0]
+		b.custom_minimum_size = Vector2(120, 48)
+		b.focus_mode = Control.FOCUS_NONE
+		b.pressed.connect(spec[1])
+		buttons.add_child(b)
+
 	_restart()
 	_maybe_capture_screenshot()
 
@@ -85,6 +99,14 @@ func _maybe_capture_screenshot() -> void:
 	get_tree().quit()
 
 
+func _toggle_stress() -> void:
+	var next := STRESS_LEVELS.find(stress_enemies) + 1 if stress else 0
+	stress = next < STRESS_LEVELS.size()
+	if stress:
+		stress_enemies = STRESS_LEVELS[next]
+	_restart()
+
+
 func _restart() -> void:
 	for child in _entities.get_children():
 		child.queue_free()
@@ -108,7 +130,7 @@ func _restart() -> void:
 
 	if stress:
 		world.base_hp = 1_000_000_000
-		for i in STRESS_ENEMIES:
+		for i in stress_enemies:
 			world.spawn_enemy(40.0, 1.2, world.rng.randf_range(0.0, world.path.length * 0.95))
 	_prev_e_pos = world.e_pos.duplicate()
 	_prev_p_pos = world.p_pos.duplicate()
@@ -129,7 +151,7 @@ func _run_tick() -> void:
 	_prev_p_pos = world.p_pos.duplicate()
 
 	if stress:
-		var to_spawn := mini(STRESS_ENEMIES - world.enemy_count, 5)
+		var to_spawn := mini(stress_enemies - world.enemy_count, 5)
 		for i in to_spawn:
 			world.spawn_enemy(40.0, 1.2)
 	elif world.tick % NORMAL_SPAWN_EVERY_TICKS == 0:
@@ -196,8 +218,8 @@ func _update_hud() -> void:
 		status = "\nBASE DESTRUIDA — R para reiniciar"
 	elif paused:
 		status = "\nPAUSA"
-	_hud.text = "RIFT RUMBLE · PoC  [%s]\nFPS %d · sim %.2f ms/tick (máx %.2f)\nEnemigos %d · Proyectiles %d · Torres %d\nBase %s · Tick %d%s\nS estrés · R reiniciar · Espacio pausa" % [
-		"ESTRÉS" if stress else "NORMAL",
+	_hud.text = "RIFT RUMBLE · PoC  [%s]\nFPS %d · sim %.2f ms/tick (máx %.2f)\nEnemigos %d · Proyectiles %d · Torres %d\nBase %s · Tick %d%s\nS estrés (150/300/500) · R reiniciar · Espacio pausa" % [
+		"ESTRÉS %d" % stress_enemies if stress else "NORMAL",
 		Engine.get_frames_per_second(), _sim_ms_avg, _sim_ms_max,
 		world.enemy_count, world.projectile_count, world.towers.size(),
 		"∞" if stress else str(world.base_hp), world.tick, status,
@@ -208,8 +230,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
 		match event.keycode:
 			KEY_S:
-				stress = not stress
-				_restart()
+				_toggle_stress()
 			KEY_R:
 				_restart()
 			KEY_SPACE, KEY_P:
