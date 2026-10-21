@@ -1,30 +1,33 @@
-## Torre provisional: un pilar alto para comprobar la ordenación en profundidad
-## con enemigos que pasan por delante y por detrás.
-extends Node2D
+## Torre provisional (sprite alto) con anillo de alcance opcional.
+extends Sprite2D
 
 const Iso := preload("res://src/view/iso.gd")
+const TEX := preload("res://art/placeholder/tower_basic.png")
 
-var logical_pos := Vector2.ZERO
-var range_tiles := 3.0
-var show_range := true
+var _ring: RangeRing
 
 
-func _draw() -> void:
+func _init() -> void:
+	texture = TEX
+	offset = Vector2(0, -26)  # pie en (16, 58) del sprite de 32×64
+
+
+func setup(logical_pos: Vector2, range_tiles: float, show_range: bool) -> void:
+	position = Iso.to_screen(logical_pos)
 	if show_range:
+		_ring = RangeRing.new()
+		_ring.range_tiles = range_tiles
+		_ring.z_index = -5  # sobre el suelo, por debajo de las entidades
+		add_child(_ring)
+
+
+## Alcance circular en casillas = elipse en pantalla.
+class RangeRing extends Node2D:
+	var range_tiles := 3.0
+
+	func _draw() -> void:
 		var pts := PackedVector2Array()
-		for i in 49:
-			var a := TAU * i / 48.0
-			var p := logical_pos + Vector2(cos(a), sin(a)) * range_tiles
-			pts.append(Iso.to_screen(p) - Iso.to_screen(logical_pos))
-		draw_polyline(pts, Color(1, 1, 1, 0.25), 1.5)
-	draw_set_transform(Vector2.ZERO, 0.0, Vector2(1.0, 0.5))
-	draw_circle(Vector2.ZERO, 16.0, Color(0, 0, 0, 0.3))
-	draw_set_transform(Vector2.ZERO)
-	draw_colored_polygon(PackedVector2Array([
-		Vector2(-12, 0), Vector2(0, 6), Vector2(12, 0), Vector2(12, -48),
-		Vector2(0, -42), Vector2(-12, -48)]), Color("4b5ea8"))
-	draw_colored_polygon(PackedVector2Array([
-		Vector2(0, 6), Vector2(12, 0), Vector2(12, -48), Vector2(0, -42)]), Color("34437d"))
-	draw_colored_polygon(PackedVector2Array([
-		Vector2(-12, -48), Vector2(0, -54), Vector2(12, -48), Vector2(0, -42)]), Color("8fa2ff"))
-	draw_circle(Vector2(0, -60), 5.0, Color("6ff3ff"))
+		for i in 65:
+			var a := TAU * i / 64.0
+			pts.append(Iso.to_screen(Vector2(cos(a), sin(a)) * range_tiles))
+		draw_polyline(pts, Color(1, 1, 1, 0.35), 1.5)

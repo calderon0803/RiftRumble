@@ -2,20 +2,24 @@
 
 > *Defiende tu mundo. Rompe las reglas.*
 
-Tower defense isométrico 2.5D con héroes. Estado actual: **Fase 1, prueba de concepto**.
-Decisión tecnológica y plan: [docs/01-decision-tecnologica.md](docs/01-decision-tecnologica.md).
+Tower defense isométrico 2.5D con héroes. Estado actual: **Fase 2 completada (mundo y rutas)**. Siguiente: Fase 3 (combate y economía).
+Documentación: [decisión tecnológica](docs/01-decision-tecnologica.md) · [resultados de la PoC](docs/02-resultados-poc.md) · [Fase 2](docs/03-fase-2-mundo-y-rutas.md).
 
 ## Requisitos
 - Godot **4.7.x** estable, versión estándar con GDScript (no la .NET).
 
 ## Estructura
 ```
-src/sim/    Simulación pura (sin nodos, tick fijo, determinista)
-src/view/   Presentación isométrica (lee el estado de la simulación)
-src/poc/    Datos provisionales del mapa de la PoC
-tests/      Tests headless de la simulación
-tools/      Benchmarks y utilidades
-docs/       Decisiones y resultados
+src/sim/       Simulación pura (sin nodos, tick fijo, determinista)
+src/content/   Definiciones de datos (MapDef…)
+src/maps/      Script de las escenas de mapa
+src/view/      Presentación isométrica (lee el estado de la simulación)
+src/poc/       Utilidades de pruebas de rendimiento
+maps/          Escenas de mapa editables y TileSets
+art/placeholder/  Arte PROVISIONAL generado (se sustituirá)
+tests/         Tests headless
+tools/         Generadores, benchmark y servidor web local
+docs/          Decisiones y resultados por fase
 ```
 
 ## Comandos

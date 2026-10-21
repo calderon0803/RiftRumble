@@ -155,6 +155,71 @@ func test_slot_reuse_does_not_retarget_projectile() -> void:
 	check(w.e_hp[b] == 10.0, "B intacto")
 
 
+# --- Mapa del Reino del Continue ----------------------------------------------
+
+func _load_map() -> Node:
+	return load("res://maps/continue_01.tscn").instantiate()
+
+
+func test_map_def_is_valid() -> void:
+	var map := _load_map()
+	var def = map.build_def()
+	map.free()
+	var problems: PackedStringArray = def.validate()
+	check(problems.is_empty(), "mapa válido: %s" % ", ".join(problems))
+	check(def.routes.size() == 1, "una ruta (MVP)")
+	check(def.build_spots.size() == 3, "tres posiciones de construcción, hay %d" % def.build_spots.size())
+	var route: PackedVector2Array = def.routes[0]
+	check(route[0].x == 0.0 or route[0].y == 0.0, "la ruta entra por un borde del mapa: %s" % route[0])
+	var last := route[route.size() - 1]
+	check(last.x == def.size.x or last.y == def.size.y, "la ruta sale por un borde del mapa: %s" % last)
+
+
+func test_tilemap_matches_iso_projection() -> void:
+	# El TileMapLayer de Godot y nuestra proyección deben coincidir: si no, la
+	# simulación y el suelo dibujado quedarían desalineados.
+	var map := _load_map()
+	var ground: TileMapLayer = map.get_node("Ground")
+	for cell in [Vector2i(0, 0), Vector2i(3, 5), Vector2i(17, 11)]:
+		var godot_center := ground.position + ground.map_to_local(cell)
+		var ours := Iso.to_screen(Vector2(cell) + Vector2(0.5, 0.5))
+		check(godot_center.is_equal_approx(ours), "centro de %s: Godot %s vs Iso %s" % [cell, godot_center, ours])
+	map.free()
+
+
+func test_ground_path_tiles_match_route() -> void:
+	var map := _load_map()
+	var def = map.build_def()
+	var ground: TileMapLayer = map.get_node("Ground")
+	var path_tiles: Dictionary = def.path_tiles()
+	var mismatches := 0
+	for y in def.size.y:
+		for x in def.size.x:
+			var is_path_tile := ground.get_cell_atlas_coords(Vector2i(x, y)) == Vector2i(3, 0)
+			if is_path_tile != path_tiles.has(Vector2i(x, y)):
+				mismatches += 1
+	map.free()
+	check(mismatches == 0, "el camino pintado coincide con la ruta lógica (%d diferencias)" % mismatches)
+
+
+func test_enemy_traverses_real_map_route() -> void:
+	var map := _load_map()
+	var def = map.build_def()
+	map.free()
+	var w := SimWorld.new(def.routes[0], 1)
+	var speed := 1.6
+	w.spawn_enemy(10.0, speed)
+	var expected := int(ceil(w.path.length / speed * SimWorld.TICK_RATE))
+	var leaked_at := -1
+	for i in expected + 30:
+		w.step()
+		if _count(w.drain_events(), &"enemy_leaked") > 0:
+			leaked_at = w.tick
+			break
+	check(absi(leaked_at - expected) <= 1, "recorre la ruta en %d ticks (esperado %d)" % [leaked_at, expected])
+	check(w.base_hp == 19, "llega a la base y le resta vida")
+
+
 # --- Determinismo -------------------------------------------------------------
 
 func test_determinism() -> void:

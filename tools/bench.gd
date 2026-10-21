@@ -4,7 +4,7 @@
 extends SceneTree
 
 const SimWorld := preload("res://src/sim/sim_world.gd")
-const PocMap := preload("res://src/poc/poc_map.gd")
+const StressLayout := preload("res://src/poc/stress_layout.gd")
 
 
 func _init() -> void:
@@ -14,9 +14,12 @@ func _init() -> void:
 	var interval := float(args[2]) if args.size() > 2 else 0.5
 	var proj_speed := float(args[3]) if args.size() > 3 else 10.0
 
-	var w := SimWorld.new(PocMap.waypoints(), 1)
+	var map: Node = load("res://maps/continue_01.tscn").instantiate()
+	var def = map.build_def()
+	map.free()
+	var w := SimWorld.new(def.routes[0], 1)
 	w.base_hp = 1_000_000_000
-	for spot in PocMap.STRESS_TOWER_SPOTS:
+	for spot in StressLayout.tower_spots(def, 12):
 		w.add_tower(spot, 3.5, interval, 1.0, proj_speed)
 	for i in enemies:
 		w.spawn_enemy(40.0, 1.2, w.rng.randf_range(0.0, w.path.length * 0.95))

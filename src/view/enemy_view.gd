@@ -1,31 +1,46 @@
-## Representación provisional de un enemigo. El origen del nodo es su «pie»
-## (contacto con el suelo), que es lo que usa el Y-sort para la profundidad.
-extends Node2D
+## Vista de un enemigo: Sprite2D con hoja de animación compartida (todas las
+## instancias usan la misma textura, lo que permite agrupar el dibujado).
+## El origen del nodo es su «pie», que es lo que usa el Y-sort.
+extends Sprite2D
+
+const SHEET := preload("res://art/placeholder/enemy_glitchling.png")
+const FRAMES := 4
+const FPS := 8.0
 
 var _hp_ratio := 1.0
+var _bar: Node2D
+var _phase := 0.0
 
 
-func set_hp_ratio(value: float) -> void:
-	if not is_equal_approx(value, _hp_ratio):
-		_hp_ratio = value
-		queue_redraw()
+func _init() -> void:
+	texture = SHEET
+	hframes = FRAMES
+	offset = Vector2(0, -14)  # pie en (16, 30) de cada frame de 32×32
+	_bar = HealthBar.new()
+	_bar.visible = false
+	add_child(_bar)
 
 
-func reset() -> void:
+func reset(slot: int) -> void:
 	_hp_ratio = 1.0
-	queue_redraw()
+	_bar.visible = false
+	_phase = slot * 0.37  # desincroniza la animación entre enemigos
 
 
-func _draw() -> void:
-	# Sombra
-	draw_set_transform(Vector2.ZERO, 0.0, Vector2(1.0, 0.5))
-	draw_circle(Vector2.ZERO, 9.0, Color(0, 0, 0, 0.3))
-	draw_set_transform(Vector2.ZERO)
-	# Cuerpo
-	draw_rect(Rect2(-7, -22, 14, 20), Color("e0565b"))
-	draw_rect(Rect2(-7, -22, 14, 20), Color("5a1a24"), false, 2.0)
-	draw_rect(Rect2(-3, -18, 6, 4), Color("ffe9a8"))
-	# Barra de vida
-	if _hp_ratio < 1.0:
-		draw_rect(Rect2(-10, -30, 20, 3), Color(0, 0, 0, 0.6))
-		draw_rect(Rect2(-10, -30, 20 * _hp_ratio, 3), Color("7dff8a"))
+func update_view(time: float, screen_dx: float, hp_ratio: float) -> void:
+	frame = int((time + _phase) * FPS) % FRAMES
+	if absf(screen_dx) > 0.01:
+		flip_h = screen_dx < 0.0
+	if not is_equal_approx(hp_ratio, _hp_ratio):
+		_hp_ratio = hp_ratio
+		_bar.visible = hp_ratio < 1.0
+		_bar.ratio = hp_ratio
+		_bar.queue_redraw()
+
+
+class HealthBar extends Node2D:
+	var ratio := 1.0
+
+	func _draw() -> void:
+		draw_rect(Rect2(-10, -34, 20, 3), Color(0, 0, 0, 0.6))
+		draw_rect(Rect2(-10, -34, 20 * ratio, 3), Color("7dff8a"))
