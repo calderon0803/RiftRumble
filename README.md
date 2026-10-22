@@ -80,6 +80,6 @@ Balance (juega las misiones del mundo 1 con varias estrategias; acepta ids):
 godot --headless --path . --script res://tools/balance.gd -- w1_m3
 ```
 
-En el juego: toca una plataforma para abrir su menú (construir, mejorar o vender); toca un héroe y luego el camino para moverlo; el botón de habilidad de su tarjeta y un toque en el mapa lanzan la habilidad; **N** lanza la oleada, **Espacio** pausa, **R** reinicia, la rueda o el pellizco hacen zoom y el botón derecho o un dedo arrastran la cámara. **S** recorre el modo estrés (depuración).
+En el juego: toca una plataforma para abrir su menú (construir, mejorar o vender); toca un héroe y luego el camino para moverlo; cuando su medidor llega al 100 %, el botón de habilidad de su tarjeta y un toque en el mapa lanzan la habilidad; **N** lanza la oleada, **Espacio** pausa, **R** reinicia, la rueda o el pellizco hacen zoom y el botón derecho o un dedo arrastran la cámara. **S** recorre el modo estrés (depuración).
 
 > Tras clonar, ejecuta primero `--import` una vez: registra las clases de contenido (`TowerDef`…) que usan los tests.

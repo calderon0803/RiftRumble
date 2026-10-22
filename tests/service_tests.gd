@@ -17,7 +17,7 @@ class FakeServer extends RefCounted:
 	var refreshes := 0
 	var calls := 0
 	var results := {}  # nonce → respuesta
-	var shards := 0
+	var threads := 0
 	var expire_next := false
 
 	func sign_up_anonymous() -> Dictionary:
@@ -48,8 +48,8 @@ class FakeServer extends RefCounted:
 		if p.p_outcome == "victory" and p.p_duration_secs < 150:
 			return {ok = false, status = 400, data = null, error = "implausible_victory"}
 		var reward := 50 if p.p_outcome == "victory" else 0
-		shards += reward
-		var res := {duplicate = false, stars = 3 if p.p_outcome == "victory" else 0, reward = reward, shards = shards}
+		threads += reward
+		var res := {duplicate = false, stars = 3 if p.p_outcome == "victory" else 0, reward = reward, threads = threads}
 		results[p.p_client_nonce] = res
 		return {ok = true, status = 200, data = res, error = ""}
 
@@ -104,7 +104,7 @@ func _run() -> void:
 	await s.start()
 	check(server.signups == 1, "crea un usuario invitado una sola vez")
 	check(s.pending_count() == 0 and server.calls == 1, "al conectar envía lo pendiente")
-	check(s.shards() == 50, "guarda las monedas que devuelve el servidor")
+	check(s.threads() == 50, "guarda las monedas que devuelve el servidor")
 	s.queue_free()
 
 	# 3. Siguiente sesión: renueva el token en vez de crear otro usuario.
@@ -124,10 +124,10 @@ func _run() -> void:
 	server.offline = false
 	await s.flush()
 	check(server.results.has(nonce), "el reintento usa el mismo identificador de partida")
-	var shards_before := server.shards
+	var threads_before := server.threads
 	var dup: Dictionary = await server.rpc_call("submit_match_result", {p_client_nonce = nonce,
 		p_outcome = "victory", p_duration_secs = 240}, "")
-	check(dup.data.duplicate and server.shards == shards_before, "reenviar el mismo resultado no da más monedas")
+	check(dup.data.duplicate and server.threads == threads_before, "reenviar el mismo resultado no da más monedas")
 
 	# 6. Rechazo del servidor (inverosímil): no se queda reintentando para siempre.
 	await s.submit_result(_victory(30))
@@ -158,7 +158,7 @@ func _run() -> void:
 	# 8. El progreso local se conserva al «reabrir el juego».
 	s = _service(null)
 	var p := s.progress_of("w1_m5")
-	check(s.shards() == 115 and s.best_stars("w1_m5") == 3, "se conservan fragmentos (115) y mejores estrellas")
+	check(s.threads() == 115 and s.best_stars("w1_m5") == 3, "se conservan los hilos (115) y mejores estrellas")
 	check(p.victories == 3 and p.attempts == 4 and p.best_time_secs == 240, "se conservan victorias, intentos y mejor tiempo")
 	s.queue_free()
 
@@ -169,7 +169,7 @@ func _run() -> void:
 	f.close()
 	s = _service(null)
 	check(s.best_stars("w1_m5") == 2 and s.best_stars("w1_m1") == 0, "migra el progreso de w1_m1 a w1_m5")
-	check(s.shards() == 30, "conserva los fragmentos al migrar")
+	check(s.threads() == 30, "conserva los hilos al migrar (antes «shards»)")
 	check(Array(s.owned_heroes()) == SaveService.STARTER_HEROES, "un jugador empieza con los héroes iniciales")
 	check(Array(s.owned_towers()) == SaveService.STARTER_TOWERS, "y con las torres iniciales")
 	s.set_last_heroes(PackedStringArray(["hero_blade", "hero_portal"]))

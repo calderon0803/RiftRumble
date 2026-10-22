@@ -7,6 +7,7 @@
 
 [resource]
 script = ExtResource("2_x33sq")
+weight = 3
 id = &"enemy_boss_w1"
 display_name = "Rey del Reinicio"
 hp = 420.0

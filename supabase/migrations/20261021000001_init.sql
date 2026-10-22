@@ -38,7 +38,7 @@ create table public.profiles (
 
 create table public.wallets (
   user_id uuid primary key references auth.users (id) on delete cascade,
-  shards  int  not null default 0 check (shards >= 0)
+  threads  int  not null default 0 check (threads >= 0)
 );
 
 create table public.campaign_progress (
@@ -144,7 +144,7 @@ declare
   v_reward   int := 0;
   v_first    boolean := false;
   v_recent   int;
-  v_shards   int;
+  v_threads   int;
 begin
   if v_user is null then
     raise exception 'not_authenticated' using errcode = '28000';
@@ -154,9 +154,9 @@ begin
   select * into v_existing from public.match_results
     where user_id = v_user and client_nonce = p_client_nonce;
   if found then
-    select shards into v_shards from public.wallets where user_id = v_user;
+    select threads into v_threads from public.wallets where user_id = v_user;
     return jsonb_build_object('duplicate', true, 'stars', v_existing.stars,
-      'reward', v_existing.reward, 'shards', v_shards);
+      'reward', v_existing.reward, 'threads', v_threads);
   end if;
 
   -- Límite de envíos (evita inundar la tabla).
@@ -228,11 +228,11 @@ begin
     attempts = cp.attempts + 1,
     updated_at = now();
 
-  update public.wallets set shards = shards + v_reward where user_id = v_user
-    returning shards into v_shards;
+  update public.wallets set threads = threads + v_reward where user_id = v_user
+    returning threads into v_threads;
 
   return jsonb_build_object('duplicate', false, 'stars', v_stars, 'reward', v_reward,
-    'first_clear', v_first, 'shards', v_shards);
+    'first_clear', v_first, 'threads', v_threads);
 end;
 $$;
 

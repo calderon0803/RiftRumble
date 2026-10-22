@@ -65,7 +65,7 @@ const r1 = await submit(a, { p_client_nonce: nonce, p_base_hp: 19 });
 check(r1.ok && r1.data.stars === 3 && r1.data.first_clear === true, "victoria válida: 3★ y primera victoria");
 check(r1.ok && r1.data.reward === 50 + 3 * 20, `recompensa de primera victoria (${r1.data?.reward})`);
 const r2 = await submit(a, { p_client_nonce: nonce, p_base_hp: 19 });
-check(r2.ok && r2.data.duplicate === true && r2.data.shards === r1.data.shards,
+check(r2.ok && r2.data.duplicate === true && r2.data.threads === r1.data.threads,
   "reenviar el mismo resultado no duplica la recompensa");
 const r3 = await submit(a, { p_base_hp: 3 });
 check(r3.ok && r3.data.stars === 1 && r3.data.reward === 5, "estrellas recalculadas por el servidor (1★) y recompensa de repetición");
@@ -80,13 +80,13 @@ check((await submit(a, { p_mission_id: "no_existe" })).status === 400, "misión 
 check((await submit(a, { p_outcome: "defeat", p_base_hp: 10 })).status === 400, "derrota con vida en la base: rechazada");
 
 console.log("\nEscrituras directas (deben fallar)");
-const before = (await call("GET", "/rest/v1/wallets?select=shards", undefined, a.token)).data[0].shards;
-const w1 = await call("PATCH", `/rest/v1/wallets?user_id=eq.${a.id}`, { shards: 999999 }, a.token);
-const w2 = await call("POST", "/rest/v1/wallets", { user_id: a.id, shards: 999999 }, a.token);
+const before = (await call("GET", "/rest/v1/wallets?select=threads", undefined, a.token)).data[0].threads;
+const w1 = await call("PATCH", `/rest/v1/wallets?user_id=eq.${a.id}`, { threads: 999999 }, a.token);
+const w2 = await call("POST", "/rest/v1/wallets", { user_id: a.id, threads: 999999 }, a.token);
 const w3 = await call("POST", "/rest/v1/campaign_progress", { user_id: a.id, mission_id: "w1_m5", best_stars: 3 }, a.token);
 const w4 = await call("POST", "/rest/v1/match_results", { user_id: a.id, mission_id: "w1_m5",
   client_nonce: randomUUID(), outcome: "victory", stars: 3, base_hp: 20, waves_reached: 5, duration_secs: 999, reward: 9999 }, a.token);
-const after = (await call("GET", "/rest/v1/wallets?select=shards", undefined, a.token)).data[0].shards;
+const after = (await call("GET", "/rest/v1/wallets?select=threads", undefined, a.token)).data[0].threads;
 check(!w1.ok || (Array.isArray(w1.data) && w1.data.length === 0), `no se pueden modificar las monedas (HTTP ${w1.status})`);
 check(!w2.ok && !w3.ok && !w4.ok, `no se pueden insertar monedas, progreso ni resultados (HTTP ${w2.status}/${w3.status}/${w4.status})`);
 check(after === before, `las monedas no han cambiado (${before} → ${after})`);

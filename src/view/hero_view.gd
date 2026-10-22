@@ -9,6 +9,7 @@ var def: HeroDef
 var _ring: SelectionRing
 var _charge: ChargePips
 var _hp_bar: HpBar
+var _meter_bar: MeterBar
 var _phase := 0.0
 
 
@@ -24,15 +25,23 @@ func setup(hero_def: HeroDef, index: int) -> void:
 	_ring.z_index = -4
 	add_child(_ring)
 	_charge = ChargePips.new()
-	_charge.max_charge = def.charge_max
+	_charge.max_charge = def.edge_max
 	_charge.color = def.color
 	add_child(_charge)
 	_hp_bar = HpBar.new()
 	add_child(_hp_bar)
+	_meter_bar = MeterBar.new()
+	_meter_bar.color = def.color
+	add_child(_meter_bar)
 
 
-func update_view(time: float, screen_dx: float, charge: int, selected: bool, ability_ready: bool,
+func update_view(time: float, screen_dx: float, edge: int, selected: bool, meter_ratio: float,
 		hp_ratio: float, dead: bool) -> void:
+	var ability_ready := meter_ratio >= 1.0
+	if not is_equal_approx(_meter_bar.ratio, meter_ratio):
+		_meter_bar.ratio = meter_ratio
+		_meter_bar.queue_redraw()
+	_meter_bar.visible = not dead
 	# Caído: translúcido y gris hasta reaparecer.
 	modulate = Color(0.6, 0.6, 0.7, 0.35) if dead else Color.WHITE
 	if not is_equal_approx(_hp_bar.ratio, hp_ratio):
@@ -45,8 +54,8 @@ func update_view(time: float, screen_dx: float, charge: int, selected: bool, abi
 	_ring.selected = selected
 	_ring.ability_ready = ability_ready
 	_ring.queue_redraw()
-	if _charge.charge != charge:
-		_charge.charge = charge
+	if _charge.charge != edge:
+		_charge.charge = edge
 		_charge.queue_redraw()
 
 
@@ -79,6 +88,17 @@ class HpBar extends Node2D:
 		draw_rect(Rect2(-12, -46, 24 * ratio, 4), col)
 
 
+## Medidor de habilidad bajo la barra de vida (brilla al llegar al 100 %).
+class MeterBar extends Node2D:
+	var ratio := 0.0
+	var color := Color.WHITE
+
+	func _draw() -> void:
+		draw_rect(Rect2(-12, -41, 24, 3), Color(0, 0, 0, 0.65))
+		draw_rect(Rect2(-12, -41, 24 * ratio, 3), Color.WHITE if ratio >= 1.0 else color)
+
+
+## Filo (carga propia de algunos héroes, p. ej., Kira).
 class ChargePips extends Node2D:
 	var charge := 0
 	var max_charge := 0

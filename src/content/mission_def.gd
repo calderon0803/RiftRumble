@@ -30,7 +30,7 @@ extends Resource
 ## Ids de los héroes desplegados en la misión (uno por posición de inicio del mapa).
 @export var heroes := PackedStringArray()
 
-@export_group("Recompensas (fragmentos)")
+@export_group("Recompensas (hilos)")
 ## Mismas reglas que la función del servidor (supabase/migrations): primera
 ## victoria = first_clear + per_star × estrellas; mejorar el récord =
 ## per_star × estrellas nuevas; repetir una victoria = replay.

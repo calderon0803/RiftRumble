@@ -17,8 +17,10 @@ const SimObjects := preload("res://src/sim/sim_objects.gd")
 const TICK_RATE := 30
 const DT := 1.0 / TICK_RATE
 
-## La armadura no reduce este tipo de daño.
+## La armadura no reduce este tipo de daño (Arcano).
 const ARMOR_IGNORING_TYPE := &"magic"
+## La armadura reduce este tipo a la mitad (Energético; decisión G-5).
+const ARMOR_HALVING_TYPE := &"energy"
 
 enum Outcome { PLAYING, VICTORY, DEFEAT }
 
@@ -424,7 +426,8 @@ func _finish_spawn(slot: int, route: int, start_dist: float, lane: int = 0) -> v
 	e_pos[slot] = _enemy_path(slot).sample(start_dist)
 	e_blocker[slot] = -1
 	e_melee_cd[slot] = 0
-	effects.reset_slot(slot)
+	var def: EnemyDef = e_def[slot]
+	effects.reset_slot(slot, def.weight if def else EnemyDef.Weight.LIGHT)
 	enemy_count += 1
 	events.append({type = &"enemy_spawned", slot = slot})
 
@@ -642,8 +645,10 @@ func _projectile_hit(p: int, slot: int) -> void:
 	hit_ids.append(e_id[slot])
 	p_hit_ids[p] = hit_ids
 	if p_hero[p] >= 0:
-		heroes.on_basic_hit(p_hero[p])
+		heroes.on_basic_hit(self, p_hero[p])
 	var killed := damage_enemy(slot, p_damage[p], def.damage_type, p_pierce[p])
+	if killed and p_hero[p] >= 0:
+		heroes.on_basic_kill(self, p_hero[p])
 	if not killed and def.on_hit_effect:
 		effects.apply(self, slot, def.on_hit_effect)
 
@@ -685,6 +690,8 @@ func _free_projectile(i: int) -> void:
 func damage_enemy(slot: int, amount: float, damage_type: StringName = &"kinetic",
 		armor_pierce: float = 0.0) -> bool:
 	var armor := 0.0 if damage_type == ARMOR_IGNORING_TYPE else e_armor[slot] * (1.0 - armor_pierce)
+	if damage_type == ARMOR_HALVING_TYPE:
+		armor *= 0.5
 	var final := amount * (1.0 - armor) * effects.damage_taken_mult(slot, damage_type)
 	e_hp[slot] -= final
 	events.append({type = &"enemy_hit", slot = slot, amount = final, damage_type = damage_type})

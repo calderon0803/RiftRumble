@@ -5,6 +5,8 @@ extends SceneTree
 
 const SimWorld := preload("res://src/sim/sim_world.gd")
 const SimPath := preload("res://src/sim/sim_path.gd")
+const SimEffects := preload("res://src/sim/sim_effects.gd")
+const SimHeroes := preload("res://src/sim/sim_heroes.gd")
 const Iso := preload("res://src/view/iso.gd")
 const ContentDB := preload("res://src/content/content_db.gd")
 
@@ -282,6 +284,73 @@ func test_armor_reduces_by_damage_type() -> void:
 	hp = w.e_hp[s]
 	w.damage_enemy(s, 10.0, &"digital", 0.5)
 	check(is_equal_approx(hp - w.e_hp[s], 7.0), "penetración 0.5: armadura efectiva 0.3")
+	hp = w.e_hp[s]
+	w.damage_enemy(s, 10.0, &"energy")
+	check(is_equal_approx(hp - w.e_hp[s], 7.0), "energético: la armadura cuenta la mitad")
+
+
+func _root_effect() -> EffectDef:
+	var e := EffectDef.new()
+	e.id = &"test_root"
+	e.duration = 2.0
+	e.root = true
+	return e
+
+
+func _root_ticks(w: SimWorld, s: int) -> int:
+	for inst in w.effects.instances[s]:
+		if inst.def.id == &"test_root":
+			return inst.ticks
+	return 0
+
+
+func test_weight_scales_hard_control() -> void:
+	var root := _root_effect()
+	var expected := {EnemyDef.Weight.LIGHT: 60, EnemyDef.Weight.MEDIUM: 30, EnemyDef.Weight.HEAVY: 15}
+	for weight in expected:
+		var w := _world()
+		var s := w.spawn_enemy(100.0, 0.0, 5.0)
+		w.effects.weights[s] = weight
+		check(w.effects.apply(w, s, root), "control duro aplicado (peso %d)" % weight)
+		check(_root_ticks(w, s) == expected[weight], "duración según peso %d: %d ticks" % [weight, _root_ticks(w, s)])
+	var w := _world()
+	var s := w.spawn_enemy(100.0, 0.0, 5.0)
+	w.effects.weights[s] = EnemyDef.Weight.BOSS
+	check(not w.effects.apply(w, s, root), "los jefes son inmunes al control duro")
+	check(_db().enemies[&"enemy_boss_w1"].weight == EnemyDef.Weight.BOSS, "el jefe del mundo 1 tiene peso Jefe")
+	check(_db().enemies[&"enemy_armored"].weight == EnemyDef.Weight.HEAVY, "el blindado es pesado")
+
+
+func test_hard_control_diminishing_then_immunity() -> void:
+	var root := _root_effect()
+	var w := _world()
+	var s := w.spawn_enemy(100.0, 0.0, 5.0)
+	w.effects.apply(w, s, root)
+	check(_root_ticks(w, s) == 60, "primer control: duración completa")
+	w.effects.apply(w, s, root)
+	check(_root_ticks(w, s) == 30, "segundo: la mitad")
+	w.effects.apply(w, s, root)
+	check(_root_ticks(w, s) == 15, "tercero: un cuarto")
+	check(not w.effects.apply(w, s, root), "tras el tercero, inmunidad temporal")
+	_run(w, SimEffects.HARD_CONTROL_IMMUNITY + 1)
+	check(w.effects.apply(w, s, root) and _root_ticks(w, s) == 60, "acabada la inmunidad, vuelve a duración completa")
+
+
+func test_slow_cap_and_boss_slow_halved() -> void:
+	var slow := EffectDef.new()
+	slow.id = &"test_slow"
+	slow.duration = 2.0
+	slow.max_stacks = 5
+	slow.speed_mult_per_stack = 0.5
+	var w := _world()
+	var s := w.spawn_enemy(100.0, 0.0, 5.0)
+	for i in 5:
+		w.effects.apply(w, s, slow)
+	check(is_equal_approx(w.effects.speed_mult[s], SimEffects.MIN_SPEED_MULT), "la ralentización se limita al −60 %%")
+	var b := w.spawn_enemy(100.0, 0.0, 5.0)
+	w.effects.weights[b] = EnemyDef.Weight.BOSS
+	w.effects.apply(w, b, slow)
+	check(is_equal_approx(w.effects.speed_mult[b], 0.75), "un jefe sufre la mitad de la ralentización (%.2f)" % w.effects.speed_mult[b])
 
 
 func test_corruption_amplifies_other_damage_types() -> void:
@@ -486,33 +555,70 @@ func test_hero_regenerates_when_not_fighting() -> void:
 	check(is_equal_approx(h.hp, 10.0 + def.regen_per_second * 2.0), "recupera %.0f de vida por segundo" % def.regen_per_second)
 
 
-func test_blade_basic_attack_builds_capped_charge() -> void:
+func test_blade_basic_attack_builds_capped_edge() -> void:
 	var w := _hero_world(&"hero_blade", Vector2(6, 1))
 	w.spawn_enemy(1000.0, 0.0, 6.0)  # enemigo inmóvil al lado
 	var hero: Dictionary = w.heroes.heroes[0]
 	_run(w, 30 * 3)  # 3 s a 0,6 s por golpe: 5 golpes
-	check(hero.charge == 5, "cada golpe suma carga (%d)" % hero.charge)
+	check(hero.edge == 5, "cada golpe suma filo (%d)" % hero.edge)
+	check(is_equal_approx(hero.meter, 5 * SimHeroes.METER_PER_ATTACK), "y medidor por ataque (%.1f)" % hero.meter)
 	_run(w, 30 * 3)
-	check(hero.charge == 6, "la carga se limita a 6")
+	check(hero.edge == 6, "el filo se limita a 6")
+
+
+func test_meter_rules() -> void:
+	var w := _hero_world(&"hero_blade", Vector2(6, 1))
+	var hero: Dictionary = w.heroes.heroes[0]
+	check(w.heroes.add_meter(w, 0, 50.0) == 0.0, "fuera de combate no carga")
+	w.heroes.mark_combat(w, 0)
+	check(w.heroes.add_meter(w, 0, 50.0) == SimHeroes.METER_CAP_PER_SECOND, "tope por segundo")
+	check(w.heroes.add_meter(w, 0, 5.0) == 0.0, "el tope se mantiene dentro del mismo segundo")
+	_run(w, SimWorld.TICK_RATE)
+	w.heroes.mark_combat(w, 0)
+	check(w.heroes.add_meter(w, 0, 5.0) == 5.0, "al segundo siguiente vuelve a cargar")
+	check(w.cast_ability(0, Vector2(7, 0)) == &"not_ready", "no se lanza sin el medidor lleno")
+	hero.meter = 99.0
+	var ev: Array[Dictionary] = []
+	_run(w, SimWorld.TICK_RATE)
+	w.heroes.mark_combat(w, 0)
+	w.heroes.add_meter(w, 0, 5.0)
+	ev.append_array(w.drain_events())
+	check(hero.meter == SimHeroes.METER_FULL and _count(ev, &"hero_ability_ready") == 1, "al llegar a 100 avisa")
+	check(w.heroes.add_meter(w, 0, 5.0) == 0.0, "lleno no acumula más")
+	hero.meter = 80.0
+	hero.hp = 0.0
+	_run(w, 1)
+	check(hero.dead_ticks > 0 and is_equal_approx(hero.meter, 40.0), "al caer conserva la mitad (%.1f)" % hero.meter)
+
+
+func test_portal_meter_frozen_while_active() -> void:
+	var w := _hero_world(&"hero_portal", Vector2(2, 3))
+	var hero: Dictionary = w.heroes.heroes[0]
+	hero.meter = 100.0
+	check(w.cast_ability(0, Vector2(9, 1)) == &"ok", "abre el portal")
+	check(hero.meter == 0.0, "lanzar vacía el medidor")
+	w.heroes.mark_combat(w, 0)
+	check(w.heroes.add_meter(w, 0, 5.0) == 0.0, "no carga mientras su portal está abierto")
 
 
 func test_blade_line_strike_hits_only_aligned_enemies() -> void:
 	var w := _hero_world(&"hero_blade", Vector2(0, 5))  # lejos de la ruta: sin ataque básico
 	var hero: Dictionary = w.heroes.heroes[0]
-	hero.charge = 3
+	hero.edge = 3
+	hero.meter = 100.0
 	var aligned := [w.spawn_enemy(1000.0, 0.0, 2.0), w.spawn_enemy(1000.0, 0.0, 4.0)]
 	var off := w.spawn_enemy(1000.0, 0.0, 12.0)
 	w.heroes.heroes[0].pos = Vector2(0, 0)
 	check(w.cast_ability(0, Vector2(1, 0)) == &"ok", "lanza el corte")
 	var def: HeroDef = _db().heroes[&"hero_blade"]
-	var expected := (def.ability_damage + def.ability_damage_per_charge * 3) * (1.0 - 0.0)
+	var expected := (def.ability_damage + def.ability_damage_per_edge * 3) * (1.0 - 0.0)
 	for s in aligned:
 		check(is_equal_approx(1000.0 - w.e_hp[s], expected), "daño %.1f a un enemigo alineado" % expected)
 	check(w.e_hp[off] == 1000.0, "un enemigo fuera de la línea no recibe daño")
-	check(hero.charge == 0, "el corte consume la carga")
-	check(w.cast_ability(0, Vector2(1, 0)) == &"cooldown", "respeta el tiempo de recarga")
-	_run(w, roundi(def.ability_cooldown * SimWorld.TICK_RATE))
-	check(w.cast_ability(0, Vector2(1, 0)) == &"ok", "disponible al terminar la recarga")
+	check(hero.edge == 0, "el corte consume el filo")
+	check(w.cast_ability(0, Vector2(1, 0)) == &"not_ready", "hay que volver a llenar el medidor")
+	hero.meter = 100.0
+	check(w.cast_ability(0, Vector2(1, 0)) == &"ok", "disponible al volver a llenarlo")
 
 
 func test_portal_redirects_tower_fire_while_active() -> void:
@@ -522,6 +628,7 @@ func test_portal_redirects_tower_fire_while_active() -> void:
 	var target := w.spawn_enemy(1000.0, 0.0, 15.0)    # en (15, 0), lejos de todo
 	var ev := _run(w, 60)
 	check(_count(ev, &"enemy_hit") == 0, "sin portal la torre no alcanza al enemigo")
+	w.heroes.heroes[0].meter = 100.0
 	check(w.cast_ability(0, Vector2(15, 1)) == &"out_of_range", "la salida debe estar en alcance")
 	check(w.cast_ability(0, Vector2(9, 1)) == &"ok", "abre el portal")
 	w.e_pos[target] = Vector2(9, 0)  # el enemigo junto a la salida
@@ -591,6 +698,14 @@ func test_synergy_spreads_on_reaching_max_without_chaining() -> void:
 ## Oleada 3 con una sola torre (no basta por sí sola). Kira se coloca en la
 ## esquina (14, 4) y corta a lo largo de la columna por la que suben los enemigos
 ## cada vez que su habilidad está lista.
+func _enemies_near(w: SimWorld, pos: Vector2, radius: float) -> int:
+	var n := 0
+	for i in w.e_alive.size():
+		if w.e_alive[i] and w.e_pos[i].distance_to(pos) <= radius:
+			n += 1
+	return n
+
+
 func test_hero_abilities_change_the_outcome() -> void:
 	var leaks := []
 	for use_abilities in [false, true]:
@@ -600,9 +715,10 @@ func test_hero_abilities_change_the_outcome() -> void:
 		w.start_next_wave()
 		var blade := 1
 		w.move_hero(blade, Vector2(14, 4.5))
+		w.heroes.heroes[blade].meter = 100.0  # medidor ya cargado de oleadas anteriores
 		var leaked := 0
 		for i in 30 * 60:
-			if use_abilities and w.enemy_count > 0:
+			if use_abilities and _enemies_near(w, w.heroes.heroes[blade].pos, 1.5) >= 3:
 				w.cast_ability(blade, Vector2(14, 10))
 			w.step()
 			leaked += _count(w.drain_events(), &"enemy_leaked")

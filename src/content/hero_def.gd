@@ -31,15 +31,16 @@ const ABILITY_LINE_STRIKE := &"line_strike"
 @export var move_speed := 2.5
 ## Ataque automático (se usa el nivel 1 del perfil).
 @export var attack: TowerDef
-## Carga ganada por cada golpe del ataque básico (0 = el héroe no usa carga).
-@export var charge_per_hit := 0
-@export var charge_max := 0
+## «Filo»: carga propia de algunos héroes (p. ej., Kira) que gana cada golpe del
+## ataque básico y que su habilidad consume para hacer más daño (0 = no usa filo).
+## No confundir con el medidor de habilidad, común a todos (docs/personajes/B §0.6).
+@export var edge_per_hit := 0
+@export var edge_max := 0
 
 @export_group("Habilidad")
 @export var ability_kind: StringName
 @export var ability_name := ""
 @export_multiline var ability_description := ""
-@export var ability_cooldown := 10.0
 ## Distancia máxima desde el héroe al punto elegido (casillas).
 @export var ability_range := 8.0
 ## Duración de los efectos persistentes (p. ej., el portal), en segundos.
@@ -50,9 +51,9 @@ const ABILITY_LINE_STRIKE := &"line_strike"
 @export var ability_width := 0.9
 ## Portal: las torres a esta distancia de la entrada pueden disparar a través de él.
 @export var ability_link_radius := 3.0
-## Daño: base + por cada punto de carga consumido.
+## Daño: base + por cada punto de filo consumido.
 @export var ability_damage := 0.0
-@export var ability_damage_per_charge := 0.0
+@export var ability_damage_per_edge := 0.0
 @export var ability_damage_type: StringName = &"energy"
 @export var ability_armor_pierce := 0.0
 ## Multiplicador aplicado a lo que la habilidad redirige (portal).

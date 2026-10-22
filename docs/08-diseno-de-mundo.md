@@ -7,7 +7,7 @@
 1. **Cada mundo rompe una regla distinta.** Además de su estética, cada mundo trae 1 o 2 mecánicas propias del mapa y un tipo de enemigo que obliga a cambiar de táctica. El lema «Rompe las reglas» se aplica a la jugabilidad, no solo a la narrativa.
 2. **Una mecánica nueva cada vez.** Cada misión presenta como mucho una idea nueva y la combina con las anteriores. El jefe del mundo es el examen de todas ellas.
 3. **Partidas cortas, campaña larga.** Misiones de 3 a 6 min. Unos 5 por mundo dan unos 25 min de campaña por mundo, más la rejugabilidad por estrellas.
-4. **Héroes y torres por tiradas.** Ambos se consiguen con **tiradas** (estilo gacha) pagadas con fragmentos ganados jugando (ver §5). Antes de cada misión se elige un **equipo**: 2 héroes y hasta 4 torres de las que se tengan.
+4. **Héroes y torres por tiradas.** Ambos se consiguen con **tiradas** (estilo gacha) pagadas con **hilos** ganados jugando (ver §5). Antes de cada misión se elige un **equipo**: 2 héroes y hasta 4 torres de las que se tengan.
 6. **Ganable con lo inicial.** Toda misión debe poder ganarse con los héroes y torres **iniciales** y buen juego. Lo obtenido por tiradas amplía estrategias y sinergias, pero nunca es obligatorio.
 5. **La lectura táctica manda.** Ninguna mecánica de mundo puede tapar rutas, proyectiles o enemigos importantes sin dar una forma clara de contrarrestarla.
 
@@ -104,16 +104,16 @@ La Trama (mapa de campaña)
 - **Jefe final:** **el Editor.** **Altera las reglas del combate** por fases: desactiva un tipo de torre, invierte la ruta, copia una habilidad de tus héroes. Cada fase se anuncia y tiene respuesta. El combate final se gana usando lo aprendido en los cinco mundos.
 - **Narrativa:** el Editor no es malvado sin más: cree que la imprevisibilidad causa sufrimiento. El desenlace celebra que la diferencia y el caos también crean.
 
-## 5. Progresión, fragmentos y tiradas de héroes
+## 5. Progresión, hilos y tiradas de héroes
 
-**Fuentes de fragmentos:** las recompensas por misión actuales (primera victoria, estrellas nuevas, repetición), con más en el modo «Rompe las reglas» y en los retos.
+**Fuentes de hilos:** las recompensas por misión actuales (primera victoria, estrellas nuevas, repetición), con más en el modo «Rompe las reglas» y en los retos.
 
 ### Tiradas (gacha) de héroes y torres
-- **Coste:** fragmentos ganados jugando. **Sin dinero real** en el alcance actual.
+- **Coste:** hilos ganados jugando. **Sin dinero real** en el alcance actual.
 - **Rarezas:** **7** (común, poco común, rara, épica, legendaria, mítica y trascendente), definidas en la [biblia de personajes](personajes/README.md); tasas y garantías de prueba en su [G-16](personajes/G-decisiones-pendientes.md). Las **probabilidades se muestran** siempre en la pantalla de tiradas.
 - **Garantía («pity»):** al cabo de N tiradas sin un héroe de la rareza más alta, la siguiente lo garantiza. El contador se guarda y se muestra.
 - **Repetidos:** los de **héroes** se convierten en **fragmentos del héroe**, que permiten ascender de categoría (I–VI, niveles 1–60; ver la biblia de personajes). Los de **torres** se convierten en **ecos**, que desbloquean sus **ramas de nivel 3**. Nunca son una tirada perdida.
-- **Moneda general:** pasa a llamarse **hilos** (G-2 de la biblia), para no confundirla con los fragmentos del héroe.
+- **Moneda general:** se llama **hilos** (G-2 de la biblia; antes «fragmentos»), para no confundirla con los fragmentos del héroe.
 - **Iniciales:** dos héroes y tres torres gratuitos desde el principio. Con ellos toda misión es ganable.
 - **Por decidir:** un único banner con héroes y torres o banners separados; tasas y tamaño de la garantía.
 - **Determinismo y seguridad:**
@@ -121,7 +121,7 @@ La Trama (mapa de campaña)
   - Con la **nube** activa, la tirada la resolverá **el servidor** (función SQL con su propio generador aleatorio). El cliente nunca decide el resultado.
 - **Riesgo regulatorio (si algún día hay dinero real):** las cajas de botín de pago están reguladas o prohibidas en algunos países (p. ej., Bélgica), y las tiendas de aplicaciones exigen publicar las probabilidades. Habría que revisarlo antes de monetizar.
 
-### Otros usos de los fragmentos
+### Otros usos de los hilos
 - **Ramas de mejora de torres:** el nivel 3 pasa a ser una elección entre dos especializaciones del diseño original (p. ej., Pixeladora: *Desfragmentación* frente a *Cadena de errores*). Se desbloquean con **ecos** de la torre (repetidos de tiradas).
 - Más adelante, aspectos cosméticos y mejoras de la base, con límite.
 
@@ -162,7 +162,7 @@ Todo encaja en la estructura actual de **datos + sistemas genéricos**:
 
 1. **7.1 · Campaña mínima:** `WorldDef`/`CampaignDef`, mapa de campaña con nodos, selección de misión y de 2 héroes, desbloqueo secuencial guardado.
 2. **7.2 · Mundo 1 completo:** monedas, bloques, plataforma móvil, rutas alternativas, enemigo con núcleo y las 4 misiones nuevas.
-3. **7.3 · Fragmentos útiles:** ramas de nivel 3 de las torres actuales y primeras mejoras de héroe.
+3. **7.3 · Hilos útiles:** ramas de nivel 3 de las torres actuales y primeras mejoras de héroe.
 4. **7.4 · Mundo 2:** cristales, conjuradores interrumpibles, Madame Segundero, Cronoáncora, Tiempo prestado y Alumno Eterno.
 5. Siguientes mundos con el mismo esquema. Los retos diarios y las clasificaciones, cuando el núcleo esté estable y la nube activa.
 
@@ -173,7 +173,7 @@ Cada entrega tendrá criterios verificables, como hasta ahora: tests de simulaci
 | Tema | Decisión (2026-10-21) |
 |---|---|
 | Misiones por mundo | **5** (4 + jefe) |
-| Obtención de héroes | **Tiradas estilo gacha** con fragmentos (§5) |
+| Obtención de héroes | **Tiradas estilo gacha** con hilos (§5) |
 | Obtención de torres | **También por tiradas**; equipo de hasta 4 torres por misión; misiones ganables con las iniciales |
 | Reparto de héroes | **Por definir**: sesión de diseño de personajes pendiente |
 | Torres y sinergias por mundo | La tabla §3 queda como referencia temática (no reparto) |

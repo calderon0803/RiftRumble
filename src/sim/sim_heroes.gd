@@ -1,5 +1,10 @@
-## Héroes en la simulación: movimiento, ataque básico, carga, habilidades
-## activas con recarga y portales activos.
+## Héroes en la simulación: movimiento, ataque básico, filo, medidor de
+## habilidad y portales activos.
+##
+## Medidor (docs/personajes/B §0.6, G-3/G-4): la habilidad se lanza a mano al
+## llegar al 100 %. Carga por ATAQUE (no por objetivo), por derribo con el ataque
+## automático y por daño recibido, con tope por segundo. No carga fuera de combate
+## ni mientras la habilidad del héroe está activa; al caer conserva la mitad.
 ##
 ## El ataque básico usa la misma lógica de disparo que las torres (el héroe
 ## lleva un «perfil de torre» que se mueve con él). Las habilidades se eligen
@@ -9,8 +14,20 @@ extends RefCounted
 
 const MapDef := preload("res://src/content/map_def.gd")
 
-## Cada héroe: { def: HeroDef, pos, target, spawn: Vector2, charge: int,
-##               ability_cd: int (ticks), hp: float, dead_ticks: int (0 = vivo),
+## Valores de prueba del medidor (prov., docs/personajes/B §0.6).
+const METER_FULL := 100.0
+const METER_PER_ATTACK := 4.0
+const METER_PER_KILL := 6.0
+## Por cada 1 % de vida máxima perdida.
+const METER_PER_HP_PCT := 0.2
+const METER_CAP_PER_SECOND := 10.0
+## Ticks sin dar ni recibir daño tras los que el héroe está «fuera de combate».
+const COMBAT_WINDOW_TICKS := 90
+const METER_KEPT_ON_DEATH := 0.5
+
+## Cada héroe: { def: HeroDef, pos, target, spawn: Vector2, edge: int (filo),
+##               meter: float (0–100), last_combat: int (tick), sec_start, sec_gain,
+##               hp: float, dead_ticks: int (0 = vivo),
 ##               engaged: Array de [slot, id] de enemigos bloqueados,
 ##               attack: { perfil de torre + hero_index } }
 var heroes: Array[Dictionary] = []
@@ -22,7 +39,8 @@ var portals: Array[Dictionary] = []
 func add_hero(def: HeroDef, pos: Vector2) -> int:
 	var index := heroes.size()
 	heroes.append({
-		def = def, pos = pos, target = pos, spawn = pos, charge = 0, ability_cd = 0,
+		def = def, pos = pos, target = pos, spawn = pos, edge = 0, meter = 0.0,
+		last_combat = -COMBAT_WINDOW_TICKS - 1, sec_start = 0, sec_gain = 0.0,
 		hp = def.max_hp, dead_ticks = 0, engaged = [],
 		attack = {def = def.attack, level = 1, pos = pos, spot = -1, cooldown_ticks = 0,
 			invested = 0, hero_index = index},
@@ -54,8 +72,8 @@ func cast(world, index: int, target: Vector2) -> StringName:
 	var def: HeroDef = h.def
 	if h.dead_ticks > 0:
 		return &"dead"
-	if h.ability_cd > 0:
-		return &"cooldown"
+	if h.meter < METER_FULL:
+		return &"not_ready"
 	if h.pos.distance_to(target) > def.ability_range:
 		return &"out_of_range"
 	match def.ability_kind:
@@ -74,17 +92,47 @@ func cast(world, index: int, target: Vector2) -> StringName:
 		_:
 			push_error("Tipo de habilidad desconocido: %s" % def.ability_kind)
 			return &"unknown_ability"
-	h.ability_cd = maxi(1, roundi(def.ability_cooldown * world.TICK_RATE))
+	h.meter = 0.0
 	world.stats.abilities_used += 1
 	return &"ok"
+
+
+## ¿Está activa la habilidad del héroe? (hoy: un portal suyo abierto).
+func ability_active(index: int) -> bool:
+	for p in portals:
+		if p.hero_index == index:
+			return true
+	return false
+
+
+## Suma carga al medidor respetando las reglas comunes. Devuelve lo sumado.
+func add_meter(world, index: int, amount: float) -> float:
+	var h: Dictionary = heroes[index]
+	if h.dead_ticks > 0 or h.meter >= METER_FULL or ability_active(index):
+		return 0.0
+	if world.tick - h.last_combat > COMBAT_WINDOW_TICKS:
+		return 0.0  # fuera de combate
+	if world.tick - h.sec_start >= world.TICK_RATE:
+		h.sec_start = world.tick
+		h.sec_gain = 0.0
+	var gain := minf(amount, METER_CAP_PER_SECOND - h.sec_gain)
+	if gain <= 0.0:
+		return 0.0
+	h.sec_gain += gain
+	h.meter = minf(h.meter + gain, METER_FULL)
+	if h.meter >= METER_FULL:
+		world.events.append({type = &"hero_ability_ready", hero = index})
+	return gain
+
+
+func mark_combat(world, index: int) -> void:
+	heroes[index].last_combat = world.tick
 
 
 func step(world) -> void:
 	for index in heroes.size():
 		var h: Dictionary = heroes[index]
 		var def: HeroDef = h.def
-		if h.ability_cd > 0:
-			h.ability_cd -= 1
 		if h.dead_ticks > 0:
 			h.dead_ticks -= 1
 			if h.dead_ticks == 0:
@@ -145,6 +193,8 @@ func _enemy_melee(world, index: int) -> void:
 		if world.e_melee_cd[slot] <= 0:
 			world.e_melee_cd[slot] = world.e_melee_ticks[slot]
 			h.hp -= world.e_melee_damage[slot]
+			mark_combat(world, index)
+			add_meter(world, index, METER_PER_HP_PCT * 100.0 * world.e_melee_damage[slot] / h.def.max_hp)
 			world.events.append({type = &"hero_hit", hero = index, amount = world.e_melee_damage[slot]})
 	if h.hp <= 0.0:
 		h.hp = 0.0
@@ -152,7 +202,8 @@ func _enemy_melee(world, index: int) -> void:
 			world.e_blocker[e[0]] = -1
 		h.engaged = []
 		h.dead_ticks = maxi(1, roundi(h.def.respawn_time * world.TICK_RATE))
-		h.charge = 0
+		h.edge = 0
+		h.meter *= METER_KEPT_ON_DEATH
 		world.stats.hero_kos += 1
 		world.events.append({type = &"hero_died", hero = index})
 
@@ -174,12 +225,19 @@ func portal_for(tower_pos: Vector2) -> Dictionary:
 	return {}
 
 
-## Un golpe del ataque básico de un héroe ha impactado: suma carga.
-func on_basic_hit(hero_index: int) -> void:
+## Un ataque básico del héroe ha impactado: filo y medidor (una vez por ataque).
+func on_basic_hit(world, hero_index: int) -> void:
 	var h: Dictionary = heroes[hero_index]
 	var def: HeroDef = h.def
-	if def.charge_per_hit > 0:
-		h.charge = mini(h.charge + def.charge_per_hit, def.charge_max)
+	mark_combat(world, hero_index)
+	if def.edge_per_hit > 0:
+		h.edge = mini(h.edge + def.edge_per_hit, def.edge_max)
+	add_meter(world, hero_index, METER_PER_ATTACK)
+
+
+## El ataque básico del héroe ha eliminado a un enemigo.
+func on_basic_kill(world, hero_index: int) -> void:
+	add_meter(world, hero_index, METER_PER_KILL)
 
 
 func _line_strike(world, index: int, target: Vector2) -> void:
@@ -188,7 +246,7 @@ func _line_strike(world, index: int, target: Vector2) -> void:
 	var dir: Vector2 = (target - h.pos).normalized()
 	var from: Vector2 = h.pos
 	var to: Vector2 = h.pos + dir * def.ability_length
-	var damage: float = def.ability_damage + def.ability_damage_per_charge * h.charge
+	var damage: float = def.ability_damage + def.ability_damage_per_edge * h.edge
 	var half_width := def.ability_width * 0.5
 	# Primero se reúnen los objetivos y después se dañan: matar a uno no altera
 	# la lista mientras se recorre.
@@ -199,7 +257,7 @@ func _line_strike(world, index: int, target: Vector2) -> void:
 			if Geometry2D.get_closest_point_to_segment(p, from, to).distance_to(p) <= half_width:
 				hits.append(i)
 	world.events.append({type = &"line_strike", hero = index, from = from, to = to,
-		hits = hits.size(), charge = h.charge})
-	h.charge = 0
+		hits = hits.size(), edge = h.edge})
+	h.edge = 0
 	for i in hits:
 		world.damage_enemy(i, damage, def.ability_damage_type, def.ability_armor_pierce)

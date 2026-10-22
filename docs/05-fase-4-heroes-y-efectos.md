@@ -12,7 +12,7 @@ Los héroes **luchan en el camino**:
 - **Bloquean** a los enemigos que les alcanzan (`block_count`). Los bloqueados se detienen y les golpean (`EnemyDef.melee_damage` y `melee_interval`).
 - Tienen **vida**, que **regeneran** cuando no luchan. Si **caen**, sueltan a sus enemigos y **reaparecen** pasado `respawn_time`.
 - Su **ataque básico** reutiliza la misma lógica de disparo que las torres: el héroe lleva un perfil `TowerDef` incrustado que se mueve con él.
-- **Habilidad activa** con recarga, elegida por `ability_kind`. Un héroe nuevo que reutilice un tipo de habilidad existente no necesita código:
+- **Habilidad activa** (desde las decisiones de la biblia, G-3/G-4: por **medidor** al 100 % en lugar de recarga), elegida por `ability_kind`. Un héroe nuevo que reutilice un tipo de habilidad existente no necesita código:
 
 | Héroe | Habilidad | Mecánica |
 |---|---|---|

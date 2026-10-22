@@ -3,6 +3,9 @@
 class_name EnemyDef
 extends Resource
 
+## Peso (docs/personajes/B §0.7): cuánto le afectan desplazamientos y control duro.
+enum Weight { LIGHT, MEDIUM, HEAVY, BOSS }
+
 @export var id: StringName
 @export var display_name := ""
 
@@ -14,6 +17,9 @@ extends Resource
 @export_range(0.0, 0.9, 0.05) var armor := 0.0
 ## Oro al eliminarlo.
 @export var bounty := 5
+## Ligero: control completo · Medio: control duro a la mitad · Pesado: control duro
+## muy breve · Jefe: inmune al control duro y ralentización reducida a la mitad.
+@export var weight: Weight = Weight.LIGHT
 ## Vida que quita a la base si llega.
 @export var base_damage := 1
 ## Daño a un héroe que lo bloquea, y segundos entre golpes.

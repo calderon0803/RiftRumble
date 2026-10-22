@@ -5,6 +5,7 @@
 
 [resource]
 script = ExtResource("1_4sjyf")
+weight = 2
 id = &"enemy_core_small"
 display_name = "Núcleo"
 hp = 12.0

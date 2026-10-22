@@ -253,9 +253,9 @@ func _show_tip(event: String) -> void:
 	_tip_t = 9.0
 
 
-## Progreso guardado del jugador (récord de la misión y fragmentos).
-func set_progress(best_stars: int, shards: int) -> void:
-	_progress_label.text = "Récord %d/3 ★ · %d fragmentos" % [best_stars, shards] if best_stars > 0 or shards > 0 			else ""
+## Progreso guardado del jugador (récord de la misión y hilos).
+func set_progress(best_stars: int, threads: int) -> void:
+	_progress_label.text = "Récord %d/3 ★ · %d hilos" % [best_stars, threads] if best_stars > 0 or threads > 0 			else ""
 
 
 ## Estado del guardado (servicio de persistencia).
@@ -264,20 +264,20 @@ func set_cloud_status(text: String) -> void:
 	_update_cloud_label()
 
 
-## Respuesta del servidor a un resultado: recompensa en fragmentos.
+## Respuesta del servidor a un resultado: recompensa en hilos.
 func show_reward(response: Dictionary) -> void:
 	if response.get("rejected", false):
 		_reward_text = "El servidor no aceptó el resultado"
 	elif response.get("duplicate", false):
 		_reward_text = ""
 	elif int(response.get("reward", 0)) > 0:
-		_reward_text = "+%d fragmentos%s · total %d" % [response.reward,
-			" (¡primera victoria!)" if response.get("first_clear", false) else "", response.get("shards", 0)]
+		_reward_text = "+%d hilos%s · total %d" % [response.reward,
+			" (¡primera victoria!)" if response.get("first_clear", false) else "", response.get("threads", 0)]
 		if response.has("best_stars"):
 			_reward_text += "\nMejor resultado en esta misión: %d/3 estrellas" % response.best_stars
 	elif response.has("best_stars"):
-		_reward_text = "Mejor resultado en esta misión: %d/3 estrellas · fragmentos %d" % [
-			response.best_stars, response.get("shards", 0)]
+		_reward_text = "Mejor resultado en esta misión: %d/3 estrellas · hilos %d" % [
+			response.best_stars, response.get("threads", 0)]
 	_update_cloud_label()
 
 
@@ -442,16 +442,17 @@ func _refresh_heroes(selected_hero: int, targeting_hero: int) -> void:
 		var h: Dictionary = world.heroes.heroes[i]
 		var def: HeroDef = h.def
 		var card: Dictionary = _hero_cards[i]
-		var cd_s := ceili(h.ability_cd / float(SimWorld.TICK_RATE))
+		var pct := floori(h.meter)
+		var ready: bool = h.meter >= 100.0
 		var dead: bool = h.dead_ticks > 0
-		var text := def.ability_name if cd_s == 0 else "%s (%d s)" % [def.ability_name, cd_s]
-		if def.charge_max > 0:
-			text += " · carga %d/%d" % [h.charge, def.charge_max]
+		var text := def.ability_name if ready else "%s · %d %%" % [def.ability_name, pct]
+		if def.edge_max > 0:
+			text += " · filo %d/%d" % [h.edge, def.edge_max]
 		if dead:
 			text = "Caído · vuelve en %d s" % ceili(h.dead_ticks / float(SimWorld.TICK_RATE))
 		if card.ability.text != text:
 			card.ability.text = text
-		card.ability.disabled = cd_s > 0 or dead or world.is_over()
+		card.ability.disabled = not ready or dead or world.is_over()
 		card.panel.modulate = Color(1.25, 1.25, 1.25) if i == selected_hero else Color.WHITE
 	if targeting_hero >= 0:
 		var def: HeroDef = world.heroes.heroes[targeting_hero].def
