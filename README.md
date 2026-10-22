@@ -3,7 +3,7 @@
 > *Defiende tu mundo. Rompe las reglas.*
 
 Tower defense isométrico 2.5D con héroes. Estado actual: **campaña con el mundo 1 completo** (5 misiones con tutorial y jefe; progreso local). Siguiente: tiradas de héroes y torres, y el mundo 2.
-Documentación: [decisión tecnológica](docs/01-decision-tecnologica.md) · [resultados de la PoC](docs/02-resultados-poc.md) · [Fase 2](docs/03-fase-2-mundo-y-rutas.md) · [Fase 3](docs/04-fase-3-combate-y-economia.md) · [Fase 4](docs/05-fase-4-heroes-y-efectos.md) · [Fase 5](docs/06-fase-5-mision-completa.md) · [Fase 6](docs/07-fase-6-persistencia.md) · [Diseño de mundo](docs/08-diseno-de-mundo.md) · [Fase 7.1–7.2](docs/09-fase-7-campana-y-mundo-1.md).
+Documentación: [decisión tecnológica](docs/01-decision-tecnologica.md) · [resultados de la PoC](docs/02-resultados-poc.md) · [Fase 2](docs/03-fase-2-mundo-y-rutas.md) · [Fase 3](docs/04-fase-3-combate-y-economia.md) · [Fase 4](docs/05-fase-4-heroes-y-efectos.md) · [Fase 5](docs/06-fase-5-mision-completa.md) · [Fase 6](docs/07-fase-6-persistencia.md) · [Diseño de mundo](docs/08-diseno-de-mundo.md) · [Fase 7.1–7.2](docs/09-fase-7-campana-y-mundo-1.md) · [Economía](docs/10-economia.md).
 
 ## Nombres provisionales
 Todos los nombres de torres, héroes, armas, enemigos, mundos y jefes son **provisionales**. Para que cambiarlos no afecte al código:

@@ -106,6 +106,8 @@ La Trama (mapa de campaña)
 
 ## 5. Progresión, hilos y tiradas de héroes
 
+**Cifras:** ver la [pasada de economía](10-economia.md).
+
 **Fuentes de hilos:** las recompensas por misión actuales (primera victoria, estrellas nuevas, repetición), con más en el modo «Rompe las reglas» y en los retos.
 
 ### Tiradas (gacha) de héroes y torres

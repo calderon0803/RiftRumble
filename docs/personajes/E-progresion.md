@@ -93,6 +93,6 @@ Todas son **cualitativas y con tope**. Ninguna añade un porcentaje de daño pla
 - **Comunes obsoletos:** con la opción A, el crecimiento es igual por rareza.
 
 ## 5. Pendiente (sin decidir)
-- Costes de experiencia y de fragmentos del héroe por nivel y categoría.
+- ~~Costes de experiencia y de fragmentos del héroe por nivel y categoría~~: fijados como valores de prueba en [`docs/10-economia.md`](../10-economia.md), junto con el nivel de historia de Nexo y Kira (E-1).
 - Fórmula de conversión de 1–10 a valores reales y crecimiento por nivel (G-10).
 - Nombre de los «fragmentos del héroe» frente a la moneda general (G-2).
