@@ -103,6 +103,11 @@ func handle_events(events: Array[Dictionary]) -> void:
 				fx.to = Iso.to_screen(ev.to) + lift
 				fx.color = world.heroes.heroes[ev.hero].def.color
 				add_child(fx)
+			&"hero_burst", &"zone_opened":
+				var hdef: HeroDef = world.heroes.heroes[ev.hero].def
+				_spawn_fx(ev.pos, hdef.color, hdef.ability_name)
+			&"hero_shielded":
+				_spawn_fx(world.heroes.heroes[ev.hero].pos, Color("fff1a8"), "+%d" % roundi(ev.amount))
 			&"hero_died":
 				_spawn_fx(world.heroes.heroes[ev.hero].pos, Color("ff5c7a"), "¡KO!")
 			&"synergy_spread":
@@ -155,7 +160,7 @@ func sync(alpha: float) -> void:
 		var hv = _hero_views[i]
 		var hero_pos := Iso.to_screen(_prev_hero_pos[i].lerp(h.pos, alpha))
 		hv.update_view(_time, hero_pos.x - hv.position.x, h.edge, i == selected_hero, h.meter / 100.0,
-				h.hp / h.def.max_hp, h.dead_ticks > 0)
+				h.hp / h.max_hp, h.dead_ticks > 0)
 		hv.position = hero_pos
 
 	_sync_portals()

@@ -22,6 +22,7 @@ const WorldView := preload("res://src/view/world_view.gd")
 const Hud := preload("res://src/ui/hud.gd")
 const AudioDirector := preload("res://src/audio/audio_director.gd")
 const SaveService := preload("res://src/services/save_service.gd")
+const EconomyRules := preload("res://src/content/economy_rules.gd")
 const CAMPAIGN_SCENE := "res://src/ui/campaign.tscn"
 
 const STRESS_LEVELS := [150, 300, 500]
@@ -123,7 +124,8 @@ func _restart() -> void:
 	_sim_ms_avg = 0.0
 	paused = false
 	world = SimWorld.new(map_def.routes, 1234)
-	world.setup_mission(content, mission, map_def, _chosen_heroes(), _chosen_towers())
+	world.setup_mission(content, mission, map_def, _chosen_heroes(), _chosen_towers(),
+		EconomyRules.story_level(content, mission.id))
 	if stress:
 		world.base_hp = 1_000_000_000
 		# Torres de la misión en rotación (sin ids escritos a mano).

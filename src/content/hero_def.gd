@@ -8,6 +8,10 @@ extends Resource
 ## Tipos de habilidad implementados en la simulación (sim_heroes.gd).
 const ABILITY_PORTAL := &"portal"
 const ABILITY_LINE_STRIKE := &"line_strike"
+## Área instantánea alrededor del héroe (daño, efecto, empuje y escudo opcionales).
+const ABILITY_BURST_SELF := &"burst_self"
+## Zona colocada con daño periódico y un efecto al terminar.
+const ABILITY_ZONE := &"zone"
 
 @export var id: StringName
 @export var display_name := ""
@@ -25,6 +29,14 @@ const ABILITY_LINE_STRIKE := &"line_strike"
 @export var block_count := 2
 ## Distancia (casillas) a la que bloquea a un enemigo.
 @export var engage_radius := 0.9
+## Reducción del daño recibido (0,04 × Defensa; tope 0,4; docs/personajes/H).
+@export_range(0.0, 0.6, 0.01) var defense := 0.0
+
+@export_group("Crecimiento por nivel")
+## Fracción que ganan la vida y el ataque por cada nivel por encima del 1
+## (G-10: según el rol). La defensa, la velocidad y el alcance no crecen.
+@export var growth_hp := 0.0
+@export var growth_attack := 0.0
 
 @export_group("Movimiento y ataque")
 ## Casillas por segundo.
@@ -36,6 +48,13 @@ const ABILITY_LINE_STRIKE := &"line_strike"
 ## No confundir con el medidor de habilidad, común a todos (docs/personajes/B §0.6).
 @export var edge_per_hit := 0
 @export var edge_max := 0
+## Golpe en cono o a adyacentes: enemigos extra (a ≤ `cleave_radius` del objetivo)
+## que reciben `cleave_mult` del daño.
+@export var cleave_targets := 0
+@export var cleave_radius := 1.0
+@export var cleave_mult := 0.5
+## Si no está vacío, los golpes alternan entre el tipo del ataque y este.
+@export var alt_damage_type: StringName
 
 @export_group("Habilidad")
 @export var ability_kind: StringName
@@ -58,6 +77,23 @@ const ABILITY_LINE_STRIKE := &"line_strike"
 @export var ability_armor_pierce := 0.0
 ## Multiplicador aplicado a lo que la habilidad redirige (portal).
 @export var ability_damage_mult := 1.0
+## Daño en múltiplos de P (el DPS del héroe a su nivel; docs/personajes/H §1).
+## Si es > 0 sustituye a `ability_damage` y al filo.
+@export var ability_power := 0.0
+## Línea: cada enemigo atravesado suma este extra a los siguientes, con tope.
+@export var ability_ramp_per_target := 0.0
+@export var ability_ramp_max := 0.0
+## Efecto aplicado a cada enemigo alcanzado (ralentización, derribo…).
+@export var ability_effect: EffectDef
+## Empuje hacia atrás en la ruta (casillas; ligeros completo, medios la mitad).
+@export var ability_push := 0.0
+## Zona: daño por segundo en múltiplos de P y efecto al terminar sobre los que sigan dentro.
+@export var ability_zone_power := 0.0
+@export var ability_end_effect: EffectDef
+## Escudo a los héroes del área (fracción de su vida máxima; tope 0,4) durante
+## `ability_duration`; mientras lo tengan, bloquean `ability_shield_block_bonus` más.
+@export_range(0.0, 0.4, 0.01) var ability_shield := 0.0
+@export var ability_shield_block_bonus := 0
 
 @export_group("Presentación")
 @export var sprite: Texture2D

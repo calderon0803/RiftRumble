@@ -51,7 +51,12 @@ static func _permute(arr: Array, k: int, out: Array) -> void:
 
 ## Juega una misión con una estrategia genérica (también la usan los tests).
 ## `order`: torre del equipo para cada posición (índices); vacío = rotación simple.
-static func play(db, mission_id: StringName, strategy: String, order: Array = []) -> Dictionary:
+## `hero_ids`: equipo de héroes (por defecto, los iniciales). Con `use_abilities`
+## cada héroe lanza su habilidad al llenarse el medidor sobre el grupo más denso a
+## su alcance (`tools/hero_check.gd`). El resultado incluye, por héroe, los usos y
+## los segundos que tardó en llenar el medidor cada vez.
+static func play(db, mission_id: StringName, strategy: String, order: Array = [],
+		hero_ids := PackedStringArray(), use_abilities := false) -> Dictionary:
 	var mission: MissionDef = db.missions[mission_id]
 	var map: Node = load(mission.map_scene).instantiate()
 	var map_def = map.build_def()
@@ -61,12 +66,20 @@ static func play(db, mission_id: StringName, strategy: String, order: Array = []
 	for t in SaveService.STARTER_TOWERS:
 		if mission.towers.is_empty() or t in mission.towers:
 			team.append(t)
-	var heroes := PackedStringArray()
-	for h in SaveService.STARTER_HEROES:
-		if heroes.size() < mission.heroes.size():
-			heroes.append(h)
+	var heroes := hero_ids
+	if heroes.is_empty():
+		for h in SaveService.STARTER_HEROES:
+			if heroes.size() < mission.heroes.size():
+				heroes.append(h)
 	var w := SimWorld.new(map_def.routes, 99)
 	w.setup_mission(db, mission, map_def, heroes, team)
+	var casts := []
+	var fill_secs := []
+	var empty_since := []
+	for h in heroes:
+		casts.append(0)
+		fill_secs.append([])
+		empty_since.append(0)
 	var log := []
 	var leaks := 0
 	var kills := 0
@@ -81,9 +94,16 @@ static func play(db, mission_id: StringName, strategy: String, order: Array = []
 			if strategy.ends_with("+ mejoras") and not w.wave_active:
 				for s in spots:
 					w.upgrade(s)
+		if use_abilities:
+			for hi in w.heroes.heroes.size():
+				if _auto_cast(w, hi) == &"ok":
+					casts[hi] += 1
+					empty_since[hi] = w.tick
 		w.step()
 		for ev in w.drain_events():
 			match ev.type:
+				&"hero_ability_ready":
+					fill_secs[ev.hero].append((w.tick - empty_since[ev.hero]) / float(SimWorld.TICK_RATE))
 				&"enemy_leaked": leaks += 1
 				&"enemy_killed": kills += 1
 				&"wave_cleared", &"defeat":
@@ -93,4 +113,34 @@ static func play(db, mission_id: StringName, strategy: String, order: Array = []
 					kills = 0
 		if w.is_over():
 			break
-	return {world = w, log = log}
+	return {world = w, log = log, casts = casts, fill_secs = fill_secs}
+
+
+## Lanza la habilidad si está lista y hay al menos 2 enemigos donde caería.
+static func _auto_cast(w: SimWorld, hi: int) -> StringName:
+	var h: Dictionary = w.heroes.heroes[hi]
+	if h.meter < 100.0 or h.dead_ticks > 0 or w.enemy_count == 0:
+		return &"not_ready"
+	var def: HeroDef = h.def
+	if def.ability_kind == HeroDef.ABILITY_BURST_SELF:
+		return w.cast_ability(hi, h.pos) if _count_near(w, h.pos, def.ability_radius) >= 2 else &"wait"
+	# Grupo más denso dentro del alcance de la habilidad.
+	var best := -1
+	var best_n := 0
+	for i in w.e_alive.size():
+		if w.e_alive[i] == 1 and w.e_pos[i].distance_to(h.pos) <= def.ability_range:
+			var n := _count_near(w, w.e_pos[i], 1.5)
+			if n > best_n:
+				best_n = n
+				best = i
+	if best < 0 or best_n < 2:
+		return &"wait"
+	return w.cast_ability(hi, w.e_pos[best])
+
+
+static func _count_near(w: SimWorld, pos: Vector2, radius: float) -> int:
+	var n := 0
+	for i in w.e_alive.size():
+		if w.e_alive[i] == 1 and w.e_pos[i].distance_to(pos) <= radius:
+			n += 1
+	return n

@@ -65,8 +65,8 @@ Los «sabores» son solo narrativos y visuales. La **perforación de armadura** 
 
 | Fuente | Regla | Valor de prueba |
 |---|---|---|
-| Golpear | Por **ataque**, no por objetivo; un ataque multiblanco suma un extra pequeño por objetivo adicional, con tope | 4 % por ataque, +1 % por objetivo extra, máx. +2 % |
-| Derribar | Por enemigo eliminado por el héroe | 6 % |
+| Golpear | Por **ataque**, no por objetivo; un ataque multiblanco suma un extra pequeño por objetivo adicional, con tope | 6 % por ataque (antes 4 %; ajustado con `tools/hero_check.gd`), +1 % por objetivo extra, máx. +2 % |
+| Derribar | Por enemigo eliminado por el héroe | 8 % (antes 6 %) |
 | Recibir daño | Proporcional a la vida perdida | 0,2 % por 1 % de vida perdida |
 | Aplicar control | Por objetivo controlado, con enfriamiento interno por objetivo | 3 %; mismo objetivo cada 3 s como mucho |
 

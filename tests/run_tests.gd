@@ -561,7 +561,7 @@ func test_blade_basic_attack_builds_capped_edge() -> void:
 	var hero: Dictionary = w.heroes.heroes[0]
 	_run(w, 30 * 3)  # 3 s a 0,6 s por golpe: 5 golpes
 	check(hero.edge == 5, "cada golpe suma filo (%d)" % hero.edge)
-	check(is_equal_approx(hero.meter, 5 * SimHeroes.METER_PER_ATTACK), "y medidor por ataque (%.1f)" % hero.meter)
+	check(hero.meter > 0.0 and hero.meter <= 3 * SimHeroes.METER_CAP_PER_SECOND, "y medidor por ataque, con tope por segundo (%.1f)" % hero.meter)
 	_run(w, 30 * 3)
 	check(hero.edge == 6, "el filo se limita a 6")
 
@@ -640,6 +640,99 @@ func test_portal_redirects_tower_fire_while_active() -> void:
 	check(_count(ev, &"portal_closed") == 1, "el portal se cierra al acabar su duración")
 	ev = _run(w, 60)
 	check(_count(ev, &"enemy_hit") == 0, "cerrado el portal, la torre deja de alcanzarlo")
+
+
+# --- Héroes coleccionables (tanda 1) y niveles ------------------------------------
+
+func test_hero_level_scales_hp_and_attack() -> void:
+	var w := _world([Vector2(0, 0), Vector2(20, 0)])
+	var def: HeroDef = _db().heroes[&"hero_aeron"]
+	w.heroes.add_hero(def, Vector2(5, 0), 11)
+	var h: Dictionary = w.heroes.heroes[0]
+	check(is_equal_approx(h.max_hp, 80.0 * 1.3) and h.hp == h.max_hp, "nivel 11: vida ×1,3 (%.1f)" % h.max_hp)
+	check(is_equal_approx(w.heroes.power(0), 4.0 * 1.3), "nivel 11: P ×1,3 (%.2f)" % w.heroes.power(0))
+	var s := w.spawn_enemy(1000.0, 0.0, 5.0)
+	var ev := _run(w, 45)
+	var hits := ev.filter(func(e): return e.type == &"enemy_hit" and e.slot == s)
+	check(hits.size() > 0 and is_equal_approx(hits[0].amount, 5.2 * 1.3), "el golpe también crece (%.2f)" % (hits[0].amount if hits.size() > 0 else 0.0))
+
+
+func test_hero_defense_and_story_level() -> void:
+	var w := _hero_world(&"hero_aeron", Vector2(5, 0))
+	var s := w.spawn_enemy(1000.0, 0.0, 5.0)
+	w.e_melee_damage[s] = 10.0
+	var ev := _run(w, 60)
+	var hit = ev.filter(func(e): return e.type == &"hero_hit")
+	check(hit.size() > 0 and is_equal_approx(hit[0].amount, 7.6), "defensa 24 %: recibe 7,6 de 10")
+	check(Eco.story_level(_db(), &"w1_m3") == 1, "las misiones del mundo 1 usan el nivel de historia 1")
+
+
+func test_aeron_cleave_and_burst() -> void:
+	var w := _hero_world(&"hero_aeron", Vector2(5, 0))
+	var a := w.spawn_enemy(1000.0, 0.0, 5.3)
+	var b := w.spawn_enemy(1000.0, 0.0, 5.9)
+	var ev := _run(w, 40)
+	var amounts := ev.filter(func(e): return e.type == &"enemy_hit" and e.slot in [a, b]).map(func(e): return snappedf(e.amount, 0.01))
+	check(5.2 in amounts and 2.6 in amounts, "el tajo alcanza al adyacente al 50 % (%s)" % [amounts])
+	var heavy := w.spawn(_db().enemies[&"enemy_armored"], 0, 5.5)
+	var hp_a := w.e_hp[a]
+	var dist_heavy := w.e_dist[heavy]
+	w.heroes.heroes[0].meter = 100.0
+	check(w.cast_ability(0, Vector2.ZERO) == &"ok", "Aeron lanza sin apuntar")
+	check(is_equal_approx(hp_a - w.e_hp[a], 32.0), "8 P = 32 a nivel 1 (%.1f)" % (hp_a - w.e_hp[a]))
+	check(w.e_dist[a] < 5.3 - 1.4, "empuja a los ligeros 1,5 casillas")
+	check(w.effects.rooted[a] == 1, "y los derriba")
+	check(is_equal_approx(w.e_dist[heavy], dist_heavy), "a los pesados no los empuja")
+
+
+func test_zerik_line_ramps_per_target() -> void:
+	var w := _hero_world(&"hero_zerik", Vector2(0, 0))
+	var slots := [w.spawn_enemy(1000.0, 0.0, 1.0), w.spawn_enemy(1000.0, 0.0, 2.0), w.spawn_enemy(1000.0, 0.0, 3.0)]
+	w.heroes.heroes[0].meter = 100.0
+	check(w.cast_ability(0, Vector2(4, 0)) == &"ok", "Zerik dispara la sobrecarga")
+	var expected := [20.0, 23.0, 26.0]
+	for k in 3:
+		check(is_equal_approx(1000.0 - w.e_hp[slots[k]], expected[k]), "atravesado %d: %.0f de daño" % [k + 1, expected[k]])
+
+
+func test_nimue_zone_damages_then_freezes() -> void:
+	var w := _hero_world(&"hero_nimue", Vector2(0, 3))
+	var s := w.spawn_enemy(1000.0, 0.0, 6.0)
+	w.e_speed[s] = 0.0
+	w.heroes.heroes[0].meter = 100.0
+	check(w.cast_ability(0, Vector2(6, 0)) == &"ok", "Nimue coloca la prisión")
+	check(w.heroes.ability_active(0), "con la zona activa su medidor no carga")
+	_run(w, 4 * SimWorld.TICK_RATE)
+	var taken := 1000.0 - w.e_hp[s]
+	check(taken >= 20.0 and taken < 27.0, "daño periódico de 1,5 P/s durante 4 s (%.1f)" % taken)
+	check(w.effects.rooted[s] == 1 and not w.heroes.ability_active(0), "al terminar congela a los que siguen dentro")
+
+
+func test_astraion_shield_absorbs_and_adds_block() -> void:
+	var w := _hero_world(&"hero_astraion", Vector2(5, 0))
+	var h: Dictionary = w.heroes.heroes[0]
+	h.meter = 100.0
+	check(w.cast_ability(0, Vector2.ZERO) == &"ok", "Astraion lanza sin apuntar")
+	check(is_equal_approx(h.shield, 20.0) and h.block_bonus == 1, "escudo del 25 % (20) y +1 de bloqueo")
+	for k in 5:
+		w.spawn_enemy(1000.0, 0.0, 5.0 + 0.1 * k)
+	_run(w, 5)
+	check(h.engaged.size() == 4, "bloquea 3 + 1 con escudo (%d)" % h.engaged.size())
+	_run(w, 6 * SimWorld.TICK_RATE)
+	check(h.shield_ticks == 0 and h.block_bonus == 0 and h.engaged.size() <= 3, "al acabar el escudo vuelve a 3")
+
+
+func test_meter_extra_targets_and_control() -> void:
+	var w := _hero_world(&"hero_nimue", Vector2(0, 3))
+	var s := w.spawn_enemy(1000.0, 0.0, 1.0)
+	w.heroes.mark_combat(w, 0)
+	w.heroes.on_basic_hit(w, 0, 5)
+	check(is_equal_approx(w.heroes.heroes[0].meter, SimHeroes.METER_PER_ATTACK + 2.0), "golpe multiblanco: +1 % por objetivo extra, tope +2 %")
+	_run(w, SimWorld.TICK_RATE)
+	w.heroes.on_control(w, 0, s)
+	var m: float = w.heroes.heroes[0].meter
+	w.heroes.on_control(w, 0, s)
+	check(w.heroes.heroes[0].meter == m, "el mismo objetivo controlado no vuelve a cargar antes de 3 s")
 
 
 # --- Sinergia «corrupción en enemigos ralentizados» ------------------------------

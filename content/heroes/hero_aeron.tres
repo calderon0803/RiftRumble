@@ -1,0 +1,48 @@
+[gd_resource type="Resource" script_class="HeroDef" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://src/content/tower_def.gd" id="1_tow"]
+[ext_resource type="Script" path="res://src/content/hero_def.gd" id="2_her"]
+[ext_resource type="Texture2D" path="res://art/placeholder/hero_blade.png" id="3_spr"]
+[ext_resource type="Resource" path="res://content/effects/hero_knockdown.tres" id="4_eff"]
+
+[sub_resource type="Resource" id="Resource_atk"]
+script = ExtResource("1_tow")
+id = &"hero_attack"
+damage_type = &"kinetic"
+damage = PackedFloat32Array(5.2)
+interval = PackedFloat32Array(1.3)
+range_tiles = PackedFloat32Array(1.4)
+projectile_speed = 40.0
+armor_pierce = PackedFloat32Array(0)
+bounces = PackedInt32Array(0)
+cost = PackedInt32Array(0)
+level_names = PackedStringArray("")
+
+[resource]
+script = ExtResource("2_her")
+id = &"hero_aeron"
+display_name = "Aeron"
+title = "Guardián del Umbral Roto"
+description = "Demoledor. Golpea lento y fuerte; su impacto despeja su posición cuando está desbordado."
+max_hp = 80.0
+block_count = 2
+defense = 0.24
+growth_hp = 0.03
+growth_attack = 0.03
+move_speed = 2.3
+cleave_targets = 1
+cleave_radius = 1.0
+cleave_mult = 0.5
+ability_kind = &"burst_self"
+ability_name = "Impacto del umbral"
+ability_description = "Golpe a su alrededor: daña, empuja hacia atrás y derriba a los ligeros."
+ability_range = 99.0
+ability_radius = 1.2
+ability_power = 8.0
+ability_damage_type = &"kinetic"
+ability_push = 1.5
+ability_effect = ExtResource("4_eff")
+color = Color(1, 0.72, 0.3, 1)
+attack = SubResource("Resource_atk")
+sprite = ExtResource("3_spr")
+sprite_offset = Vector2(0, -22)
