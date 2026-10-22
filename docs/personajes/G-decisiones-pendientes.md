@@ -220,6 +220,6 @@ Los contadores se guardan y se muestran.
 - **G-19 · Arte:** fuera de esta fase. Se conservan las notas para alejar el diseño de su inspiración: Voltra, Omnion, Astraion, Kaelith/Aeron y Veyra/Voidra/Drakar.
 
 ## Lo que sigue pendiente (no son decisiones de diseño, sino trabajo)
-1. **Pasada de economía:** costes de experiencia y de fragmentos de ascenso, fragmentos por repetido, ingresos de hilos por misión frente al coste de las tiradas y nivel esperado por mundo.
+1. ~~**Pasada de economía**~~: hecha en [`docs/10-economia.md`](../10-economia.md) (valores de prueba validados por simulación).
 2. **Especificación numérica por héroe** con la fórmula de G-10 y validación en la simulación.
 3. **Implementación:** medidor, peso, Energético a la mitad e hilos ya están hechos; faltan las mecánicas de cada héroe coleccionable.

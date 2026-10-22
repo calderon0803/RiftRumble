@@ -1018,6 +1018,49 @@ func test_world1_missions_winnable_with_starters() -> void:
 		check(lose.world.outcome == SimWorld.Outcome.DEFEAT, "%s se pierde sin torres" % id)
 
 
+# --- Economía (docs/10) -----------------------------------------------------------
+
+const Eco := preload("res://src/content/economy_rules.gd")
+
+
+func test_economy_rewards_and_levels() -> void:
+	check(Eco.mission_threads(1, false, true, 2, 2) == 130, "primera victoria 2★ en el mundo 1: 80 + 2 × 25")
+	check(Eco.mission_threads(1, true, true, 3, 3) == 195, "el jefe paga ×1,5 la base de la primera victoria")
+	check(Eco.mission_threads(1, false, false, 3, 1) == 25, "repetir y mejorar paga solo las estrellas nuevas")
+	check(Eco.mission_threads(1, false, false, 3, 0) == 18, "repetición con 3★: 18")
+	check(Eco.mission_threads(5, false, false, 3, 0) == 36, "el mundo 5 paga el doble")
+	check(Eco.xp_total(1) == 0 and Eco.xp_total(10) == 720, "experiencia acumulada hasta el nivel 10: 720")
+	check(Eco.level_cap(1) == 10 and Eco.level_cap(6) == Eco.MAX_LEVEL, "topes de nivel por categoría")
+	check(Eco.mission_xp(2, false) < Eco.mission_xp(2, true), "la derrota da menos experiencia")
+	var total := 0.0
+	for r in Eco.RATES:
+		total += r
+	check(is_equal_approx(total, 1.0), "las probabilidades suman 100 %")
+	check(Eco.RATES.size() == Eco.HEROES_PER_RARITY.size() and Eco.HEROES_PER_RARITY.reduce(func(a, b): return a + b) == 35,
+		"7 rarezas y 35 héroes")
+
+
+func test_gacha_pity_guarantees() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7
+	var pity := Eco.new_pity()
+	var since := {Eco.Rarity.EPIC: 0, Eco.Rarity.LEGENDARY: 0, Eco.Rarity.MYTHIC: 0, Eco.Rarity.TRANSCENDENT: 0}
+	var worst := since.duplicate()
+	var counts := PackedInt32Array([0, 0, 0, 0, 0, 0, 0])
+	var n := 30000
+	for i in n:
+		var r := Eco.roll_rarity(rng, pity)
+		counts[r] += 1
+		for k in since:
+			since[k] = 0 if r >= k else since[k] + 1
+			worst[k] = maxi(worst[k], since[k])
+	for rule in Eco.PITY:
+		check(worst[rule[0]] < rule[1], "nunca %d tiradas seguidas sin rareza %d o superior (peor racha %d)" % [rule[1], rule[0], worst[rule[0]]])
+	var common := counts[Eco.Rarity.COMMON] / float(n)
+	check(common > 0.30 and common < 0.42, "los comunes rondan su probabilidad (%.2f)" % common)
+	check(counts[Eco.Rarity.TRANSCENDENT] >= n / 300, "al menos un trascendente cada 300 tiradas (%d)" % counts[Eco.Rarity.TRANSCENDENT])
+
+
 # --- Determinismo -------------------------------------------------------------
 
 func test_determinism() -> void:
