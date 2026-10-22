@@ -94,5 +94,5 @@ Todas son **cualitativas y con tope**. Ninguna añade un porcentaje de daño pla
 
 ## 5. Pendiente (sin decidir)
 - ~~Costes de experiencia y de fragmentos del héroe por nivel y categoría~~: fijados como valores de prueba en [`docs/10-economia.md`](../10-economia.md), junto con el nivel de historia de Nexo y Kira (E-1).
-- Fórmula de conversión de 1–10 a valores reales y crecimiento por nivel (G-10).
+- ~~Fórmula de conversión de 1–10 a valores reales y crecimiento por nivel (G-10)~~: aplicada en [H · Valores base](H-valores-base.md); cifras de las mejoras de categoría en [H](H-ficha-numerica.md).
 - Nombre de los «fragmentos del héroe» frente a la moneda general (G-2).

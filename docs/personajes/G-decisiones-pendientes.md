@@ -221,5 +221,5 @@ Los contadores se guardan y se muestran.
 
 ## Lo que sigue pendiente (no son decisiones de diseño, sino trabajo)
 1. ~~**Pasada de economía**~~: hecha en [`docs/10-economia.md`](../10-economia.md) (valores de prueba validados por simulación).
-2. **Especificación numérica por héroe** con la fórmula de G-10 y validación en la simulación.
+2. ~~**Especificación numérica por héroe**~~: hecha en [H](H-ficha-numerica.md) y [H · Valores base](H-valores-base.md); falta validarla en la simulación.
 3. **Implementación:** medidor, peso, Energético a la mitad e hilos ya están hechos; faltan las mecánicas de cada héroe coleccionable.
