@@ -110,9 +110,10 @@ La Trama (mapa de campaña)
 
 ### Tiradas (gacha) de héroes y torres
 - **Coste:** fragmentos ganados jugando. **Sin dinero real** en el alcance actual.
-- **Rarezas** (provisional): común, rara y épica. Las **probabilidades se muestran** siempre en la pantalla de tiradas.
+- **Rarezas:** **7** (común, poco común, rara, épica, legendaria, mítica y trascendente), definidas en la [biblia de personajes](personajes/README.md); tasas y garantías de prueba en su [G-16](personajes/G-decisiones-pendientes.md). Las **probabilidades se muestran** siempre en la pantalla de tiradas.
 - **Garantía («pity»):** al cabo de N tiradas sin un héroe de la rareza más alta, la siguiente lo garantiza. El contador se guarda y se muestra.
-- **Repetidos:** se convierten en **ecos**, que mejoran ese héroe o torre hasta un límite. En las torres, los ecos desbloquean sus **ramas de nivel 3**. Nunca son una tirada perdida.
+- **Repetidos:** los de **héroes** se convierten en **fragmentos del héroe**, que permiten ascender de categoría (I–VI, niveles 1–60; ver la biblia de personajes). Los de **torres** se convierten en **ecos**, que desbloquean sus **ramas de nivel 3**. Nunca son una tirada perdida.
+- **Moneda general:** pasa a llamarse **hilos** (G-2 de la biblia), para no confundirla con los fragmentos del héroe.
 - **Iniciales:** dos héroes y tres torres gratuitos desde el principio. Con ellos toda misión es ganable.
 - **Por decidir:** un único banner con héroes y torres o banners separados; tasas y tamaño de la garantía.
 - **Determinismo y seguridad:**

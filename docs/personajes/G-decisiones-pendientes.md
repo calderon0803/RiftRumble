@@ -1,42 +1,224 @@
-# G · Decisiones pendientes
+# G · Registro de decisiones
 
-> Ordenadas por prioridad: las primeras **bloquean** la especificación numérica; las últimas pueden esperar a la producción gráfica. Cada una indica la recomendación y dónde se desarrolla.
+> **Estado:** las 19 decisiones están **tomadas** (2026-10-22, por delegación del usuario: «toma las decisiones que consideres»). Cada una indica el motivo y las consecuencias para la implementación.
+> Toda cifra marcada **(prov.)** es un **valor de prueba**: se valida en la simulación y con `tools/balance.gd` antes de considerarse estable.
 
-## Prioridad 1 · Bloquean la especificación numérica
+## Resumen
 
-| Id | Decisión | Opciones | Recomendación | Dónde |
-|---|---|---|---|---|
-| **G-10** | **Fórmula de conversión 1–10 → valores reales**, crecimiento por nivel y significado del **Alcance** | (a) Alcance = radio de ataque efectivo, que incluye saltos, cortes amplios y conos; (b) Alcance = distancia exacta del golpe | (a) y una tabla de bandas como B §0.2 | C (O4), B §0.2 |
-| **G-11** | **¿Afecta la rareza al crecimiento por nivel?** | A: mismo crecimiento por rol; B: multiplicador pequeño por rareza | A | E §2 |
-| **G-3** | **Medidor para Nexo y Kira** (hoy tienen tiempo de recarga) | Pasan al medidor / mantienen recarga | Medidor, por coherencia. La «carga» de Kira se renombra («filo») o se integra en el medidor | F C3–C4 |
-| **G-4** | **Reglas del medidor**: fuentes, topes, inicio de misión y conservación al caer | Valores de prueba de B §0.6 | Aprobar el modelo (por ataque, no por objetivo; tope por segundo; las invocaciones no cargan; conservar el 50 % al caer; empezar a 0 %) y validarlo en simulación | B §0.6 |
-| **G-12** | **Capacidad de bloqueo por rol** | Baluarte 3, Demoledor 2 y el resto 1; secundario Baluarte +1 | Aprobar como valores de prueba | B §0.3 |
-| **G-5** | **Tipos de daño**: 3 mecánicos (Físico, Energético, Arcano). ¿La armadura reduce el Energético a la mitad? | Completa (como hoy) / a la mitad | A la mitad: da al Energético un papel propio entre el Físico y el Arcano | B §0.5 |
-| **G-13** | **Reglas comunes de control y defensa**: peso del enemigo, resistencia decreciente, topes de ralentización y reducción de daño, escudos e intangibilidad | Valores de prueba de B §0.7–0.9 | Aprobar el modelo | B §0.7–0.9 |
+| Id | Tema | Decisión |
+|---|---|---|
+| G-1 | Nombres con riesgo de propiedad intelectual | Renombrados 8 héroes y 3 ataques |
+| G-2 | «Fragmentos» duplicado | La moneda general pasa a llamarse **hilos**; «fragmentos» queda para los del héroe |
+| G-3 | Medidor de Nexo y Kira | **Medidor** también para ellos; la carga de Kira pasa a llamarse **filo** |
+| G-4 | Reglas del medidor | Se aprueba el modelo de B §0.6 |
+| G-5 | Armadura y daño Energético | La armadura reduce el Energético **a la mitad** |
+| G-6 | Enemigos nuevos | **Peso** del enemigo con los héroes; el resto, con los mundos 2–4 |
+| G-7 | Baluarte de rareza alta | Secundarios Baluarte: Brannoc, Astraion y Uruvan. Sin cambiar roles principales |
+| G-8 | Reparto por mundos | Omnion, Mistral y Sylka pasan al **Vertedero de Ideas** |
+| G-9 | Estadísticas atípicas | Presupuesto por rareza (media ± 3) y 5 ajustes de 1 punto |
+| G-10 | Conversión de estadísticas | Fórmula de prueba (§G-10) y **Alcance = radio de ataque efectivo** |
+| G-11 | Rareza y crecimiento | **Mismo crecimiento por rol** para todas las rarezas |
+| G-12 | Bloqueo por rol | Baluarte 3, Demoledor 2, resto 1; secundario Baluarte +1 |
+| G-13 | Control y defensa | Se aprueban las reglas de B §0.7–0.9 |
+| G-14 | Habilidades transformadas | Aceptadas todas |
+| G-15 | Narrativa | Aceptados los cambios de tema y los espejos del Editor |
+| G-16 | Tiradas | Banners separados; tasas y garantías de prueba (§G-16) |
+| G-17 | Diálogo | 1 presentación y 3 frases de combate por héroe, en la fase de producción |
+| G-18 | Pasivas | Ninguna nueva por ahora (solo Uruvan) |
+| G-19 | Arte | Fuera de esta fase; se conservan las notas de alejamiento de la inspiración |
 
-## Prioridad 2 · Afectan al catálogo
+---
 
-| Id | Decisión | Recomendación | Dónde |
-|---|---|---|---|
-| **G-1** | **Nombres y conceptos con riesgo de propiedad intelectual** | Cambiar los de severidad alta: Fiora, Bastion, Luneth y Garruk. Valorar Shinra, Tenshi y Draeven. Renombrar Nexarion para que no se confunda con Nexo. Las propuestas de nombre son orientativas | F §1.7 |
-| **G-14** | **Habilidades transformadas**: aceptar o ajustar | Kairo (marca en lugar de garfio), Fiora (duelo), Bront (cúpula de interferencia), Rokka (obstáculo con vida), Mistral (potencia torres), Veyra (haz que barre), Tenshi (trazo), Kaelith (corte diferido), Eclipse (inversión), Omnion (tragar y escupir), Aethern (impide caer). Más los cambios de ataque automático: Zerik, Varkhan y Nyxara | B |
-| **G-7** | **Baluarte de rareza alta** | Aceptar los secundarios Baluarte (Garruk, Astraion, Nexarion). Opcional: Astraion pasa a Baluarte como rol principal | D §1 |
-| **G-9** | **Estadísticas atípicas**: Sylka 37 (C), Bront 41 (PC), Drakar 43 (R), Ophidia 35 (R), Eclipse 49 (L), Kairo V 6 (Ruptor) | Definir un presupuesto por rareza (media ± 3) y ajustar Bront, Drakar y Eclipse. Aceptar Ophidia si su control escala | C |
-| **G-8** | **Reparto por mundos**: Vertedero tiene 1 héroe y Frontera 11 | Mover Omnion, Mistral y Sylka al Vertedero de Ideas | A, F §1.2 |
-| **G-15** | **Narrativa**: cambios de tema y espejos del Editor | Aceptar: Kaelith (obediencia), Nimue (tiempo congelado), Bastion (custodia algo que existe), Kairo (deuda), Garruk (exilio tras una guerra) y Morrak y Voidra como espejos | A, F §2.10 |
+## Prioridad 1 · Base de la especificación numérica
 
-## Prioridad 3 · Sistemas del juego que hay que construir
+### G-10 · Conversión de estadísticas y Alcance
+**Decisión:** el **Alcance** es el **radio de ataque efectivo**: incluye saltos, cortes amplios y conos (resuelve la observación O4 de C).
 
-| Id | Decisión | Por qué | Recomendación |
-|---|---|---|---|
-| **G-6** | **Nuevos tipos de enemigo**: a distancia (proyectiles), voladores, invisibles, canalizadores y con peso (ligero/medio/pesado/jefe) | Bront, Eirwen, Sylka y otros los necesitan para mostrar todo su valor; los mundos 2–4 los traen | Añadir el **peso** al implementar los héroes; el resto, con los mundos 2–4 |
-| **G-2** | **Nombre de los «fragmentos del héroe»**, que choca con la moneda general «fragmentos» | Confusión para el jugador y en el código | Renombrar la **moneda general** (p. ej., «hilos de la Trama») y reservar «fragmentos» para los del héroe, o al revés |
-| **G-16** | **Tiradas**: tasas por rareza, garantía, banners separados para héroes y torres o uno combinado | Diseñado en `docs/08` §5, pero con 3 rarezas; ahora son 7 | Definir tras G-2 y G-11 |
+**Fórmula de prueba** (prov.). Calibrada para que una estadística de 5 dé valores parecidos a los de los héroes actuales (Nexo y Kira: 45–55 de vida, unos 2–3 de daño por segundo, velocidad 2,5–3):
 
-## Prioridad 4 · Pueden esperar
-- **G-17:** cantidad de diálogo por héroe (frases de combate, presentación).
-- **G-18:** ¿pasivas para más héroes? Hoy solo Nexarion tiene una, porque aporta una mecánica que no cubren su ataque ni su habilidad.
-- **G-19:** dirección artística de cada héroe. Fuera de esta fase. Ya hay notas para alejar el diseño de su inspiración: Voltra, Omnion y Astraion.
+| Estadística | Nivel 1 | Escala con el nivel |
+|---|---|---|
+| Salud | Vida = **10 × S** | Sí, según el crecimiento del rol |
+| Ataque | Daño por segundo base = **0,5 × A**. Daño por golpe = DPS × intervalo | Sí, según el crecimiento del rol |
+| Defensa | Reducción del daño recibido = **4 % × D** (máx. 40 %, dentro del tope combinado del 60 %) | No |
+| Velocidad | Casillas/s = **1,5 + 0,2 × V** | No |
+| Alcance | Banda de B §0.2; dentro de la banda, lineal (Al 1 = 1,0 … Al 10 = 4,0 casillas) | No |
+| Cadencia | Intervalo entre ataques (s) = **1,6 − 0,1 × Ca** | No |
 
-## Ya establecido (no requiere decisión)
-35 héroes; 7 rarezas con su reparto; 6 roles; 6 estadísticas conceptuales; 6 mundos; niveles 1–60 con categorías I–VI; fragmentos del héroe para ascender; Nexo y Kira fuera de la colección; habilidad manual al 100 % del medidor; el medidor no carga fuera de combate.
+**Crecimiento por nivel** (prov., por cada nivel por encima del 1, sobre el valor de nivel 1):
+
+| Rol | Salud | Ataque |
+|---|---|---|
+| Baluarte | +3,5 % | +2,0 % |
+| Ruptor | +2,5 % | +3,5 % |
+| Puntero | +2,0 % | +3,5 % |
+| Catalizador | +2,0 % | +3,5 % |
+| Demoledor | +3,0 % | +3,0 % |
+| Distorsionador | +3,0 % | +2,5 % |
+
+Con +3 %/nivel, un héroe a nivel 60 tiene unas 2,8 veces el valor de nivel 1. **Consecuencia:** la dificultad de las misiones deberá asumir un **rango de nivel esperado** por mundo. Es un riesgo de economía que se resolverá al diseñar la progresión del jugador.
+
+### G-11 · Rareza y crecimiento
+**Decisión: opción A**, el mismo crecimiento por rol para todas las rarezas. **Motivo:** así un Común al 60 sigue siendo útil en su nicho (F §2.3). La rareza se nota en las estadísticas base y en la profundidad de la habilidad.
+
+### G-3 · Medidor para los protagonistas
+**Decisión:** Nexo y Kira Volt pasan al **medidor** y dejan el tiempo de recarga. La carga de Kira se llama **filo**. **Implementación:** cambiar `HeroDef` y `sim_heroes` (habilidad por medidor), las tarjetas de la interfaz y los tests de habilidades.
+
+### G-4 · Reglas del medidor
+**Decisión:** se aprueba el modelo de B §0.6:
+- carga por ataque y no por objetivo;
+- tope de carga por segundo;
+- invocaciones, trampas y zonas no cargan;
+- no carga fuera de combate;
+- conserva el 50 % al caer;
+- empieza la misión a 0 %.
+
+**Objetivo de validación:** 1 o 2 usos por oleada.
+
+### G-12 · Bloqueo por rol
+**Decisión:** Baluarte 3, Demoledor 2 y el resto 1; el secundario Baluarte suma +1 (valores de prueba).
+
+### G-5 · Tipos de daño
+**Decisión:** 3 tipos mecánicos, y la armadura reduce el **Energético a la mitad**. **Motivo:** así el Energético tiene un papel propio entre el Físico (armadura completa) y el Arcano (la ignora). **Implementación:** cambiar `damage_enemy` en `sim_world.gd` y revisar el balance de las misiones del mundo 1, porque Nexo y Kira usan daño `energy`.
+
+### G-13 · Control y defensa
+**Decisión:** se aprueban las reglas de B §0.7–0.9:
+- peso del enemigo;
+- resistencia decreciente al control, con 3 controles duros cada 6 s seguidos de inmunidad;
+- tope de ralentización del −60 %;
+- tope de reducción de daño del 60 %;
+- escudos limitados y sin acumulación del mismo origen;
+- intangibilidad de 1,5 s como máximo.
+
+---
+
+## Prioridad 2 · Catálogo
+
+### G-1 · Nombres
+**Decisión:** se renombran 8 héroes y 3 ataques o armas. Los nuevos nombres son tan provisionales como el resto.
+
+| Antes | Ahora | Motivo |
+|---|---|---|
+| Fiora | **Vesna** | Personaje de *League of Legends* |
+| Bastion | **Halvard** | Héroe de *Overwatch* |
+| Luneth | **Aurenn** | Protagonista de *Final Fantasy III* |
+| Garruk | **Brannoc** | Personaje de *Magic: The Gathering* |
+| Shinra | **Kagero** | Corporación de *Final Fantasy VII* |
+| Nexarion | **Uruvan** | Se confundía con Nexo |
+| Tenshi | **Kazen** | Personaje de *Touhou* |
+| Draeven | **Valdrin** | Demasiado cercano a «Draven» |
+| Sobrecarga azul | **Sobrecarga** | Evocaba el disparo cargado de la obra de inspiración |
+| Veredicto primordial | **Pulso primordial** | Evocaba el movimiento característico de la obra de inspiración |
+| Llave luminosa | **Golpe del farol** (arma: farol de umbrales) | Arma emblemática de la obra de inspiración |
+
+Las mecánicas transformadas se recogen en G-14.
+
+### G-14 · Habilidades transformadas
+**Decisión:** se aceptan todas:
+- Kairo: marca y salto, sin garfio.
+- Vesna: duelo.
+- Bront: cúpula de interferencia.
+- Rokka: obstáculo con vida.
+- Mistral: potencia torres.
+- Veyra: haz que barre.
+- Kazen: trazo.
+- Kaelith: corte diferido.
+- Eclipse: inversión del avance.
+- Omnion: tragar y escupir.
+- Aethern: impide caer.
+- Cambios de ataque automático de Zerik, Varkhan y Nyxara.
+
+### G-7 · Baluarte de rareza alta
+**Decisión:** secundarios Baluarte para Brannoc, Astraion y Uruvan, **sin** cambiar el rol principal de Astraion. **Motivo:** cubre el hueco con el mínimo cambio sobre el catálogo.
+
+### G-9 · Estadísticas
+**Decisión:** presupuesto por rareza = media v1 ± 3 (guía) y 5 ajustes de un punto: Sylka Ca 7→6, Kairo V 6→7, Bront A 7→6 y Al 8→7, Drakar S 9→8, Eclipse A 9→8. Ophidia queda como excepción. Detalle en [C](C-matriz-estadisticas.md).
+
+### G-8 · Mundos
+**Decisión:** Omnion, Mistral y Sylka pasan al **Vertedero de Ideas**.
+
+| Mundo | Héroes |
+|---|---|
+| Reino del Continue | 3 |
+| Academia del Último Hechizo | 5 |
+| Última Sesión | 7 |
+| Neón de Medianoche | 6 |
+| Vertedero de Ideas | 4 |
+| Frontera Imposible | 10 |
+
+### G-15 · Narrativa
+**Decisión:** se aceptan los cambios de A:
+- Kaelith: obediencia.
+- Nimue: tiempo congelado.
+- Halvard: custodia algo que aún existe.
+- Kairo: deuda.
+- Brannoc: exilio tras una guerra.
+- Kagero: sello impuesto.
+- Morrak y Voidra: espejos del Editor.
+- Eclipse: reverso de la pantalla.
+
+---
+
+## Prioridad 3 · Sistemas del juego
+
+### G-2 · Monedas
+**Decisión:** la moneda general pasa a llamarse **hilos** («hilos de la Trama»). **Fragmentos** queda reservado para los fragmentos de cada héroe.
+
+**Implementación:**
+- textos de la interfaz (campaña, resultados, barra superior);
+- `docs/07` a `docs/09`;
+- en el guardado, la clave interna `shards` se renombra con migración, como se hizo con `w1_m1`.
+
+### G-6 · Enemigos
+**Decisión:** el **peso** (ligero, medio, pesado, jefe) se añade a `EnemyDef` al implementar los héroes. Los enemigos a distancia, voladores, invisibles y canalizadores llegan con los mundos 2–4 (`docs/08`).
+
+Peso de los enemigos actuales:
+
+| Peso | Enemigos |
+|---|---|
+| Ligero | glitchling, zumbador, glitchling con continue |
+| Pesado | acorazado |
+| Jefe | Rey del Reinicio |
+| (no se desplazan) | núcleos |
+
+### G-16 · Tiradas
+**Decisión:** banners **separados** para héroes y torres. Las probabilidades se muestran siempre. Valores de prueba para el **banner de héroes**:
+
+| Rareza | Probabilidad (prov.) |
+|---|---|
+| Común | 40 % |
+| Poco común | 27 % |
+| Raro | 17 % |
+| Épico | 9 % |
+| Legendario | 4,5 % |
+| Mítico | 2 % |
+| Trascendente | 0,5 % |
+
+**Garantías (prov.):**
+- **Épico o superior** cada 10 tiradas.
+- **Legendario o superior** a las 60 tiradas sin uno.
+- **Mítico o superior** a las 150.
+- **Trascendente** a las 300.
+
+Los contadores se guardan y se muestran.
+
+**Coste (prov.):** 100 hilos por tirada; 900 por 10 tiradas.
+
+**Repetidos:** se convierten en **fragmentos del héroe**. La cantidad por rareza y los costes de ascenso están **pendientes de la pasada de economía**.
+
+**Banner de torres:** mismo esquema. Las rarezas de las torres están por definir cuando haya más torres; hoy solo existen las 3 iniciales.
+
+**Riesgo regulatorio:** como en `docs/08` §5, si algún día hubiera dinero real.
+
+---
+
+## Prioridad 4
+
+- **G-17 · Diálogo:** 1 presentación y 3 frases de combate por héroe, en la fase de producción. Sin bocadillos que tapen el combate.
+- **G-18 · Pasivas:** ninguna nueva. Solo Uruvan (Adversidad), porque aporta una mecánica que no cubren su ataque ni su habilidad.
+- **G-19 · Arte:** fuera de esta fase. Se conservan las notas para alejar el diseño de su inspiración: Voltra, Omnion, Astraion, Kaelith/Aeron y Veyra/Voidra/Drakar.
+
+## Lo que sigue pendiente (no son decisiones de diseño, sino trabajo)
+1. **Pasada de economía:** costes de experiencia y de fragmentos de ascenso, fragmentos por repetido, ingresos de hilos por misión frente al coste de las tiradas y nivel esperado por mundo.
+2. **Especificación numérica por héroe** con la fórmula de G-10 y validación en la simulación.
+3. **Implementación** (fuera de esta fase): medidor, peso, Energético a la mitad, hilos y las mecánicas de cada héroe.

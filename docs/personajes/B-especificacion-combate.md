@@ -1,6 +1,7 @@
 # B · Especificación de combate
 
-> Convenciones: **[E]** establecido, **[P]** propuesta, **[?]** pregunta, **(prov.)** cifra de prueba. Ninguna cifra es definitiva; se validan con la simulación y `tools/balance.gd` (ver §0.12).
+> **Estado:** las propuestas **[P]** de este documento quedan **aprobadas** (decisiones de [G](G-decisiones-pendientes.md), 2026-10-22). Se mantiene la marca [P] para distinguir lo nuevo de lo heredado del catálogo.
+> Convenciones: **[E]** establecido, **[P]** propuesta (aprobada), **[?]** pregunta, **(prov.)** cifra de prueba. Ninguna cifra es definitiva; se validan con la simulación y `tools/balance.gd` (ver §0.12).
 > Las estadísticas conceptuales están en [C](C-matriz-estadisticas.md), la historia en [A](A-biblia-narrativa.md) y la progresión en [E](E-progresion.md).
 
 ---
@@ -50,12 +51,14 @@ Un **rol secundario Baluarte** suma +1. Algunas habilidades modifican el bloqueo
 | Tipo mecánico | Equivalente actual | Armadura | Sabores temáticos que agrupa |
 |---|---|---|---|
 | **Físico** | cinético | La reduce por completo | cortes, golpes, balas, flechas |
-| **Energético** | energía | La reduce por completo (hoy). [?] G-5: ¿a la mitad? | eléctrico, láser, fuego, luz, vacío |
+| **Energético** | energía | **La reduce a la mitad** (decisión G-5; en el juego actual todavía la reduce por completo, pendiente de implementar) | eléctrico, láser, fuego, luz, vacío |
 | **Arcano** | mágico | **La ignora** | hielo mágico, oscuro, espectral, temporal, estelar, onírico |
 
 Los «sabores» son solo narrativos y visuales. La **perforación de armadura** (porcentaje que se ignora) es un rasgo de ataques concretos.
 
 ### 0.6 Medidor de habilidad [E + P]
+**Decisión G-3:** Nexo y Kira Volt también usan el medidor (dejan el tiempo de recarga). La «carga» de Kira, que aumenta el daño de su corte, pasa a llamarse **filo** para no confundirla con el medidor.
+
 **[E]** Cada héroe tiene un medidor propio. La habilidad se activa **manualmente al 100 %**. No se carga fuera de combate.
 
 **Fuentes de carga [P]** (valores (prov.) para la primera prueba):
@@ -73,7 +76,7 @@ Los «sabores» son solo narrativos y visuales. La **perforación de armadura** 
 - **Mientras una habilidad está activa** el medidor no carga.
 - **Fuera de combate** (sin dar ni recibir daño en los últimos 3 s, prov.) no carga.
 - **Al caer** el héroe conserva el 50 % del medidor (prov.; G-4).
-- **Al empezar la misión** el medidor está a 0 %. [?] G-4: ¿empezar con algo de carga?
+- **Al empezar la misión** el medidor está a 0 % (decisión G-4).
 
 **Ritmos por rol [P]:** los Baluartes cargan sobre todo **recibiendo** daño y los Distorsionadores **controlando**. Así la carga refleja el rol sin tablas especiales por héroe.
 
@@ -163,7 +166,7 @@ Si se interrumpe en la primera mitad, se devuelve el 50 % del medidor (prov.).
   - **Alcance:** largo. Monoobjetivo.
   - **Daño:** Energético.
   - **Límites:** sin perforación.
-- **Habilidad especial — Sobrecarga [P renombrar sin «azul»]:**
+- **Habilidad especial — Sobrecarga (antes «Sobrecarga azul»):**
   - **Activación:** apuntar una dirección.
   - **Área:** línea larga desde Zerik.
   - **Efectos:** disparo que atraviesa a todos los enemigos alineados. **[P] Cada enemigo atravesado aumenta el daño a los siguientes** (+X % acumulativo, con tope).
@@ -209,7 +212,7 @@ Si se interrumpe en la primera mitad, se devuelve el 50 % del medidor (prov.).
 - **Sinergias:** activa **«Error de sistema»** (la corrupción se acumula más rápido en enemigos ralentizados) junto a la torre de corrupción.
 - **Contrapartidas:** cae enseguida si bloquea a varios; acorazados.
 
-### 5. Sylka · C · Puntero · Frontera Imposible ([P] Vertedero de Ideas, ver A)
+### 5. Sylka · C · Puntero · Vertedero de Ideas (antes Frontera Imposible)
 - **Rol:** Puntero [E].
 - **Identidad mecánica:** Puntero **preparador**. Planifica emboscadas: su habilidad funciona mejor colocada **antes** de que llegue el grupo.
 - **Ataque automático — Disparo de expedición:**
@@ -229,7 +232,7 @@ Si se interrumpe en la primera mitad, se devuelve el 50 % del medidor (prov.).
 - **Sinergias:** misiones con élites predecibles; Distorsionadores que retienen sobre la trampa.
 - **Contrapartidas:** oleadas solo de ligeros.
 
-### 6. Mistral · C · Distorsionador · Reino del Continue ([P] Vertedero de Ideas)
+### 6. Mistral · C · Distorsionador · Vertedero de Ideas (antes Reino del Continue)
 - **Rol:** Distorsionador [E] (apoyo táctico).
 - **Identidad mecánica:** el **ingeniero** del equipo. Su habilidad potencia **torres**, un nicho que no cubre ningún otro héroe.
 - **Ataque automático — Hélice cortante:**
@@ -273,7 +276,7 @@ Si se interrumpe en la primera mitad, se devuelve el 50 % del medidor (prov.).
 - **Sinergias:** Catalizadores de área, Aeron y la torre de rebote.
 - **Contrapartidas:** Alcance 2 y Velocidad 4: mala reposición.
 
-### 8. Shinra · C · Demoledor · Academia del Último Hechizo ([P] renombrar, ver F)
+### 8. Kagero (antes Shinra) · C · Demoledor · Academia del Último Hechizo
 - **Rol:** Demoledor [E].
 - **Identidad mecánica:** Demoledor **antiélite** barato. Su habilidad atraviesa defensas y castiga al enemigo más duro del grupo.
 - **Ataque automático — Cadena sombría:**
@@ -330,7 +333,7 @@ Si se interrumpe en la primera mitad, se devuelve el 50 % del medidor (prov.).
 - **Sinergias:** torre de corrupción («Error de sistema»), torre de rebote y Raiko (devuelve enemigos a la zona).
 - **Contrapartidas:** Salud 4; si la alcanzan, cae.
 
-### 11. Bastion · PC · Baluarte · Frontera Imposible ([P] renombrar, ver F)
+### 11. Halvard (antes Bastion) · PC · Baluarte · Frontera Imposible
 - **Rol:** Baluarte [E].
 - **Identidad mecánica:** el **muro de un solo punto**. Casi inmóvil (Velocidad 2), absorbe y **atrae los golpes** dirigidos a su compañero.
 - **Ataque automático — Martillo de asedio:**
@@ -344,7 +347,7 @@ Si se interrumpe en la primera mitad, se devuelve el 50 % del medidor (prov.).
   - **Activación:** instantánea. **Canalizada** (prov. 6 s).
   - **Efectos:**
     - Escudo que **absorbe** daño, con tope ligado a su vida máxima ([E] absorbe daño dirigido a aliados).
-    - **[P] Provoca** a los enemigos de un radio corto: atacan a Bastion en lugar de al otro héroe.
+    - **[P] Provoca** a los enemigos de un radio corto: atacan a Halvard en lugar de al otro héroe.
     - **[P] +2 de bloqueo** mientras dura.
   - **Interrupción:** termina si el escudo se rompe o si lo mueven.
   - **Inmunidades:** los jefes no se ven afectados por la provocación.
@@ -352,7 +355,7 @@ Si se interrumpe en la primera mitad, se devuelve el 50 % del medidor (prov.).
 - **Sinergias:** Catalizadores de área y Aeron.
 - **Contrapartidas:** reposición lentísima; poco daño.
 
-### 12. Fiora · PC · Ruptor · Academia del Último Hechizo ([P] renombrar y nueva habilidad, ver F)
+### 12. Vesna (antes Fiora) · PC · Ruptor · Academia del Último Hechizo
 - **Rol:** Ruptor [E].
 - **Identidad mecánica:** **duelista antiélite**. Brilla contra un enemigo duro aislado y sufre contra enjambres, porque el duelo la obliga a ignorar al resto.
 - **Ataque automático — Estocada de duelo:**
@@ -373,7 +376,7 @@ Si se interrumpe en la primera mitad, se devuelve el 50 % del medidor (prov.).
 - **Sinergias:** Baluartes que sujetan al resto.
 - **Contrapartidas:** enjambres; Alcance 3.
 
-### 13. Garruk · PC · Demoledor · Frontera Imposible ([P] renombrar y transformar, ver F)
+### 13. Brannoc (antes Garruk) · PC · Demoledor · Frontera Imposible
 - **Rol:** Demoledor [E]. **Secundario [P]: Baluarte.**
 - **Identidad mecánica:** Demoledor de **aguante** con una **ventana de poder que elige el jugador**, seguida de agotamiento.
 - **Ataque automático — Hachazo ancestral:**
@@ -386,9 +389,9 @@ Si se interrumpe en la primera mitad, se devuelve el 50 % del medidor (prov.).
   - **Activación:** instantánea.
   - **Duración:** prov. 8 s.
   - **Efectos:** [E] más daño y más resistencia. **[P] +1 de bloqueo.**
-  - **[P] Coste:** al terminar queda **agotado** unos segundos (menos cadencia). Esto lo diferencia de Nexarion: aquí el jugador decide el momento y paga después.
+  - **[P] Coste:** al terminar queda **agotado** unos segundos (menos cadencia). Esto lo diferencia de Uruvan: aquí el jugador decide el momento y paga después.
   - **Contrajuego:** usarla en el momento equivocado; el agotamiento.
-- **Sinergias:** Distorsionadores que retienen; la curación de Luneth o Solenne.
+- **Sinergias:** Distorsionadores que retienen; la curación de Aurenn o Solenne.
 - **Contrapartidas:** enjambres rápidos; Alcance 3.
 
 ### 14. Bront · PC · Baluarte · Neón de Medianoche
@@ -397,7 +400,7 @@ Si se interrumpe en la primera mitad, se devuelve el 50 % del medidor (prov.).
 - **Ataque automático — Cañones gemelos:**
   - **Tipo:** ráfagas.
   - **Objetivo:** el más avanzado.
-  - **Alcance:** largo. Monoobjetivo.
+  - **Alcance:** medio-largo (Alcance 7 tras G-9). Monoobjetivo.
   - **Daño:** Energético.
 - **Habilidad especial — Interceptor → [P] Cúpula de interferencia** (transformada, ver F §1.7):
   - **Activación:** instantánea, en su posición.
@@ -453,7 +456,7 @@ Si se interrumpe en la primera mitad, se devuelve el 50 % del medidor (prov.).
 - **Sinergias:** Distorsionadores que agrupan delante (Voidra, Ophidia).
 - **Contrapartidas:** enemigos que la alcanzan mientras canaliza.
 
-### 17. Draeven · R · Ruptor · Última Sesión ([P] valorar renombrar)
+### 17. Valdrin (antes Draeven) · R · Ruptor · Última Sesión
 - **Rol:** Ruptor [E].
 - **Identidad mecánica:** Ruptor de **supervivencia**. Se cura matando y su habilidad le **saca de un mal combate** golpeando a un objetivo grande. Kairo, en cambio, salta a donde ha preparado marcas.
 - **Ataque automático — Hoja nocturna:**
@@ -470,7 +473,7 @@ Si se interrumpe en la primera mitad, se devuelve el 50 % del medidor (prov.).
 - **Sinergias:** Baluarte que sujete.
 - **Contrapartidas:** Alcance 4; el robo de vida exige derribos.
 
-### 18. Tenshi · R · Ruptor · Frontera Imposible ([P] valorar renombrar)
+### 18. Kazen (antes Tenshi) · R · Ruptor · Frontera Imposible
 - **Rol:** Ruptor [E].
 - **Identidad mecánica:** Ruptor de **reposición ofensiva**. Su habilidad lo traslada por el camino dejando cortes que estallan: llega donde hace falta golpeando.
 - **Ataque automático — Corte dimensional:**
@@ -541,7 +544,7 @@ Si se interrumpe en la primera mitad, se devuelve el 50 % del medidor (prov.).
 - **Sinergias:** Demoledores Físicos, torre de rebote y Zerik.
 - **Contrapartidas:** suma de estadísticas baja (ver C); daño propio modesto.
 
-### 22. Luneth · R · Distorsionador · Frontera Imposible ([P] renombrar, ver F)
+### 22. Aurenn (antes Luneth) · R · Distorsionador · Frontera Imposible
 - **Rol:** Distorsionador [E] (apoyo táctico).
 - **Identidad mecánica:** **sostenimiento de grupo**. Es la principal curación del catálogo por debajo de Legendario, y ralentiza a los enemigos alrededor de su espíritu.
 - **Ataque automático — Eco astral:**
@@ -625,7 +628,7 @@ Si se interrumpe en la primera mitad, se devuelve el 50 % del medidor (prov.).
 ### 26. Astraion · É · Demoledor · Reino del Continue
 - **Rol:** Demoledor [E]. **Secundario [P]: Baluarte** (mitiga la escasez de Baluartes de rareza alta).
 - **Identidad mecánica:** el **pilar del equipo**. Golpea bien, y su habilidad **protege y refuerza el bloqueo** de los dos héroes.
-- **Ataque automático — Llave luminosa → [P] renombrar el arma** (ver F §1.7):
+- **Ataque automático — Golpe del farol** (antes «Llave luminosa»; arma: farol de umbrales):
   - **Tipo:** combinación que **alterna** golpes Físicos y Energéticos.
   - **Objetivo:** bloqueado.
   - **Alcance:** corto.
@@ -641,7 +644,7 @@ Si se interrumpe en la primera mitad, se devuelve el 50 % del medidor (prov.).
 
 ### 27. Zeraph · É · Ruptor · Neón de Medianoche
 - **Rol:** Ruptor [E].
-- **Identidad mecánica:** Ruptor **versátil a cualquier distancia**. Cambia de arma solo y su habilidad es una **incursión de ida y vuelta**: golpea y regresa a su puesto. Tenshi, en cambio, se queda en el destino.
+- **Identidad mecánica:** Ruptor **versátil a cualquier distancia**. Cambia de arma solo y su habilidad es una **incursión de ida y vuelta**: golpea y regresa a su puesto. Kazen, en cambio, se queda en el destino.
 - **Ataque automático — Arsenal cambiante:**
   - **Tipo:** espada (Físico) si el objetivo está en CaC; pistolas (Energético, alcance medio) si está más lejos [E].
   - **Objetivo:** bloqueado o el más avanzado.
@@ -737,7 +740,7 @@ Si se interrumpe en la primera mitad, se devuelve el 50 % del medidor (prov.).
 
 ## Míticos
 
-### 32. Omnion · M · Catalizador · Reino del Continue ([P] Vertedero de Ideas)
+### 32. Omnion · M · Catalizador · Vertedero de Ideas (antes Reino del Continue)
 - **Rol:** Catalizador [E]. **Secundario [P]: Distorsionador.**
 - **Identidad mecánica:** **retira enemigos del flujo y los usa como munición**. No atrae para agrupar: **traga** y **escupe**.
 - **Ataque automático — Esfera voraz:**
@@ -775,9 +778,9 @@ Si se interrumpe en la primera mitad, se devuelve el 50 % del medidor (prov.).
 - **Sinergias:** torre de rebote, Veyra, Nyxara y Varkhan.
 - **Contrapartidas:** la suma de estadísticas más alta de su rareza (ver C).
 
-### 34. Nexarion · M · Demoledor · Frontera Imposible ([P] renombrar por confusión con Nexo)
+### 34. Uruvan (antes Nexarion) · M · Demoledor · Frontera Imposible
 - **Rol:** Demoledor [E]. **Secundario [P]: Baluarte.**
-- **Identidad mecánica:** **se crece ante la adversidad**. Acumula «furia» cuando las cosas van mal, y esa furia decide la **duración** de su habilidad. A diferencia de Garruk, no elige el momento: lo provoca la partida.
+- **Identidad mecánica:** **se crece ante la adversidad**. Acumula «furia» cuando las cosas van mal, y esa furia decide la **duración** de su habilidad. A diferencia de Brannoc, no elige el momento: lo provoca la partida.
 - **Ataque automático — Puño cataclísmico:**
   - **Tipo:** golpe.
   - **Objetivo:** bloqueado.
@@ -801,7 +804,7 @@ Si se interrumpe en la primera mitad, se devuelve el 50 % del medidor (prov.).
 ### 35. Aethern · T · Catalizador · Frontera Imposible
 - **Rol:** Catalizador [E]. Sin secundario: la falta de especialización es su rasgo.
 - **Identidad mecánica:** **evita la derrota del equipo** una vez por activación. Su campo daña y **protege de caer**. Es poderoso, pero con un límite estricto, y no es un multiplicador de daño.
-- **Ataque automático — Veredicto primordial → [P] renombrar** (ver F §1.7):
+- **Ataque automático — Pulso primordial** (antes «Veredicto primordial»):
   - **Tipo:** haz.
   - **Objetivo:** el más avanzado.
   - **Alcance:** largo. Monoobjetivo.

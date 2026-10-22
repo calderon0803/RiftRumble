@@ -9,14 +9,14 @@
 | Tema | Héroes |
 |---|---|
 | Memoria perdida o imposible | Aeron, Chronos |
-| Deber u obediencia | Kaelith, Bastion |
+| Deber u obediencia | Kaelith, Halvard |
 | Hogar perdido | Eirwen |
-| Poder propio que hay que dominar | Shinra, Draeven |
-| Deuda, venganza o justicia | Kairo, Garruk |
+| Poder propio que hay que dominar | Kagero, Valdrin |
+| Deuda, venganza o justicia | Kairo, Brannoc |
 | Curiosidad y descubrimiento | Zerik, Sylka, Omnion, Mistral |
 | Espejos del Editor: orden frente a caos | Morrak, Voidra |
-| Protección y servicio | Rokka, Bront, Luneth, Solenne, Astraion |
-| Superación y desafío | Raiko, Fiora, Nexarion, Varkhan |
+| Protección y servicio | Rokka, Bront, Aurenn, Solenne, Astraion |
+| Superación y desafío | Raiko, Vesna, Uruvan, Varkhan |
 
 ---
 
@@ -42,12 +42,12 @@
 - **Trasfondo:** surgió de un pico de tensión en un parque de atracciones automatizado. La ciudad intentó «apagarla» como un error del sistema. Huyó saltando de farola en farola hasta cruzar una grieta. Para ella, defender los mundos es la competición más grande que existe.
 - **Coherencia:** su descarga que rebota y su tormenta centrada en sí misma reflejan su energía desbordante. **[P]** El diseño debe alejarse de la mascota eléctrica de su inspiración: es un ser de la red urbana, no un animal.
 
-### 5. Sylka · Frontera Imposible ([P] Vertedero de Ideas)
+### 5. Sylka · Vertedero de Ideas (antes Frontera Imposible)
 - **Identidad:** arqueóloga independiente e ingeniosa, coleccionista de reliquias. **Motivación:** encontrar el objeto que explique la Gran Interferencia. **Rasgo:** prepara una salida antes de entrar en cualquier sitio.
 - **Trasfondo [P]:** recorre el **Vertedero de Ideas**, donde acaban los objetos e inventos que nadie recuerda. Allí aprendió a construir trampas con reliquias olvidadas. Cree que el Editor desecha ideas que podrían salvarlo todo, y quiere recuperarlas.
 - **Coherencia:** sus trampas planificadas encajan con su carácter precavido. **[P]** El traslado al Vertedero equilibra los mundos (F §1.2).
 
-### 6. Mistral · Reino del Continue ([P] Vertedero de Ideas)
+### 6. Mistral · Vertedero de Ideas (antes Reino del Continue)
 - **Identidad:** inventor alado, amable y perfeccionista. **Motivación:** que ninguna máquina buena quede olvidada. **Rasgo:** llama «fase experimental» a todo lo que se rompe.
 - **Trasfondo [P]:** vive en un taller hecho con piezas del Vertedero de Ideas y repara los inventos desechados de todos los mundos. Se unió a Nexo cuando vio que las torres de defensa podían mejorar con sus turbinas.
 - **Coherencia:** su habilidad potencia torres, lo que refuerza su identidad de ingeniero (B §6).
@@ -57,7 +57,7 @@
 - **Trasfondo:** guardián de una montaña de chatarra del Vertedero donde viven criaturas descartadas. Cuando el Editor empezó a «limpiar» el Vertedero, Rokka levantó muros de chatarra para frenarlo. Se une a Nexo para llevar esa defensa a todos los mundos.
 - **Coherencia:** su barrera de chatarra es literalmente lo que hace en su mundo.
 
-### 8. Shinra · Academia del Último Hechizo ([P] renombrar)
+### 8. Kagero (antes Shinra) · Academia del Último Hechizo
 - **Identidad:** luchador con un sello de sombra en el brazo. **Motivación:** que su poder no decida por él. **Rasgo:** entrena hasta el agotamiento para mantener el control.
 - **Trasfondo [P]:** la Academia le impuso el sello de niño para contener un espíritu de sombra que se coló en él durante un ritual mal hecho, un poder **impuesto, no heredado**. Lo transforma respecto a la obra de inspiración. Usa la sombra en pequeñas dosis, en el tercer golpe de cada combinación, para no perderse.
 - **Coherencia:** su ataque y su habilidad liberan la sombra en momentos medidos.
@@ -76,17 +76,17 @@
 - **Trasfondo [P]:** un hechizo fallido de la Academia **congeló el tiempo** de su ciudad natal (no los recuerdos, para no repetir el tema). Busca entre los mundos la técnica para invertirlo, y sabe que el Editor podría hacerlo… a cambio de quedarse con la ciudad.
 - **Coherencia:** su hielo que congela y su forma de preparar zonas reflejan su paciencia.
 
-### 11. Bastion · Frontera Imposible ([P] renombrar)
+### 11. Halvard (antes Bastion) · Frontera Imposible
 - **Identidad:** guardián acorazado, solemne y protector. **Motivación:** custodiar una puerta. **Rasgo:** habla poco y nunca abandona su puesto.
 - **Trasfondo [P]:** custodia la última puerta de una ciudad que **aún existe**, escondida tras la Frontera. No es una ciudad perdida (ese tema queda para Eirwen). Sale de su puesto solo porque la Interferencia amenaza con abrir la puerta desde dentro.
 - **Coherencia:** su provocación y su escudo son su oficio: ser la puerta.
 
-### 12. Fiora · Academia del Último Hechizo ([P] renombrar y transformar)
+### 12. Vesna (antes Fiora) · Academia del Último Hechizo
 - **Identidad:** duelista obsesionada con la técnica. **Motivación:** demostrar que el honor del duelo sigue teniendo sentido. **Rasgo:** saluda a cada rival antes de luchar.
 - **Trasfondo [P]:** campeona del torneo de esgrima mágica de la Academia, que el Editor quiere abolir por «imprevisible». Lucha en la Trama retando a los enemigos más fuertes uno a uno. **[P]** El duelo sustituye a la mecánica de puntos débiles de la obra de inspiración.
 - **Coherencia:** su habilidad es literalmente un duelo.
 
-### 13. Garruk · Frontera Imposible ([P] renombrar y transformar)
+### 13. Brannoc (antes Garruk) · Frontera Imposible
 - **Identidad:** exiliado corpulento, cansado y protector. **Motivación:** no volver a usar su fuerza por odio. **Rasgo:** guarda silencio antes de cada golpe.
 - **Trasfondo [P]:** fue el campeón de un reino de la Frontera que ganó una guerra «demasiado bien» y arrasó más de lo necesario. Se exilió y protege una aldea fronteriza. Solo vuelve a pelear cuando lo que está en juego es salvar a otros. **[P]** Se eliminan la caza de dioses y la renuncia a la venganza, demasiado cercanas a la obra de inspiración.
 - **Coherencia:** su cólera elegida, seguida de agotamiento, encaja con alguien que se contiene y paga el precio de soltarse.
@@ -110,12 +110,12 @@
 - **Trasfondo:** caza anomalías por contrato en los bajos fondos de Neón. La Interferencia multiplicó el trabajo y le costó a su único compañero. Acepta la alianza con Nexo «solo por esta vez». **[P]** Su historia no se cruza con la de Voidra (F §1.7).
 - **Coherencia:** su haz canalizado, potente pero que la deja expuesta, refleja la confianza que le cuesta dar.
 
-### 17. Draeven · Última Sesión ([P] valorar renombrar)
+### 17. Valdrin (antes Draeven) · Última Sesión
 - **Identidad:** inmortal elegante e irónico. **Motivación:** romper su maldición y poder morir algún día. **Rasgo:** comenta cada combate como un crítico de cine.
 - **Trasfondo:** es un personaje secundario de una película de terror de la Última Sesión que se dio cuenta de que estaba en una película. Su maldición es no salir nunca de la pantalla. La Interferencia le abrió una salida, y busca el corte que termine su historia.
 - **Coherencia:** su intangibilidad («salir de escena») y su robo de vida encajan con un inmortal cinematográfico.
 
-### 18. Tenshi · Frontera Imposible ([P] valorar renombrar)
+### 18. Kazen (antes Tenshi) · Frontera Imposible
 - **Identidad:** espadachín perfeccionista, distante y preciso. **Motivación:** dominar la distancia. **Rasgo:** mide todo en pasos.
 - **Trasfondo:** aprendió en las ruinas de la Frontera a cortar el espacio entre dos puntos. Sirve a Nexo porque la Interferencia deforma las distancias, y eso le ofende. **[P]** Se descarta cualquier relación de hermanos con Zeraph (F §1.7).
 - **Coherencia:** su trazo, que recorre el camino cortando, es su filosofía.
@@ -135,7 +135,7 @@
 - **Trasfondo:** un ritual de transmutación de la Academia le dejó una mirada que vuelve piedra la materia. Estudia cómo controlarla. Descubrió que puede detener sin destruir y quiere demostrar que su poder no es una condena.
 - **Coherencia:** acumular petrificación poco a poco encaja con alguien que aprende a dosificar su poder.
 
-### 22. Luneth · Frontera Imposible ([P] renombrar)
+### 22. Aurenn (antes Luneth) · Frontera Imposible
 - **Identidad:** invocadora serena y compasiva. **Motivación:** liberar a los espíritus de contratos eternos. **Rasgo:** pide permiso a cada espíritu antes de invocarlo.
 - **Trasfondo:** su linaje mantenía espíritus encadenados por pactos que aseguraban la paz. Ella rompe los pactos y negocia otros temporales y justos. Ve en el Editor el pacto definitivo, uno que nadie podrá romper.
 - **Coherencia:** sus invocaciones que curan y protegen son pactos voluntarios.
@@ -166,7 +166,7 @@
 
 ### 27. Zeraph · Neón de Medianoche
 - **Identidad:** mercenario bromista y leal. **Motivación:** cobrar y, de paso, salvar el día. **Rasgo:** hace chistes en el peor momento.
-- **Trasfondo:** caza anomalías en Neón con un arsenal que cambia de forma según la amenaza. Trabaja para quien pague, pero no traiciona a quien le da su palabra. **[P]** Sin vínculo familiar con Tenshi.
+- **Trasfondo:** caza anomalías en Neón con un arsenal que cambia de forma según la amenaza. Trabaja para quien pague, pero no traiciona a quien le da su palabra. **[P]** Sin vínculo familiar con Kazen.
 - **Coherencia:** su incursión de ida y vuelta es su forma de trabajar: entra, cobra y sale.
 
 ---
@@ -197,7 +197,7 @@
 
 ## Míticos
 
-### 32. Omnion · Reino del Continue ([P] Vertedero de Ideas)
+### 32. Omnion · Vertedero de Ideas (antes Reino del Continue)
 - **Identidad:** criatura amistosa y curiosa. **Motivación:** probarlo todo. **Rasgo:** pregunta si se puede comer cualquier cosa.
 - **Trasfondo [P]:** nació en el **Vertedero de Ideas** absorbiendo residuos de energía dimensional, restos de ideas descartadas. Lo que traga, lo transforma. Se une a Nexo porque la Interferencia es el banquete más grande que ha visto.
 - **Coherencia:** tragar enemigos y escupirlos como munición es su biología. **[P]** El diseño visual deberá alejarse de su inspiración.
@@ -207,7 +207,7 @@
 - **Trasfondo [P] — espejo del Editor:** nació en Neón de los **datos corruptos** que el Editor eliminó de la red. No viene de la materia de su obra de inspiración. Es, literalmente, lo que el Editor desechó. Quiere reescribir la realidad igual que él, pero para que haya **más** formas posibles, no menos.
 - **Coherencia:** su núcleo atrae y transforma, como la corrupción que la creó.
 
-### 34. Nexarion · Frontera Imposible ([P] renombrar por confusión con Nexo)
+### 34. Uruvan (antes Nexarion) · Frontera Imposible
 - **Identidad:** guerrero colosal, furioso y justo. **Motivación:** derribar cualquier destino impuesto. **Rasgo:** cuanto peor van las cosas, más tranquilo parece.
 - **Trasfondo:** desafió a los «guionistas» de su mundo, que querían que perdiera para que la historia avanzara. Desconfía de cualquiera que justifique el sufrimiento como necesario, empezando por el Editor.
 - **Coherencia:** crecerse ante la adversidad es su historia.

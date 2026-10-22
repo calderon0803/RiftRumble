@@ -1,5 +1,7 @@
 # F · Auditoría de coherencia
 
+> **Estado (2026-10-22):** todas las decisiones de esta auditoría están **tomadas** (ver [G](G-decisiones-pendientes.md)). Los nombres originales que aparecen aquí son el registro histórico; en A–E ya figuran los nuevos («(antes X)»).
+
 > Primera parte: **auditoría inicial** del catálogo recibido, hecha antes de completar las fichas. Segunda parte: **revisión global** del conjunto ya completado. Las propuestas se marcan **[P]** y se resumen en [G](G-decisiones-pendientes.md).
 
 ---

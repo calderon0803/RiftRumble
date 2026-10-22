@@ -14,14 +14,14 @@ Especificación conceptual, narrativa y jugable de los **35 héroes coleccionabl
 | [C · Matriz de estadísticas](C-matriz-estadisticas.md) | Las seis puntuaciones conceptuales (sin convertir) y observaciones de coherencia | Valores reales |
 | [D · Roles y sinergias](D-roles-y-sinergias.md) | Distribución de roles por rareza y mundo, variedad interna, fortalezas y debilidades, sinergias entre héroes y con torres | — |
 | [E · Matriz de progresión](E-progresion.md) | Qué escala con nivel y categoría, qué queda fijo, y las excepciones de cada héroe | Costes y fórmulas no aprobadas |
-| [G · Decisiones pendientes](G-decisiones-pendientes.md) | Lista priorizada de lo que hay que aprobar antes de la especificación numérica | — |
+| [G · Registro de decisiones](G-decisiones-pendientes.md) | Las 19 decisiones **tomadas** (2026-10-22), con su motivo y lo que implican para la implementación | — |
 
 Cada dato de un héroe vive en **un solo documento**: la historia en A, el combate en B, las estadísticas en C y la progresión en E. D y F solo analizan y enlazan.
 
 ## Convenciones
 
 - **[E] Establecido:** viene del catálogo o de decisiones ya tomadas en el proyecto.
-- **[P] Propuesta:** nueva; requiere aprobación (ver G).
+- **[P] Propuesta:** nueva respecto al catálogo; **aprobada** en G (se mantiene la marca para distinguirla).
 - **[?] Pregunta:** decisión abierta.
 - **«(prov.)»:** cualquier cifra es provisional y de prueba, nunca un valor final.
 - **Rareza** abreviada: C (común), PC (poco común), R (raro), É (épico), L (legendario), M (mítico), T (trascendente).
@@ -40,5 +40,6 @@ Cada dato de un héroe vive en **un solo documento**: la historia en A, el comba
 | Míticos (32–34) | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Trascendente (35) | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Revisión global (F) y decisiones (G) | — | — | — | — | ✅ |
+| Decisiones tomadas y aplicadas a A–E | ✅ | ✅ | ✅ | ✅ | ✅ |
 
 Fuera de alcance de esta fase: arte, animación, paletas, sprites, código, cifras finales y costes de progresión.

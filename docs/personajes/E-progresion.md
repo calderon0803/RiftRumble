@@ -57,21 +57,21 @@ Todas son **cualitativas y con tope**. Ninguna añade un porcentaje de daño pla
 | 5 | Sylka | Trampa más grande | 2 trampas activas | La trampa marca a la élite (más daño de todos) | Activación selectiva |
 | 6 | Mistral | Más duración | El rebote del disco alcanza a 2 | La turbina también da alcance a las torres | No da daño directo a torres |
 | 7 | Rokka | Barrera con más vida | Barrera más ancha (bloquea 2 carriles) | Al romperse, la barrera aturde a los cercanos | Los jefes la rompen |
-| 8 | Shinra | Más perforación | El 3.er golpe del combo salpica | La ruptura ejecuta a élites con poca vida (umbral fijo) | Sin efecto en jefes para la ejecución |
+| 8 | Kagero | Más perforación | El 3.er golpe del combo salpica | La ruptura ejecuta a élites con poca vida (umbral fijo) | Sin efecto en jefes para la ejecución |
 | 9 | Kairo | Más marcas simultáneas | La explosión ralentiza | Puede encadenar a una 2.ª marca | Sin marcas no se activa |
 | 10 | Nimue | Zona mayor | La aguja acumula 1 más | La congelación vuelve frágiles a los congelados | Los jefes nunca se congelan |
-| 11 | Bastion | Escudo mayor | Provocación con radio mayor | Al terminar, el escudo devuelve parte de lo absorbido como onda | La provocación no afecta a jefes |
-| 12 | Fiora | Duelo más largo | El contraataque perfora más | Ganar el duelo encadena un 2.º duelo breve | Solo 1 objetivo |
-| 13 | Garruk | Agotamiento más corto | +1 de bloqueo adicional durante la cólera | El primer golpe de la cólera derriba | El agotamiento existe siempre |
+| 11 | Halvard | Escudo mayor | Provocación con radio mayor | Al terminar, el escudo devuelve parte de lo absorbido como onda | La provocación no afecta a jefes |
+| 12 | Vesna | Duelo más largo | El contraataque perfora más | Ganar el duelo encadena un 2.º duelo breve | Solo 1 objetivo |
+| 13 | Brannoc | Agotamiento más corto | +1 de bloqueo adicional durante la cólera | El primer golpe de la cólera derriba | El agotamiento existe siempre |
 | 14 | Bront | Cúpula mayor | Más ralentización del ataque enemigo | La cúpula sigue a Bront | Zona única |
 | 15 | Eirwen | Silencio más largo | Lluvia más ancha | Los revelados reciben más daño | El retardo inicial |
 | 16 | Veyra | Arco de barrido mayor | Inicio de daño más alto | Puede moverse a paso lento mientras canaliza | Canalizada (interrumpible) |
-| 17 | Draeven | Mayor tope de robo de vida | Intangibilidad algo más larga (con el tope de B §0.8) | Reaparece con 2 golpes | Suelta el bloqueo |
-| 18 | Tenshi | Trazo más largo | Más cortes | Los cortes ralentizan | Termina en el destino |
+| 17 | Valdrin | Mayor tope de robo de vida | Intangibilidad algo más larga (con el tope de B §0.8) | Reaparece con 2 golpes | Suelta el bloqueo |
+| 18 | Kazen | Trazo más largo | Más cortes | Los cortes ralentizan | Termina en el destino |
 | 19 | Ravena | Zona mayor | Más debilitamiento | La zona sigue al enemigo con más vida | Con tope (B §0.8) |
 | 20 | Drakar | Área de caída mayor | Salto automático más largo | La caída deja una zona de terreno roto que ralentiza | No derriba a pesados ni jefes |
 | 21 | Ophidia | Cono mayor | Menos acumulaciones necesarias | Los petrificados se rompen en metralla al terminar | Jefes nunca petrificados |
-| 22 | Luneth | Más curación | El espíritu menor ralentiza | El pacto también da escudo breve | Nunca resucita |
+| 22 | Aurenn | Más curación | El espíritu menor ralentiza | El pacto también da escudo breve | Nunca resucita |
 | 23 | Morrak | Radio mayor | El orbe debilita | El dominio roba parte del daño reducido como escudo | Tope de debilitamiento |
 | 24 | Nyxara | 1 pulso más | El giro del ataque más frecuente | Los suspendidos reciben más daño | Jefes y pesados no se suspenden |
 | 25 | Kaelith | Línea más larga | Menos retardo | La onda final también es diferida y doble | Retardo mínimo siempre |
@@ -83,7 +83,7 @@ Todas son **cualitativas y con tope**. Ninguna añade un porcentaje de daño pla
 | 31 | Eclipse | Zona mayor | Más velocidad de retroceso | Al terminar, los afectados quedan ralentizados | Cuenta como control duro |
 | 32 | Omnion | +N tragados | Traga también a medios | El proyectil se divide al impactar | Nunca traga pesados ni jefes |
 | 33 | Voidra | Mayor tope de escalado | Atrae más fuerte a medios | El núcleo deja una zona de vacío breve | Inmunes no se desplazan |
-| 34 | Nexarion | Mayor tope de furia | La secuencia salpica más | El impacto final también derriba a medios | La furia no da daño pasivo |
+| 34 | Uruvan | Mayor tope de furia | La secuencia salpica más | El impacto final también derriba a medios | La furia no da daño pasivo |
 | 35 | Aethern | Campo mayor | Más daño periódico | La protección también reduce el daño recibido | Una salvación por activación y héroe |
 
 ## 4. Riesgos de progresión que este diseño evita
