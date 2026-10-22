@@ -2,8 +2,8 @@
 
 > *Defiende tu mundo. Rompe las reglas.*
 
-Tower defense isométrico 2.5D con héroes. Estado actual: **MVP jugable con progreso guardado en local** (Fases 1–6; la nube está preparada sin activar). Siguiente: Fase 7 (expansión).
-Documentación: [decisión tecnológica](docs/01-decision-tecnologica.md) · [resultados de la PoC](docs/02-resultados-poc.md) · [Fase 2](docs/03-fase-2-mundo-y-rutas.md) · [Fase 3](docs/04-fase-3-combate-y-economia.md) · [Fase 4](docs/05-fase-4-heroes-y-efectos.md) · [Fase 5](docs/06-fase-5-mision-completa.md) · [Fase 6](docs/07-fase-6-persistencia.md).
+Tower defense isométrico 2.5D con héroes. Estado actual: **campaña con el mundo 1 completo** (5 misiones con tutorial y jefe; progreso local). Siguiente: tiradas de héroes y torres, y el mundo 2.
+Documentación: [decisión tecnológica](docs/01-decision-tecnologica.md) · [resultados de la PoC](docs/02-resultados-poc.md) · [Fase 2](docs/03-fase-2-mundo-y-rutas.md) · [Fase 3](docs/04-fase-3-combate-y-economia.md) · [Fase 4](docs/05-fase-4-heroes-y-efectos.md) · [Fase 5](docs/06-fase-5-mision-completa.md) · [Fase 6](docs/07-fase-6-persistencia.md) · [Diseño de mundo](docs/08-diseno-de-mundo.md) · [Fase 7.1–7.2](docs/09-fase-7-campana-y-mundo-1.md).
 
 ## Nombres provisionales
 Todos los nombres de torres, héroes, armas, enemigos, mundos y jefes son **provisionales**. Para que cambiarlos no afecte al código:
@@ -19,8 +19,8 @@ Todos los nombres de torres, héroes, armas, enemigos, mundos y jefes son **prov
 src/sim/       Simulación pura (sin nodos, tick fijo, determinista)
 src/content/   Tipos de contenido (TowerDef, EnemyDef, EffectDef, HeroDef, SynergyDef, WaveDef, MissionDef, MapDef) y ContentDB
 content/       Contenido del juego (.tres editables en el inspector)
-src/ui/        Interfaz (HUD y tema)
-src/maps/      Script de las escenas de mapa
+src/ui/        Interfaz (campaña, HUD y tema)
+src/maps/      Script de las escenas de mapa (rutas, plataformas, héroes y elementos interactivos)
 src/view/      Presentación isométrica (lee el estado de la simulación)
 src/poc/       Utilidades de pruebas de rendimiento
 maps/          Escenas de mapa editables y TileSets
@@ -74,10 +74,10 @@ node tools/serve_web.mjs build/web 8443 --https
 
 El modo `--https` necesita `.tools/dev-cert.pem` y `.tools/dev-key.pem` (certificado autofirmado, no versionado).
 
-Balance (juega la misión con varias estrategias):
+Balance (juega las misiones del mundo 1 con varias estrategias; acepta ids):
 
 ```bash
-godot --headless --path . --script res://tools/balance.gd
+godot --headless --path . --script res://tools/balance.gd -- w1_m3
 ```
 
 En el juego: toca una plataforma para abrir su menú (construir, mejorar o vender); toca un héroe y luego el camino para moverlo; el botón de habilidad de su tarjeta y un toque en el mapa lanzan la habilidad; **N** lanza la oleada, **Espacio** pausa, **R** reinicia, la rueda o el pellizco hacen zoom y el botón derecho o un dedo arrastran la cámara. **S** recorre el modo estrés (depuración).
