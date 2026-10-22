@@ -14,6 +14,8 @@ Especificación conceptual, narrativa y jugable de los **35 héroes coleccionabl
 | [C · Matriz de estadísticas](C-matriz-estadisticas.md) | Las seis puntuaciones conceptuales (sin convertir) y observaciones de coherencia | Valores reales |
 | [D · Roles y sinergias](D-roles-y-sinergias.md) | Distribución de roles por rareza y mundo, variedad interna, fortalezas y debilidades, sinergias entre héroes y con torres | — |
 | [E · Matriz de progresión](E-progresion.md) | Qué escala con nivel y categoría, qué queda fijo, y las excepciones de cada héroe | Costes y fórmulas no aprobadas |
+| [H · Ficha numérica](H-ficha-numerica.md) | Cifras de prueba de ataques, habilidades y mejoras de categoría de los 35 héroes, en múltiplos de P (DPS del héroe) | Validación en la simulación |
+| [H · Valores base](H-valores-base.md) | **Generado** desde C con `tools/hero_sheet.gd`: vida, DPS, defensa, velocidad, alcance y bloqueo por nivel | — |
 | [G · Registro de decisiones](G-decisiones-pendientes.md) | Las 19 decisiones **tomadas** (2026-10-22), con su motivo y lo que implican para la implementación | — |
 
 Cada dato de un héroe vive en **un solo documento**: la historia en A, el combate en B, las estadísticas en C y la progresión en E. D y F solo analizan y enlazan.
