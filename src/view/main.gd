@@ -145,7 +145,7 @@ func _restart() -> void:
 func _command(result: StringName) -> bool:
 	if result != &"ok":
 		print("Comando rechazado: %s" % result)
-		if result in [&"no_gold", &"cooldown", &"out_of_range", &"dead"]:
+		if result in [&"no_gold", &"not_ready", &"out_of_range", &"dead"]:
 			_audio.play("denied")
 	_select(_view.selected_spot)  # refresca el menú abierto
 	return result == &"ok"
@@ -210,7 +210,7 @@ func _go_to_campaign() -> void:
 
 
 func _refresh_progress() -> void:
-	_hud.set_progress(_save.best_stars(String(mission.id)), _save.shards())
+	_hud.set_progress(_save.best_stars(String(mission.id)), _save.threads())
 
 
 ## Resumen de la partida para el servidor (que recalcula estrellas y recompensas).
@@ -279,7 +279,7 @@ func _on_map_tap(world_pos: Vector2) -> void:
 	if _targeting_hero >= 0:
 		var result := world.cast_ability(_targeting_hero, logical)
 		_command(result)
-		if result == &"ok" or result == &"cooldown":
+		if result == &"ok" or result == &"not_ready":
 			_targeting_hero = -1
 		return
 	var coin := _coin_at(logical)
@@ -337,7 +337,7 @@ func _begin_targeting(index: int) -> void:
 	if index < 0 or index >= world.heroes.heroes.size():
 		return
 	_select_hero(index)
-	if world.heroes.heroes[index].ability_cd == 0:
+	if world.heroes.heroes[index].meter >= 100.0:
 		_targeting_hero = index
 
 
@@ -402,7 +402,7 @@ func _autoplay_step() -> void:
 	var near_base := route[route.size() - 2].lerp(route[route.size() - 1], 0.5)
 	for i in world.heroes.heroes.size():
 		var h: Dictionary = world.heroes.heroes[i]
-		if h.ability_cd > 0 or world.enemy_count == 0:
+		if h.meter < 100.0 or world.enemy_count == 0:
 			continue
 		var def: HeroDef = h.def
 		var to := near_base

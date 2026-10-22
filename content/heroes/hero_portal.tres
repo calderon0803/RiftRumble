@@ -31,7 +31,6 @@ attack = SubResource("Resource_yrijp")
 ability_kind = &"portal"
 ability_name = "Umbral"
 ability_description = "Abre un portal: la entrada queda junto a Nexo y la salida donde elijas. Las torres cercanas a la entrada sin objetivo disparan a través de él (+25 % de daño)."
-ability_cooldown = 14.0
 ability_range = 9.0
 ability_duration = 6.0
 ability_radius = 2.5

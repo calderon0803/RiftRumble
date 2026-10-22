@@ -160,7 +160,7 @@ func _update_header() -> void:
 	for w: WorldDef in _worlds:
 		for id in w.mission_slots:
 			total_stars += int(_progress_of(id).get("best_stars", 0))
-	_progress_label.text = "%d ★ · %d fragmentos" % [total_stars, Save.shards()]
+	_progress_label.text = "%d ★ · %d hilos" % [total_stars, Save.threads()]
 
 
 # --- Preparación de la misión ----------------------------------------------------

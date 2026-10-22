@@ -11,6 +11,13 @@
 extends RefCounted
 
 const MAX_CHAIN_DEPTH := 3
+## Resistencia decreciente al control duro (B §0.7, prov.): cada control duro en
+## la ventana reduce a la mitad el siguiente; al tercero, inmunidad temporal.
+const HARD_CONTROL_WINDOW := 180   # ticks (6 s)
+const HARD_CONTROL_IMMUNITY := 90  # ticks (3 s)
+const HARD_CONTROL_MAX := 3
+## Tope de ralentización combinada: como mucho −60 % de velocidad.
+const MIN_SPEED_MULT := 0.4
 
 ## Por enemigo: lista de instancias { def: EffectDef, stacks: int, ticks: int }.
 var instances: Array = []
@@ -20,16 +27,27 @@ var immunities: Array = []
 var speed_mult := PackedFloat32Array()
 var rooted := PackedByteArray()
 var view_flags := PackedInt32Array()
+## Por enemigo: peso (EnemyDef.Weight), ticks de controles duros recientes e
+## inmunidad al control duro.
+var weights := PackedInt32Array()
+var hard_history: Array = []
+var hard_immune_until := PackedInt32Array()
 
 
 ## Prepara (o reinicia) el hueco de un enemigo recién creado o reutilizado.
-func reset_slot(slot: int) -> void:
+func reset_slot(slot: int, weight: int = EnemyDef.Weight.LIGHT) -> void:
 	while instances.size() <= slot:
 		instances.append([])
 		immunities.append({})
 		speed_mult.append(1.0)
 		rooted.append(0)
 		view_flags.append(0)
+		weights.append(0)
+		hard_history.append([])
+		hard_immune_until.append(-1)
+	weights[slot] = weight
+	hard_history[slot] = []
+	hard_immune_until[slot] = -1
 	instances[slot] = []
 	immunities[slot] = {}
 	speed_mult[slot] = 1.0
@@ -45,6 +63,11 @@ func apply(world, slot: int, def: EffectDef, depth := 0, allow_synergies := true
 		return false
 	if immunities[slot].get(def.id, -1) > world.tick:
 		return false
+	var duration_mult := 1.0
+	if def.root:  # control duro
+		duration_mult = _hard_control_mult(world, slot)
+		if duration_mult <= 0.0:
+			return false
 	var list: Array = instances[slot]
 	var inst = null
 	for e in list:
@@ -57,7 +80,7 @@ func apply(world, slot: int, def: EffectDef, depth := 0, allow_synergies := true
 	var cap := maxi(def.max_stacks, 1)
 	var stacks_before: int = inst.stacks
 	inst.stacks = mini(inst.stacks + 1, cap)
-	inst.ticks = maxi(1, roundi(def.duration * world.TICK_RATE))
+	inst.ticks = maxi(1, roundi(def.duration * world.TICK_RATE * duration_mult))
 
 	# Sinergias: la condición se evalúa con el estado del objetivo ANTES de este efecto.
 	var active: Array = []
@@ -137,6 +160,27 @@ func stacks_of(slot: int, effect_id: StringName) -> int:
 	return 0
 
 
+## Multiplicador de duración de un nuevo control duro (0 = no se aplica) y
+## registro en el historial del enemigo.
+func _hard_control_mult(world, slot: int) -> float:
+	var w := weights[slot]
+	if w == EnemyDef.Weight.BOSS or hard_immune_until[slot] > world.tick:
+		return 0.0
+	var hist: Array = hard_history[slot].filter(func(t): return world.tick - t < HARD_CONTROL_WINDOW)
+	var mult := pow(0.5, hist.size())
+	if w == EnemyDef.Weight.MEDIUM:
+		mult *= 0.5
+	elif w == EnemyDef.Weight.HEAVY:
+		mult *= 0.25  # solo «detener» un instante
+	hist.append(world.tick)
+	if hist.size() >= HARD_CONTROL_MAX:
+		hard_immune_until[slot] = world.tick + HARD_CONTROL_IMMUNITY
+		hist.clear()
+		world.events.append({type = &"control_immune", slot = slot})
+	hard_history[slot] = hist
+	return mult
+
+
 func _recompute(slot: int) -> void:
 	var speed := 1.0
 	var root := false
@@ -146,6 +190,8 @@ func _recompute(slot: int) -> void:
 		speed *= pow(def.speed_mult_per_stack, e.stacks)
 		root = root or def.root
 		flags |= def.view_flags
-	speed_mult[slot] = speed
+	if weights[slot] == EnemyDef.Weight.BOSS:
+		speed = 1.0 - (1.0 - speed) * 0.5  # los jefes sufren la mitad de la ralentización
+	speed_mult[slot] = maxf(speed, MIN_SPEED_MULT)
 	rooted[slot] = 1 if root else 0
 	view_flags[slot] = flags

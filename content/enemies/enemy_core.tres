@@ -5,6 +5,7 @@
 
 [resource]
 script = ExtResource("1_gapeg")
+weight = 2
 id = &"enemy_core"
 display_name = "Núcleo de reinicio"
 hp = 140.0

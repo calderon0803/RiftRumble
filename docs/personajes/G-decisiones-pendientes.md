@@ -1,6 +1,7 @@
 # G · Registro de decisiones
 
 > **Estado:** las 19 decisiones están **tomadas** (2026-10-22, por delegación del usuario: «toma las decisiones que consideres»). Cada una indica el motivo y las consecuencias para la implementación.
+> **Implementado** (rama `sistemas/medidor-peso-hilos`): medidor de habilidad para Nexo y Kira (G-3/G-4, filo), peso de los enemigos y control duro decreciente (G-6), Energético con la mitad de armadura (G-5) y moneda «hilos» con migración del guardado (G-2).
 > Toda cifra marcada **(prov.)** es un **valor de prueba**: se valida en la simulación y con `tools/balance.gd` antes de considerarse estable.
 
 ## Resumen
@@ -221,4 +222,4 @@ Los contadores se guardan y se muestran.
 ## Lo que sigue pendiente (no son decisiones de diseño, sino trabajo)
 1. **Pasada de economía:** costes de experiencia y de fragmentos de ascenso, fragmentos por repetido, ingresos de hilos por misión frente al coste de las tiradas y nivel esperado por mundo.
 2. **Especificación numérica por héroe** con la fórmula de G-10 y validación en la simulación.
-3. **Implementación** (fuera de esta fase): medidor, peso, Energético a la mitad, hilos y las mecánicas de cada héroe.
+3. **Implementación:** medidor, peso, Energético a la mitad e hilos ya están hechos; faltan las mecánicas de cada héroe coleccionable.

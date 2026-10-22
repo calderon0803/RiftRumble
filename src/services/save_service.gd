@@ -1,6 +1,6 @@
 ## Servicio de guardado: progreso del jugador, en local o en la nube.
 ##
-## - MODO LOCAL (sin config/backend.json): el progreso y los fragmentos se
+## - MODO LOCAL (sin config/backend.json): el progreso y los hilos (moneda) se
 ##   calculan y guardan en el dispositivo con las mismas reglas que el servidor.
 ##   Limitación: un archivo local puede editarse; no protege datos (ver docs/07).
 ## - MODO NUBE (con config/backend.json): los resultados quedan en cola (user://)
@@ -34,7 +34,7 @@ var online := false
 
 var _session := {}       # access_token, refresh_token, user_id
 var _pending: Array = [] # resultados por enviar
-var _progress := {}      # mission_id → {best_stars, victories}, shards
+var _progress := {}      # mission_id → {best_stars, victories}, threads (hilos)
 var _flushing := false
 var _started := false
 
@@ -174,8 +174,9 @@ func best_stars(mission_id: String) -> int:
 	return _progress.get(mission_id, {}).get("best_stars", 0)
 
 
-func shards() -> int:
-	return _progress.get("shards", 0)
+## Hilos: moneda general (G-2). «Fragmentos» queda para los de cada héroe.
+func threads() -> int:
+	return _progress.get("threads", 0)
 
 
 # --- Sesión -------------------------------------------------------------------
@@ -242,9 +243,9 @@ func _apply_local_rewards(summary: Dictionary) -> Dictionary:
 	p.attempts = p.get("attempts", 0) + 1
 	p.best_stars = maxi(p.get("best_stars", 0), stars)
 	_progress[id] = p
-	_progress.shards = _progress.get("shards", 0) + reward
+	_progress.threads = _progress.get("threads", 0) + reward
 	return {duplicate = false, stars = stars, reward = reward, first_clear = first,
-		shards = _progress.shards, best_stars = p.best_stars, local = true}
+		threads = _progress.threads, best_stars = p.best_stars, local = true}
 
 
 ## Copia local optimista (las estrellas se calculan igual que en el servidor).
@@ -262,8 +263,8 @@ func _apply_server(mission_id: String, data) -> void:
 	var p: Dictionary = _progress.get(mission_id, {best_stars = 0, victories = 0})
 	p.best_stars = maxi(p.best_stars, int(data.get("stars", 0)))
 	_progress[mission_id] = p
-	if data.has("shards") and data.shards != null:
-		_progress.shards = int(data.shards)
+	if data.has("threads") and data.threads != null:
+		_progress.threads = int(data.threads)
 
 
 # --- Archivos -----------------------------------------------------------------
@@ -277,6 +278,9 @@ func _load() -> void:
 			_progress.erase(old)
 	for entry in _pending:
 		entry.mission_id = RENAMED_MISSIONS.get(entry.mission_id, entry.mission_id)
+	if _progress.has("shards"):  # la moneda se llamaba «fragmentos» (shards) antes de G-2
+		_progress.threads = int(_progress.get("threads", 0)) + int(_progress.shards)
+		_progress.erase("shards")
 
 
 func _save() -> void:

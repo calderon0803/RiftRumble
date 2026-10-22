@@ -21,7 +21,7 @@ Partida (SimWorld) ──fin──▶ main._match_summary() ──▶ SaveServic
 | Recompensas | `MissionDef` (`first_clear_reward`, `per_star_reward`, `replay_reward`) y tabla `missions` | Mismas reglas en local y en servidor |
 
 ### Qué se guarda
-Por misión: mejores estrellas, mejor tiempo, victorias e intentos. Por jugador: **fragmentos**, la moneda para desbloqueos futuros.
+Por misión: mejores estrellas, mejor tiempo, victorias e intentos. Por jugador: **hilos** (antes «fragmentos»; clave `threads`, con migración desde `shards`), la moneda para desbloqueos futuros.
 
 Recompensas:
 - **Primera victoria:** 50 + 20 por estrella.

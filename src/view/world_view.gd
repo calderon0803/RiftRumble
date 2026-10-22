@@ -154,7 +154,7 @@ func sync(alpha: float) -> void:
 		var h: Dictionary = world.heroes.heroes[i]
 		var hv = _hero_views[i]
 		var hero_pos := Iso.to_screen(_prev_hero_pos[i].lerp(h.pos, alpha))
-		hv.update_view(_time, hero_pos.x - hv.position.x, h.charge, i == selected_hero, h.ability_cd == 0,
+		hv.update_view(_time, hero_pos.x - hv.position.x, h.edge, i == selected_hero, h.meter / 100.0,
 				h.hp / h.def.max_hp, h.dead_ticks > 0)
 		hv.position = hero_pos
 
