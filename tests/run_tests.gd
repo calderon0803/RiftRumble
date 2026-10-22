@@ -794,6 +794,112 @@ func test_campaign_unlock_rules() -> void:
 	done["t1_m3"] = true
 	check(CampaignRules.world_unlocked(db, 1, progress), "al completar el mundo 1 se abre el 2")
 	check(CampaignRules.mission_state(db, 1, 0, progress) == S.AVAILABLE, "primera misión del mundo 2 disponible")
+	var db2 := _fake_campaign(["t1_m1", "t1_m3"])
+	var only_last := {"t1_m3": true}
+	var progress2 := func(id): return {victories = 1} if only_last.has(id) else {}
+	check(CampaignRules.mission_state(db2, 0, 2, progress2) == S.COMPLETED,
+		"una misión ya completada sigue disponible aunque falten anteriores")
+
+
+# --- Elementos de mapa (7.2): monedas, bloques y plataformas -------------------
+
+const MapDefScript := preload("res://src/content/map_def.gd")
+
+
+## Mundo de prueba: ruta principal (0,0)→(20,0) y atajo (0,4)→(20,4); un héroe.
+func _objects_world(objects: Array, spots := PackedVector2Array([Vector2(5, 2), Vector2(10, 2)])) -> SimWorld:
+	var map := MapDefScript.new()
+	map.size = Vector2i(20, 8)
+	map.routes = [PackedVector2Array([Vector2(0, 0), Vector2(20, 0)]),
+		PackedVector2Array([Vector2(0, 4), Vector2(20, 4)])]
+	map.build_spots = spots
+	map.objects = objects
+	var w := SimWorld.new(map.routes, 5)
+	w.build_spots = map.build_spots
+	w.objects.setup(w, map)
+	w.heroes.add_hero(_db().heroes[&"hero_blade"], Vector2(15, 0))
+	return w
+
+
+func test_coins_drop_pickup_tap_and_expire() -> void:
+	var w := _objects_world([])
+	w.mission = MissionDef.new()
+	w.mission.coin_drop_chance = 1.0
+	w.mission.coin_value = 4
+	w.mission.coin_lifetime = 2.0
+	var far := w.spawn_enemy(1.0, 0.0, 2.0)
+	w.damage_enemy(far, 99.0)
+	check(w.objects.coins.size() == 1, "un enemigo eliminado suelta una moneda")
+	var uid: int = w.objects.coins[0].uid
+	var gold0 := w.gold
+	check(w.collect_coin(uid) == &"ok" and w.gold == gold0 + 4, "un toque recoge la moneda (+4 oro)")
+	check(w.collect_coin(uid) == &"gone", "no se puede recoger dos veces")
+	var near := w.spawn_enemy(1.0, 0.0, 15.2)  # junto al héroe
+	w.damage_enemy(near, 99.0)
+	w.drain_events()
+	_run(w, 1)
+	check(w.objects.coins.is_empty() and w.gold == gold0 + 8, "un héroe la recoge al pasar por encima")
+	var lost := w.spawn_enemy(1.0, 0.0, 3.0)
+	w.damage_enemy(lost, 99.0)
+	var ev := _run(w, 61)
+	check(_count(ev, &"coin_expired") == 1 and w.objects.coins.is_empty(), "si nadie la recoge, caduca")
+
+
+func test_heroes_break_blocks_that_open_route_and_spot() -> void:
+	var block := {id = "Atajo", kind = &"block", pos = Vector2(15, 1.5),
+		props = {hp = 9.0, reward_gold = 30, opens_route = 1, opens_spot = 1}}
+	var w := _objects_world([block])
+	check(not w.objects.route_open(1) and not w.objects.spot_open(1), "el atajo y la plataforma empiezan cerrados")
+	w.content = _db()
+	w.gold = 1000
+	check(w.build(1, &"tower_corrupt") == &"spot_locked", "no se construye en una posición cerrada")
+	w.mission = MissionDef.new()
+	w.allowed_towers = PackedStringArray(["tower_corrupt"])
+	var wave := WaveDef.new()
+	wave.enemies = PackedStringArray(["enemy_light"])
+	wave.counts = PackedInt32Array([1])
+	wave.spacing = PackedFloat32Array([1.0])
+	wave.start_delay = PackedFloat32Array([0.0])
+	wave.route = PackedInt32Array([1])
+	w.mission.waves = [wave, wave]
+	w.start_next_wave()
+	_run(w, 2)
+	check(w.e_route[0] == 0, "un grupo del atajo cerrado entra por la ruta principal")
+	var ev := _run(w, 30 * 3)
+	check(_count(ev, &"block_broken") == 1, "el héroe cercano y libre rompe el bloque")
+	check(_count(ev, &"route_opened") == 1 and w.objects.route_open(1), "romperlo abre el atajo")
+	check(w.objects.spot_open(1) and w.build(1, &"tower_corrupt") == &"ok", "y la posición de construcción")
+
+
+func test_platform_moves_spot_and_tower() -> void:
+	var plat := {id = "Plataforma", kind = &"platform", pos = Vector2(5, 2),
+		props = {spot = 0, to = Vector2(5, 6), period = 4.0}}
+	var w := _objects_world([plat])
+	w.place_tower(TowerDef.new(), w.build_spots[0], 1, 0)
+	var t: Dictionary = w.towers[0]
+	_run(w, 60)  # medio periodo: en el otro extremo
+	check(w.build_spots[0].distance_to(Vector2(5, 6)) < 0.05, "a mitad del periodo la plataforma está en el otro extremo")
+	check(t.pos == w.build_spots[0], "la torre se mueve con su plataforma")
+	_run(w, 60)
+	check(w.build_spots[0].distance_to(Vector2(5, 2)) < 0.05, "y vuelve al terminar el periodo")
+
+
+## Restricción de diseño: cada misión del mundo 1 se gana con el equipo INICIAL
+## (torres y héroes), con alguna colocación de las torres y los héroes quietos
+## (un jugador real además los mueve y usa sus habilidades).
+func test_world1_missions_winnable_with_starters() -> void:
+	var Balance = load("res://tools/balance.gd")
+	for id in ["w1_m1", "w1_m2", "w1_m3", "w1_m4", "w1_m5"]:
+		var won := false
+		var best_stars := 0
+		for order in Balance.orders(3):
+			var r: Dictionary = Balance.play(_db(), StringName(id), "equipo inicial + mejoras", order)
+			if r.world.outcome == SimWorld.Outcome.VICTORY:
+				won = true
+				best_stars = maxi(best_stars, r.world.stars())
+		check(won, "%s se puede ganar con el equipo inicial (mejor: %d★)" % [id, best_stars])
+		var lose: Dictionary = Balance.play(_db(), StringName(id), "sin torres")
+		check(lose.world.outcome == SimWorld.Outcome.DEFEAT, "%s se pierde sin torres" % id)
 
 
 # --- Determinismo -------------------------------------------------------------

@@ -23,7 +23,6 @@ const Hud := preload("res://src/ui/hud.gd")
 const AudioDirector := preload("res://src/audio/audio_director.gd")
 const SaveService := preload("res://src/services/save_service.gd")
 const CAMPAIGN_SCENE := "res://src/ui/campaign.tscn"
-const BUILD_PAD := preload("res://art/placeholder/build_pad.png")
 
 const STRESS_LEVELS := [150, 300, 500]
 const STRESS_TOWERS := 12
@@ -283,6 +282,10 @@ func _on_map_tap(world_pos: Vector2) -> void:
 		if result == &"ok" or result == &"cooldown":
 			_targeting_hero = -1
 		return
+	var coin := _coin_at(logical)
+	if coin >= 0:
+		_command(world.collect_coin(coin))
+		return
 	var hero := _hero_at(world_pos)
 	if hero >= 0:
 		_toggle_hero(hero)
@@ -298,6 +301,14 @@ func _on_map_tap(world_pos: Vector2) -> void:
 		_select_hero(-1)
 		return
 	_select(-1)
+
+
+## Moneda bajo el toque (uid) o -1. Radio generoso: son pequeñas.
+func _coin_at(logical: Vector2) -> int:
+	for c in world.objects.coins:
+		if c.pos.distance_to(logical) <= 0.7:
+			return c.uid
+	return -1
 
 
 func _hero_at(world_pos: Vector2) -> int:
@@ -365,12 +376,7 @@ func _add_map_markers() -> void:
 		markers.base = Iso.to_screen(route[route.size() - 1])
 	markers.z_index = -5
 	_world_root.add_child(markers)
-	for spot in map_def.build_spots:
-		var pad := Sprite2D.new()
-		pad.texture = BUILD_PAD
-		pad.position = Iso.to_screen(spot)
-		pad.z_index = -5
-		_world_root.add_child(pad)
+	# Las plataformas las dibuja la vista del mundo (pueden moverse o estar cerradas).
 
 
 func _map_bounds() -> Rect2:

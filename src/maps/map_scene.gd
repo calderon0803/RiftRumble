@@ -5,6 +5,10 @@
 ##   Routes/RouteN (Path2D)     → rutas enemigas, en orden de recorrido
 ##   BuildSpots/* (Marker2D)    → posiciones de construcción
 ##   HeroSpawns/* (Marker2D)    → posiciones iniciales de los héroes (opcional)
+##   Objects/* (Marker2D)       → elementos interactivos (opcional). Cada marcador
+##                                lleva metadatos: `kind` (block, platform) y sus
+##                                parámetros (hp, reward_gold, opens_route, opens_spot,
+##                                spot, to, period). `to` es un Vector2 en casillas.
 ## `build_def()` convierte todo a coordenadas lógicas para la simulación.
 extends Node2D
 
@@ -43,6 +47,17 @@ func build_def() -> MapDef:
 		for spawn in hero_spawns.get_children():
 			if spawn is Marker2D:
 				def.hero_spawns.append(_snap(Iso.to_logical(spawn.position)))
+	var objects := get_node_or_null(^"Objects")
+	if objects:
+		for o in objects.get_children():
+			if not (o is Marker2D) or not o.has_meta(&"kind"):
+				continue
+			var props := {}
+			for key in o.get_meta_list():
+				if key != &"kind":
+					props[String(key)] = o.get_meta(key)
+			def.objects.append({id = String(o.name), kind = StringName(o.get_meta(&"kind")),
+				pos = _snap(Iso.to_logical(o.position)), props = props})
 	return def
 
 

@@ -1,0 +1,51 @@
+[gd_resource type="Resource" script_class="MissionDef" format=3]
+
+[ext_resource type="Script" path="res://src/content/mission_def.gd" id="1_6x1iy"]
+[ext_resource type="Script" path="res://src/content/wave_def.gd" id="2_abeo0"]
+
+[sub_resource type="Resource" id="Resource_k2ie8"]
+script = ExtResource("2_abeo0")
+enemies = PackedStringArray("enemy_light", "enemy_light_continue")
+counts = PackedInt32Array(8, 4)
+spacing = PackedFloat32Array(0.9, 1.5)
+start_delay = PackedFloat32Array(0, 3)
+route = PackedInt32Array(0, 1)
+
+[sub_resource type="Resource" id="Resource_ci4gw"]
+script = ExtResource("2_abeo0")
+enemies = PackedStringArray("enemy_light", "enemy_fast", "enemy_light_continue")
+counts = PackedInt32Array(10, 6, 5)
+spacing = PackedFloat32Array(0.8, 0.6, 1.2)
+start_delay = PackedFloat32Array(0, 3, 6)
+route = PackedInt32Array(0, 1, 1)
+clear_bonus = 25
+
+[sub_resource type="Resource" id="Resource_o1bra"]
+script = ExtResource("2_abeo0")
+enemies = PackedStringArray("enemy_light", "enemy_armored", "enemy_light_continue")
+counts = PackedInt32Array(10, 3, 5)
+spacing = PackedFloat32Array(0.8, 2, 1)
+start_delay = PackedFloat32Array(0, 4, 2)
+route = PackedInt32Array(1, 0, 1)
+clear_bonus = 30
+
+[sub_resource type="Resource" id="Resource_3vh5e"]
+script = ExtResource("2_abeo0")
+enemies = PackedStringArray("enemy_light", "enemy_armored", "enemy_fast", "enemy_light_continue")
+counts = PackedInt32Array(10, 4, 6, 5)
+spacing = PackedFloat32Array(0.7, 1.8, 0.5, 1)
+start_delay = PackedFloat32Array(0, 3, 8, 2)
+route = PackedInt32Array(0, 1, 0, 1)
+clear_bonus = 0
+
+[resource]
+script = ExtResource("1_6x1iy")
+id = &"w1_m3"
+display_name = "Bloque sorpresa"
+map_scene = "res://maps/w1/w1_m3.tscn"
+start_gold = 140
+waves = Array[ExtResource("2_abeo0")]([SubResource("Resource_k2ie8"), SubResource("Resource_ci4gw"), SubResource("Resource_o1bra"), SubResource("Resource_3vh5e")])
+towers = PackedStringArray()
+coin_drop_chance = 0.25
+hints = PackedStringArray("start|Los héroes golpean los bloques que tienen cerca: ¡algunos esconden oro!", "core_dropped|Ese enemigo dejó un núcleo: destrúyelo pronto o volverá a levantarse.", "block_broken|Cada bloque roto puede cambiar el mapa. Atento al muro gris del centro…", "route_opened|¡Has abierto el atajo! Tienes una plataforma nueva, pero los enemigos también lo usarán.")
+heroes = PackedStringArray("hero_portal", "hero_blade")

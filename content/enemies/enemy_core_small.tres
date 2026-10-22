@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="EnemyDef" format=3]
+
+[ext_resource type="Script" path="res://src/content/enemy_def.gd" id="1_4sjyf"]
+[ext_resource type="Texture2D" path="res://art/placeholder/enemy_core.png" id="2_e3m4v"]
+
+[resource]
+script = ExtResource("1_4sjyf")
+id = &"enemy_core_small"
+display_name = "Núcleo"
+hp = 12.0
+speed = 0.0
+bounty = 2
+base_damage = 0
+melee_damage = 0.0
+sprite = ExtResource("2_e3m4v")
+sprite_offset = Vector2(0, -10)

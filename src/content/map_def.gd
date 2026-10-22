@@ -14,6 +14,10 @@ var path_width := 1.0
 var build_spots := PackedVector2Array()
 ## Posiciones iniciales de los héroes, en casillas.
 var hero_spawns := PackedVector2Array()
+## Elementos interactivos: [{ id: String, kind: StringName, pos: Vector2, props: Dictionary }].
+## Tipos actuales: &"block" (rompible: hp, reward_gold, opens_route, opens_spot)
+## y &"platform" (mueve una posición de construcción: spot, to, period).
+var objects: Array = []
 
 
 ## Lista de problemas del mapa (vacía si es válido).
@@ -29,6 +33,14 @@ func validate() -> PackedStringArray:
 		for p in routes[r]:
 			if not _inside(p, 0.51):  # se permite empezar/terminar en el borde
 				problems.append("punto %s de la ruta %d fuera del mapa" % [p, r])
+	for o in objects:
+		if not _inside(o.pos, 0.0):
+			problems.append("elemento %s fuera del mapa" % o.id)
+		var p: Dictionary = o.props
+		if p.get("opens_route", -1) >= routes.size():
+			problems.append("el bloque %s abre una ruta inexistente" % o.id)
+		if p.get("opens_spot", -1) >= build_spots.size() or (o.kind == &"platform" and p.get("spot", -1) >= build_spots.size()):
+			problems.append("el elemento %s apunta a una posición inexistente" % o.id)
 	var on_path := path_tiles()
 	for s in build_spots:
 		if not _inside(s, 0.0):

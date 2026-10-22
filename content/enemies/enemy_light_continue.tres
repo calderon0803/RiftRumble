@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="EnemyDef" format=3]
+
+[ext_resource type="Resource" path="res://content/enemies/enemy_core_small.tres" id="1_gt6si"]
+[ext_resource type="Script" path="res://src/content/enemy_def.gd" id="2_34egi"]
+[ext_resource type="Texture2D" path="res://art/placeholder/enemy_light_continue.png" id="3_i0fgh"]
+
+[resource]
+script = ExtResource("2_34egi")
+id = &"enemy_light_continue"
+display_name = "Glitchling con continue"
+hp = 8.0
+bounty = 4
+melee_damage = 3.0
+revive_core = ExtResource("1_gt6si")
+revive_delay = 5.0
+revive_hp_ratio = 1.0
+sprite = ExtResource("3_i0fgh")

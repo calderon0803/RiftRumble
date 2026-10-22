@@ -36,6 +36,10 @@ func _init() -> void:
 	_save(_hero_blade(), "hero_blade.png")
 	_save(_boss_w1(), "enemy_boss_w1.png")
 	_save(_boss_core(), "enemy_core.png")
+	_save(_coin(), "coin.png")
+	_save(_wall_block(), "prop_wall.png")
+	_save(_enemy_continue(), "enemy_light_continue.png")
+	_save(_reward_block(), "prop_reward.png")
 	quit()
 
 
@@ -513,6 +517,83 @@ func _boss_core() -> Image:
 				var d := absf(x - ox - 11.5) / r + absf(y - 13.0) / (r + 2.0)
 				if d <= 1.0:
 					img.set_pixel(x, y, glow if d > 0.55 else Color("7a1f6a"))
+	_outline(img)
+	return img
+
+
+## Moneda que gira (hoja 4 × 12×12): ancho variable según el fotograma.
+func _coin() -> Image:
+	var img := _img(48, 12)
+	var widths := [5.5, 3.5, 1.2, 3.5]
+	for f in 4:
+		var ox := f * 12
+		var rx: float = widths[f]
+		for y in 12:
+			for x in range(ox, ox + 12):
+				var e := Vector2((x - ox - 5.5) / rx, (y - 5.5) / 5.5)
+				if e.length() <= 1.0:
+					var edge := e.length() > 0.7
+					img.set_pixel(x, y, Color("c98a1a") if edge else (Color("fff4c2") if e.x < -0.2 and e.y < -0.2 else Color("ffd34d")))
+	_outline(img)
+	return img
+
+
+## Muro de ladrillo gris (64×64, pie en (32, 48)): cierra un atajo hasta romperlo.
+func _wall_block() -> Image:
+	var img := _img(64, 64)
+	var top := Color("a9a9b8")
+	var left := Color("85859a")
+	var right := Color("626278")
+	for x in 64:
+		var yt := 16.0 + (x if x < 32 else 63 - x) * 0.5
+		for y in 64:
+			if _in_diamond(x, y, 0, 0):
+				img.set_pixel(x, y, top)
+			elif y >= yt and y < yt + 32.0:
+				var col := left if x < 32 else right
+				# Juntas de ladrillo
+				var row := int((y - yt) / 6.0)
+				var off := 0 if row % 2 == 0 else 5
+				if int(y - yt) % 6 == 0 or (x + off) % 10 == 0:
+					col = col.darkened(0.3)
+				img.set_pixel(x, y, col)
+	for p in [Vector2i(20, 30), Vector2i(21, 31), Vector2i(22, 33), Vector2i(23, 34), Vector2i(40, 36), Vector2i(41, 38), Vector2i(42, 39)]:
+		img.set_pixelv(p, OUTLINE)  # grietas
+	_outline(img)
+	return img
+
+
+## Ligero «con continue»: naranja y con una gema de núcleo en el pecho.
+func _enemy_continue() -> Image:
+	var img := _enemy_sheet(Color("ff8a3d"), Color("ffc9a0"), &"light")
+	for f in 4:
+		var ox := f * 32
+		var bob: int = [0, -1, 0, -1][f]
+		for p in [Vector2i(16, 20), Vector2i(15, 21), Vector2i(16, 21), Vector2i(17, 21), Vector2i(16, 22)]:
+			img.set_pixel(ox + p.x, p.y + bob, Color("ff5fd2"))
+	return img
+
+
+## Bloque con premio (64×64, pie en (32, 48)): dorado con estrella brillante.
+func _reward_block() -> Image:
+	var img := _img(64, 64)
+	for x in 64:
+		var yt := 16.0 + (x if x < 32 else 63 - x) * 0.5
+		for y in 64:
+			if _in_diamond(x, y, 0, 0):
+				img.set_pixel(x, y, Color("fff0a0"))
+			elif y >= yt and y < yt + 32.0:
+				img.set_pixel(x, y, Color("ffd34d") if x < 32 else Color("e0a91e"))
+	# Estrella grande en cada cara lateral (polígono relleno).
+	for c in [Vector2(16, 38), Vector2(47, 38)]:
+		var star := PackedVector2Array()
+		for k in 10:
+			var a := -PI / 2 + k * PI / 5
+			star.append(c + Vector2(cos(a), sin(a)) * (7.0 if k % 2 == 0 else 3.0))
+		for y in range(int(c.y) - 8, int(c.y) + 9):
+			for x in range(int(c.x) - 8, int(c.x) + 9):
+				if Geometry2D.is_point_in_polygon(Vector2(x, y), star):
+					img.set_pixel(x, y, Color.WHITE)
 	_outline(img)
 	return img
 

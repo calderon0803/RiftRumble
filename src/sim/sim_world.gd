@@ -12,6 +12,7 @@ extends RefCounted
 const SimPath := preload("res://src/sim/sim_path.gd")
 const SimEffects := preload("res://src/sim/sim_effects.gd")
 const SimHeroes := preload("res://src/sim/sim_heroes.gd")
+const SimObjects := preload("res://src/sim/sim_objects.gd")
 
 const TICK_RATE := 30
 const DT := 1.0 / TICK_RATE
@@ -43,6 +44,7 @@ var outcome := Outcome.PLAYING
 var events: Array[Dictionary] = []
 var effects: SimEffects
 var heroes: SimHeroes
+var objects: SimObjects
 ## Sinergias activas (SynergyDef); las evalúa el sistema de efectos.
 var synergies: Array = []
 ## Tamaño del mapa en casillas (limita el movimiento de los héroes).
@@ -132,6 +134,7 @@ func _init(routes, seed_value: int = 0) -> void:
 	rng.seed = seed_value
 	effects = SimEffects.new()
 	heroes = SimHeroes.new()
+	objects = SimObjects.new()
 
 
 ## Carriles a ±1/4 del ancho del camino (con 2 casillas: los centros de ambas).
@@ -152,6 +155,10 @@ func _build_lanes(path_width: float) -> void:
 func setup_mission(content_db, mission_def: MissionDef, map_def, hero_ids := PackedStringArray(),
 		tower_ids := PackedStringArray()) -> void:
 	allowed_towers = tower_ids if not tower_ids.is_empty() else mission_def.towers
+	if allowed_towers.is_empty():  # sin equipo ni restricción (pruebas): todo el catálogo
+		for id in content_db.towers:
+			allowed_towers.append(String(id))
+		allowed_towers.sort()
 	content = content_db
 	mission = mission_def
 	gold = mission_def.start_gold
@@ -159,6 +166,7 @@ func setup_mission(content_db, mission_def: MissionDef, map_def, hero_ids := Pac
 	build_spots = map_def.build_spots
 	map_size = map_def.size
 	_build_lanes(map_def.path_width)
+	objects.setup(self, map_def)
 	synergies = content_db.synergies.values()
 	var chosen: PackedStringArray = hero_ids if not hero_ids.is_empty() else mission_def.heroes
 	for i in chosen.size():
@@ -204,6 +212,8 @@ func build(spot: int, tower_id: StringName) -> StringName:
 		return &"game_over"
 	if spot < 0 or spot >= build_spots.size():
 		return &"invalid_spot"
+	if not objects.spot_open(spot):
+		return &"spot_locked"
 	if not tower_at(spot).is_empty():
 		return &"occupied"
 	if content == null or not content.towers.has(tower_id) or not can_build(tower_id):
@@ -265,6 +275,13 @@ func sell(spot: int) -> StringName:
 	return &"ok"
 
 
+## Recoger una moneda con un toque.
+func collect_coin(uid: int) -> StringName:
+	if is_over():
+		return &"game_over"
+	return objects.collect(self, uid)
+
+
 func move_hero(index: int, destination: Vector2) -> StringName:
 	if is_over():
 		return &"game_over"
@@ -300,6 +317,7 @@ func start_next_wave() -> StringName:
 	for g in wave.enemies.size():
 		var def: EnemyDef = content.enemies[StringName(wave.enemies[g])]
 		var route: int = wave.route[g] if g < wave.route.size() else 0
+		route = clampi(route, 0, paths.size() - 1)
 		var first := tick + roundi(wave.start_delay[g] * TICK_RATE)
 		var every := maxi(1, roundi(wave.spacing[g] * TICK_RATE))
 		for i in wave.counts[g]:
@@ -421,6 +439,7 @@ func step() -> void:
 	effects.step(self)
 	_update_special_enemies()
 	heroes.step(self)
+	objects.step(self)
 	_move_enemies()
 	_update_towers()
 	_update_projectiles()
@@ -468,7 +487,9 @@ func _update_special_enemies() -> void:
 func _spawn_due() -> void:
 	while not _spawn_queue.is_empty() and _spawn_queue[0][0] <= tick:
 		var entry: Array = _spawn_queue.pop_front()
-		spawn(entry[1], entry[2], 0.0, entry[3])
+		# Un grupo asignado a un atajo aún cerrado entra por la ruta principal.
+		var route: int = entry[2] if objects.route_open(entry[2]) else 0
+		spawn(entry[1], route, 0.0, entry[3])
 
 
 func _move_enemies() -> void:
@@ -670,6 +691,8 @@ func damage_enemy(slot: int, amount: float, damage_type: StringName = &"kinetic"
 	if e_hp[slot] <= 0.0:
 		_earn(e_bounty[slot])
 		stats.kills += 1
+		if mission and mission.coin_drop_chance > 0.0 and rng.randf() < mission.coin_drop_chance:
+			objects.spawn_coin(self, e_pos[slot], mission.coin_value, mission.coin_lifetime)
 		events.append({type = &"enemy_killed", slot = slot, bounty = e_bounty[slot]})
 		var def: EnemyDef = e_def[slot]
 		var drops_core := e_can_revive[slot] == 1 and def != null and def.revive_core != null

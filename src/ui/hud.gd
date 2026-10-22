@@ -37,6 +37,11 @@ var _boss_name: Label
 var _boss_bar: ProgressBar
 var _boss_note: Label
 var _banner: Label
+var _tip_panel: PanelContainer
+var _tip_label: Label
+var _tip_t := 0.0
+var _tips := {}        # evento → texto (pistas de la misión)
+var _tips_shown := {}  # evento → true
 var _cloud_label: Label
 var _progress_label: Label
 var _cloud_status := ""
@@ -154,6 +159,23 @@ func _ready() -> void:
 	_boss_note.add_theme_color_override("font_color", Color("ff8be0"))
 	bb.add_child(_boss_note)
 
+	# --- Pistas de tutorial (arriba, centradas; se cierran solas o con un toque) ----
+	var tip_center := CenterContainer.new()
+	tip_center.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	tip_center.offset_top = 118
+	tip_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(tip_center)
+	_tip_panel = PanelContainer.new()
+	_tip_panel.visible = false
+	_tip_panel.gui_input.connect(func(e): if e is InputEventMouseButton and e.pressed: _tip_panel.visible = false)
+	tip_center.add_child(_tip_panel)
+	_tip_label = Label.new()
+	_tip_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_tip_label.custom_minimum_size = Vector2(460, 0)
+	_tip_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_tip_label.add_theme_color_override("font_color", Color("fff4c2"))
+	_tip_panel.add_child(_tip_label)
+
 	# --- Cartel de oleada --------------------------------------------------------
 	_banner = Label.new()
 	_banner.theme_type_variation = &"TitleLabel"
@@ -211,6 +233,24 @@ func bind(new_world: SimWorld, content_db) -> void:
 	_reward_text = ""
 	_update_cloud_label()
 	_build_hero_cards()
+	_tips.clear()
+	_tips_shown.clear()
+	_tip_panel.visible = false
+	for line in world.mission.hints:
+		var parts := line.split("|", true, 1)
+		if parts.size() == 2:
+			_tips[parts[0].strip_edges()] = parts[1].strip_edges()
+	_show_tip("start")
+
+
+## Muestra la pista asociada a un evento, solo la primera vez.
+func _show_tip(event: String) -> void:
+	if not _tips.has(event) or _tips_shown.has(event):
+		return
+	_tips_shown[event] = true
+	_tip_label.text = _tips[event]
+	_tip_panel.visible = true
+	_tip_t = 9.0
 
 
 ## Progreso guardado del jugador (récord de la misión y fragmentos).
@@ -250,6 +290,7 @@ func _update_cloud_label() -> void:
 ## Eventos de la simulación relevantes para la interfaz (carteles).
 func on_events(events: Array[Dictionary]) -> void:
 	for ev in events:
+		_show_tip(String(ev.type))
 		match ev.type:
 			&"wave_started":
 				var last: bool = ev.index + 1 == world.waves_total()
@@ -267,6 +308,10 @@ func _show_banner(text: String) -> void:
 
 
 func _process(delta: float) -> void:
+	if _tip_t > 0.0:
+		_tip_t -= delta
+		if _tip_t <= 0.0:
+			_tip_panel.visible = false
 	if _banner_t > 0.0:
 		_banner_t -= delta
 		_banner.modulate.a = clampf(_banner_t / 0.6, 0.0, 1.0)
@@ -431,14 +476,22 @@ func _refresh_panel() -> void:
 			affordable += "1" if world.gold >= content.towers[StringName(id)].cost[0] else "0"
 	else:
 		affordable = str(world.gold >= world.upgrade_cost(selected_spot))
-	var sig := "%d|%s|%d|%s" % [selected_spot, t.get("level", 0), t.size(), affordable]
+	var sig := "%d|%s|%d|%s|%s" % [selected_spot, t.get("level", 0), t.size(), affordable,
+		world.objects.spot_open(selected_spot)]
 	if sig == _panel_signature:
 		return
 	_panel_signature = sig
 	for c in _panel_box.get_children():
 		c.queue_free()
 	_panel.visible = true
-	if t.is_empty():
+	if t.is_empty() and not world.objects.spot_open(selected_spot):
+		_title("Plataforma bloqueada")
+		var l := Label.new()
+		l.text = "Rompe el muro que la cierra."
+		l.add_theme_font_size_override("font_size", 13)
+		_panel_box.add_child(l)
+		_close_button(_panel_box)
+	elif t.is_empty():
 		_build_options()
 	else:
 		_tower_options(t)

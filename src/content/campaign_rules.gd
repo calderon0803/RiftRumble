@@ -4,6 +4,8 @@
 ##   no bloquea: se salta al calcular el orden.
 ## - Una misión está disponible si todas las misiones construidas anteriores de
 ##   su mundo están completadas (al menos una victoria).
+## - Una misión ya completada sigue siempre disponible (aunque después se añadan
+##   misiones nuevas antes que ella en su mundo).
 ## - Un mundo está abierto si es el primero o si todas las misiones construidas
 ##   del mundo anterior están completadas.
 ## `progress_of` es un Callable(mission_id) → Dictionary con `victories`.
@@ -42,6 +44,8 @@ static func mission_state(content, world_index: int, slot: int, progress_of: Cal
 	var id := world.mission_slots[slot]
 	if not content.missions.has(StringName(id)):
 		return State.PLANNED
+	if is_completed(id, progress_of):
+		return State.COMPLETED
 	if not world_unlocked(content, world_index, progress_of):
 		return State.LOCKED
 	for i in slot:

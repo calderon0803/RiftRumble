@@ -11,6 +11,7 @@ const FxPop := preload("res://src/view/fx_pop.gd")
 const FxLine := preload("res://src/view/fx_line.gd")
 const HeroView := preload("res://src/view/hero_view.gd")
 const PortalView := preload("res://src/view/portal_view.gd")
+const MapObjectViews := preload("res://src/view/map_object_views.gd")
 
 var world: SimWorld
 var selected_spot := -1
@@ -26,6 +27,9 @@ var _tower_views := {}  # uid de torre → TowerView
 var _hero_views: Array = []
 var _prev_hero_pos := PackedVector2Array()
 var _portal_views := {}  # uid de portal → PortalView
+var _block_views := {}  # uid de bloque → BlockView
+var _coin_views := {}   # uid de moneda → CoinView
+var _pad_views: Array = []
 var _time := 0.0
 
 
@@ -41,7 +45,19 @@ func bind(new_world: SimWorld) -> void:
 	_tower_views.clear()
 	_hero_views.clear()
 	_portal_views.clear()
+	_block_views.clear()
+	_coin_views.clear()
+	_pad_views.clear()
 	world = new_world
+	for i in world.build_spots.size():
+		var pad := MapObjectViews.PadView.new()
+		add_child(pad)
+		_pad_views.append(pad)
+	for b in world.objects.blocks:
+		var bv := MapObjectViews.BlockView.new()
+		bv.setup(b)
+		add_child(bv)
+		_block_views[b.uid] = bv
 	_sync_towers()
 	for i in world.heroes.heroes.size():
 		var hv := HeroView.new()
@@ -91,6 +107,26 @@ func handle_events(events: Array[Dictionary]) -> void:
 				_spawn_fx(world.heroes.heroes[ev.hero].pos, Color("ff5c7a"), "¡KO!")
 			&"synergy_spread":
 				_spawn_fx(world.e_pos[ev.slot], Color("ff5fd2"), _synergy_name(ev.synergy))
+			&"coin_spawned":
+				var cv := MapObjectViews.CoinView.new()
+				cv.position = Iso.to_screen(ev.pos)
+				add_child(cv)
+				_coin_views[ev.uid] = cv
+			&"coin_collected", &"coin_expired":
+				if _coin_views.has(ev.uid):
+					_coin_views[ev.uid].queue_free()
+					_coin_views.erase(ev.uid)
+				if ev.type == &"coin_collected":
+					_spawn_fx(ev.pos, Color("ffd34d"), "+%d" % ev.value)
+			&"block_hit":
+				if _block_views.has(ev.uid):
+					var b := _block_by_uid(ev.uid)
+					_block_views[ev.uid].hit(b.hp / b.max_hp)
+			&"block_broken":
+				if _block_views.has(ev.uid):
+					_block_views[ev.uid].queue_free()
+					_block_views.erase(ev.uid)
+				_spawn_fx(ev.pos, Color("ffd34d"), "+%d" % ev.reward if ev.reward > 0 else "¡Crac!")
 
 
 func _process(delta: float) -> void:
@@ -123,6 +159,17 @@ func sync(alpha: float) -> void:
 		hv.position = hero_pos
 
 	_sync_portals()
+
+	# Plataformas (pueden moverse o estar cerradas) y torres encima de ellas.
+	for i in _pad_views.size():
+		_pad_views[i].position = Iso.to_screen(world.build_spots[i])
+		_pad_views[i].set_locked(not world.objects.spot_open(i))
+	for t in world.towers:
+		if _tower_views.has(t.uid):
+			_tower_views[t.uid].position = Iso.to_screen(t.pos)
+	for c in world.objects.coins:
+		if _coin_views.has(c.uid):
+			_coin_views[c.uid].ticks_left = c.ticks
 
 	var m := world.p_alive.size()
 	_ensure_pool(_projectile_views, ProjectileView, m)
@@ -170,6 +217,13 @@ func _sync_portals() -> void:
 		if not alive.has(uid):
 			_portal_views[uid].queue_free()
 			_portal_views.erase(uid)
+
+
+func _block_by_uid(uid: int) -> Dictionary:
+	for b in world.objects.blocks:
+		if b.uid == uid:
+			return b
+	return {}
 
 
 func _synergy_name(id: StringName) -> String:

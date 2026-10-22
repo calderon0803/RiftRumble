@@ -219,8 +219,11 @@ func _open_prep(mission_id: String) -> void:
 	_label("Elige %d héroes" % needed, &"MenuTitle")
 	var owned := Save.owned_heroes()
 	_chosen = PackedStringArray()
-	for id in Save.last_heroes():
+	for id in mission.heroes:  # recomendados por la misión (p. ej., el tutorial)
 		if id in owned and _chosen.size() < needed:
+			_chosen.append(id)
+	for id in Save.last_heroes():
+		if id in owned and _chosen.size() < needed and not id in _chosen:
 			_chosen.append(id)
 	for id in owned:
 		if _chosen.size() < needed and not id in _chosen:
