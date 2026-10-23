@@ -4,7 +4,7 @@
 [ext_resource type="Script" path="res://src/content/hero_def.gd" id="2_nr1qo"]
 [ext_resource type="Texture2D" path="res://art/placeholder/hero_blade.png" id="3_i3of8"]
 
-[ext_resource type="Texture2D" path="res://art/heroes/hero_blade/hero_blade_sheet.svg" id="9_sheet"]
+[ext_resource type="Texture2D" path="res://art/heroes/hero_blade/hero_blade_sheet.png" id="9_sheet"]
 [sub_resource type="Resource" id="Resource_b0p33"]
 script = ExtResource("1_k1jxi")
 id = &"hero_attack"
