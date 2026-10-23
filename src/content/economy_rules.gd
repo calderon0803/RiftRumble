@@ -66,6 +66,14 @@ const CATCH_UP_GAP := 2
 const CATCH_UP_MULT := 3
 
 
+## Nivel de historia de la misión: el esperado al empezar su mundo (1 si no está en ninguno).
+static func story_level(content, mission_id: StringName) -> int:
+	for w: WorldDef in content.worlds.values():
+		if String(mission_id) in w.mission_slots:
+			return EXPECTED_LEVEL[clampi(w.order, 1, 6)]
+	return 1
+
+
 static func level_cap(category: int) -> int:
 	return category * LEVELS_PER_CATEGORY
 

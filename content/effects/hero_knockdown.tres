@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="EffectDef" format=3]
+
+[ext_resource type="Script" path="res://src/content/effect_def.gd" id="1_eff"]
+
+[resource]
+script = ExtResource("1_eff")
+id = &"hero_knockdown"
+duration = 0.8
+root = true
+view_flags = 2

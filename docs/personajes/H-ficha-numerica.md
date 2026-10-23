@@ -46,7 +46,7 @@ Cada habilidad parte de una plantilla. La rareza no cambia los coeficientes (B �
 | Reducción de daño propia | 20–40 % | Tope combinado 60 % |
 
 ### Medidor
-Igual para todos (B §0.6): 4 % por ataque (+1 % por objetivo extra, tope +2 %), 6 % por derribo, 0,2 % por cada 1 % de vida perdida, 3 % por aplicar control (cada objetivo, como mucho cada 3 s) y tope de 10 %/s. **Objetivo:** 1 o 2 usos por oleada.
+Igual para todos (B §0.6): 6 % por ataque (+1 % por objetivo extra, tope +2 %), 8 % por derribo, 0,2 % por cada 1 % de vida perdida, 3 % por aplicar control (cada objetivo, como mucho cada 3 s) y tope de 10 %/s. **Objetivo:** 1 o 2 usos por oleada.
 
 ## 3. Mejoras de categoría
 
@@ -184,3 +184,36 @@ No tienen categorías ni mejoras II, IV y VI: es lo que los coleccionables aport
 3. **Ningún héroe gana solo:** con `tools/balance.gd`, ninguna misión debe poder ganarse sin torres con un solo héroe de nivel esperado (B §0.12).
 4. **Coleccionable frente a protagonista:** a igual nivel, en su nicho, un coleccionable debe mejorar el resultado del protagonista al que sustituye (E-1).
 5. **Ajuste:** cambiar primero los coeficientes de la plantilla (§2) y solo después los de un héroe concreto.
+
+## 8. Tanda 1: Aeron, Zerik, Nimue y Astraion (implementados)
+
+- **Implementado en la simulación:**
+  - nivel y crecimiento; los protagonistas toman el nivel de historia;
+  - defensa;
+  - golpe a adyacentes y tipo de daño alterno;
+  - tipos de habilidad `burst_self` (con empuje por peso y escudo con +1 de bloqueo) y `zone` (daño periódico y efecto final);
+  - `line_strike` con daño en P y rampa por objetivo atravesado;
+  - medidor por objetivos extra y por aplicar control.
+- **En el juego:** todavía no se pueden conseguir (faltan las tiradas). Son datos en `content/heroes/` con tests.
+- **Validación:** `godot --headless --path . --script res://tools/hero_check.gd`. Juega el mundo 1 con cada héroe y Kira, lanzando la habilidad sobre el grupo más denso. Los héroes no se mueven de su posición inicial, así que es un mínimo.
+
+| Equipo | w1_m3 | w1_m4 | w1_m5 (jefe) | Usos por oleada | Segundos hasta el 100 % |
+|---|---|---|---|---|---|
+| Nexo + Kira (actual) | 1★ | 3★ | pierde | 0,4–0,5 | 52–100 |
+| Aeron + Kira | 3★ | 3★ | 1★ | 0,8–1,0 | 35–51 |
+| Zerik + Kira | 3★ | 3★ | 1★ | 0,8–1,0 | 37–58 |
+| Nimue + Kira | 3★ | 3★ | 1★ | 0,8–1,0 | 31–52 |
+| Astraion + Kira | 3★ | 3★ | 1★ | 0,6–1,0 | 39–57 |
+
+**Lectura:**
+- **Coleccionable frente a protagonista (E-1):** cada coleccionable mejora el resultado de Nexo, sobre todo en el jefe, que Nexo + Kira no ganan con este orden de construcción.
+- **Sin torres:** en las misiones 3 a 5 todos pierden, solos y acompañados de Kira.
+  - En las de introducción (w1_m1 y w1_m2) algunos ganan, pero los protagonistas con 2 héroes también ganan la 1.
+  - Los coleccionables llegan después del mundo 1, así que esto solo se nota al repetir.
+- **Medidor:** subido a 6 % por ataque y 8 % por derribo. Los coleccionables llegan a unos **0,8–1 usos por oleada**.
+  - Subir más la carga casi no cambia nada: el límite es el tiempo fuera de combate de un héroe quieto.
+  - Un jugador que mueve a sus héroes cargará más.
+  - Nexo sigue lento (su ataque es débil y de alcance corto) y se revisará con el resto de los protagonistas.
+- **Pendiente:**
+  - repetir la validación en el mundo 2 a nivel de historia 8, cuando exista;
+  - valorar si los coleccionables comunes más fuertes (Aeron, Rokka) superan demasiado a Kira (índice 20,5 frente a 12,9).

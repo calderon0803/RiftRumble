@@ -154,8 +154,9 @@ func _build_lanes(path_width: float) -> void:
 ## Configura una partida completa a partir de una misión y del mapa ya leído.
 ## `hero_ids`: héroes elegidos por el jugador (si se omite, los de la misión).
 ## `tower_ids`: equipo de torres elegido (si se omite, las de la misión).
+## `hero_level`: nivel de los héroes (hoy, el nivel de historia del mundo; E-1).
 func setup_mission(content_db, mission_def: MissionDef, map_def, hero_ids := PackedStringArray(),
-		tower_ids := PackedStringArray()) -> void:
+		tower_ids := PackedStringArray(), hero_level: int = 1) -> void:
 	allowed_towers = tower_ids if not tower_ids.is_empty() else mission_def.towers
 	if allowed_towers.is_empty():  # sin equipo ni restricción (pruebas): todo el catálogo
 		for id in content_db.towers:
@@ -174,7 +175,7 @@ func setup_mission(content_db, mission_def: MissionDef, map_def, hero_ids := Pac
 	for i in chosen.size():
 		var def: HeroDef = content_db.heroes[StringName(chosen[i])]
 		var spawns: PackedVector2Array = map_def.hero_spawns if not map_def.hero_spawns.is_empty() 				else map_def.build_spots
-		heroes.add_hero(def, spawns[i % spawns.size()])
+		heroes.add_hero(def, spawns[i % spawns.size()], hero_level)
 
 
 func is_lost() -> bool:
@@ -593,7 +594,7 @@ func _spawn_projectile(t: Dictionary, target_slot: int) -> int:
 	p_target_id[slot] = e_id[target_slot]
 	p_aim[slot] = e_pos[target_slot]
 	p_speed[slot] = def.projectile_speed
-	p_damage[slot] = TowerDef.at_level(def.damage, t.level)
+	p_damage[slot] = TowerDef.at_level(def.damage, t.level) * t.get("damage_mult", 1.0)
 	p_pierce[slot] = TowerDef.at_level(def.armor_pierce, t.level)
 	p_bounces[slot] = TowerDef.at_level(def.bounces, t.level)
 	p_tower_def[slot] = def
@@ -644,13 +645,49 @@ func _projectile_hit(p: int, slot: int) -> void:
 	var hit_ids: PackedInt32Array = p_hit_ids[p]
 	hit_ids.append(e_id[slot])
 	p_hit_ids[p] = hit_ids
-	if p_hero[p] >= 0:
-		heroes.on_basic_hit(self, p_hero[p])
-	var killed := damage_enemy(slot, p_damage[p], def.damage_type, p_pierce[p])
-	if killed and p_hero[p] >= 0:
-		heroes.on_basic_kill(self, p_hero[p])
+	var hero := p_hero[p]
+	var damage_type := def.damage_type
+	var cleave := []
+	if hero >= 0:
+		var hdef: HeroDef = heroes.heroes[hero].def
+		damage_type = heroes.attack_damage_type(hero, damage_type)
+		if hdef.cleave_targets > 0:
+			cleave = _nearest_others(slot, hdef.cleave_radius, hdef.cleave_targets)
+		heroes.on_basic_hit(self, hero, cleave.size())
+	var killed := damage_enemy(slot, p_damage[p], damage_type, p_pierce[p])
+	if killed and hero >= 0:
+		heroes.on_basic_kill(self, hero)
 	if not killed and def.on_hit_effect:
-		effects.apply(self, slot, def.on_hit_effect)
+		if effects.apply(self, slot, def.on_hit_effect) and hero >= 0:
+			heroes.on_control(self, hero, slot)
+	for c in cleave:
+		if e_alive[c] == 1 and damage_enemy(c, p_damage[p] * heroes.heroes[hero].def.cleave_mult, damage_type, p_pierce[p]):
+			heroes.on_basic_kill(self, hero)
+
+
+## Hasta `count` enemigos vivos más cercanos a `slot` (sin contarlo) a <= `radius`.
+func _nearest_others(slot: int, radius: float, count: int) -> Array:
+	var near := []
+	for i in e_alive.size():
+		if i != slot and e_alive[i] == 1:
+			var d := e_pos[i].distance_to(e_pos[slot])
+			if d <= radius:
+				near.append([d, i])
+	near.sort_custom(func(a, b): return a[0] < b[0])
+	return near.slice(0, count).map(func(x): return x[1])
+
+
+## Empuja a un enemigo hacia atrás en su ruta según su peso (B §0.7): ligeros
+## completo, medios la mitad; pesados y jefes no se desplazan.
+func push_enemy(slot: int, tiles: float) -> void:
+	var def: EnemyDef = e_def[slot]
+	var weight: int = def.weight if def else EnemyDef.Weight.LIGHT
+	var factor := 1.0 if weight == EnemyDef.Weight.LIGHT else (0.5 if weight == EnemyDef.Weight.MEDIUM else 0.0)
+	if factor <= 0.0:
+		return
+	e_dist[slot] = maxf(e_dist[slot] - tiles * factor, 0.0)
+	e_pos[slot] = _enemy_path(slot).sample(e_dist[slot])
+	events.append({type = &"enemy_pushed", slot = slot})
 
 
 ## Rebote: salta al enemigo vivo más cercano que no haya alcanzado ya.
