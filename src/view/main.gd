@@ -181,12 +181,24 @@ func _run_tick() -> void:
 ## Héroes elegidos en la campaña, si son válidos para esta misión.
 func _chosen_heroes() -> PackedStringArray:
 	var ids := Session.hero_ids
+	var test_ids := _web_test_heroes()
+	if not test_ids.is_empty():
+		ids = test_ids
 	if ids.size() != mission.heroes.size():
 		return PackedStringArray()
 	for id in ids:
 		if not content.heroes.has(StringName(id)):
 			return PackedStringArray()
 	return ids
+
+
+## Pruebas de estilo (docs/arte): en la web, `?heroes=hero_aeron,hero_blade`
+## juega con esos héroes aunque no se tengan. Solo para probar el arte.
+func _web_test_heroes() -> PackedStringArray:
+	if not OS.has_feature("web"):
+		return PackedStringArray()
+	var q = JavaScriptBridge.eval("new URLSearchParams(location.search).get('heroes') || ''")
+	return PackedStringArray(String(q).split(",", false)) if q is String else PackedStringArray()
 
 
 ## Equipo de torres elegido en la campaña, si es válido para esta misión.

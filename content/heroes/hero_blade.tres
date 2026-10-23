@@ -4,6 +4,7 @@
 [ext_resource type="Script" path="res://src/content/hero_def.gd" id="2_nr1qo"]
 [ext_resource type="Texture2D" path="res://art/placeholder/hero_blade.png" id="3_i3of8"]
 
+[ext_resource type="Texture2D" path="res://art/heroes/hero_blade/hero_blade_sheet.svg" id="9_sheet"]
 [sub_resource type="Resource" id="Resource_b0p33"]
 script = ExtResource("1_k1jxi")
 id = &"hero_attack"
@@ -41,5 +42,6 @@ ability_damage = 8.0
 ability_damage_per_edge = 4.0
 ability_armor_pierce = 0.5
 sprite = ExtResource("3_i3of8")
+anim_sheet = ExtResource("9_sheet")
 sprite_offset = Vector2(0, -22)
 color = Color(1, 0.43529412, 0.84705883, 1)
