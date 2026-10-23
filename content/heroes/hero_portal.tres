@@ -5,6 +5,7 @@
 [ext_resource type="Script" path="res://src/content/hero_def.gd" id="3_0uu6i"]
 [ext_resource type="Texture2D" path="res://art/placeholder/hero_portal.png" id="4_xi7os"]
 
+[ext_resource type="Texture2D" path="res://art/heroes/hero_portal/hero_portal_sheet.svg" id="9_sheet"]
 [sub_resource type="Resource" id="Resource_yrijp"]
 script = ExtResource("2_7jpr0")
 id = &"hero_attack"
@@ -38,5 +39,6 @@ ability_duration = 6.0
 ability_radius = 2.5
 ability_damage_mult = 1.25
 sprite = ExtResource("4_xi7os")
+anim_sheet = ExtResource("9_sheet")
 sprite_offset = Vector2(0, -22)
 color = Color(0.43529412, 0.9529412, 1, 1)

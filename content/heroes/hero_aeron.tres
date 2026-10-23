@@ -5,6 +5,7 @@
 [ext_resource type="Texture2D" path="res://art/placeholder/hero_blade.png" id="3_spr"]
 [ext_resource type="Resource" path="res://content/effects/hero_knockdown.tres" id="4_eff"]
 
+[ext_resource type="Texture2D" path="res://art/heroes/hero_aeron/hero_aeron_sheet.svg" id="9_sheet"]
 [sub_resource type="Resource" id="Resource_atk"]
 script = ExtResource("1_tow")
 id = &"hero_attack"
@@ -45,4 +46,5 @@ ability_effect = ExtResource("4_eff")
 color = Color(1, 0.72, 0.3, 1)
 attack = SubResource("Resource_atk")
 sprite = ExtResource("3_spr")
+anim_sheet = ExtResource("9_sheet")
 sprite_offset = Vector2(0, -22)

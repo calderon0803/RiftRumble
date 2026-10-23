@@ -96,7 +96,18 @@ const ABILITY_ZONE := &"zone"
 @export var ability_shield_block_bonus := 0
 
 @export_group("Presentación")
+## Sprite simple de un fila (marcadores de posición); se ignora si hay `anim_sheet`.
 @export var sprite: Texture2D
+## Hoja de animación (docs/arte/01-biblia-visual.md §7): una fila por animación
+## (reposo, andar, ataque), celdas iguales, pies en el centro inferior.
+@export var anim_sheet: Texture2D
+@export var anim_frames := PackedInt32Array([4, 6, 6])
+@export var anim_fps := PackedFloat32Array([8.0, 12.0, 14.0])
+@export var anim_columns := 6
+## Se dibuja a 2×: escala 0,5 en pantalla.
+@export var anim_scale := 0.5
+## Desplazamiento (en píxeles de la hoja) para que los pies queden en el origen.
+@export var anim_offset := Vector2(0, -60)
 @export var hframes := 4
 @export var sprite_offset := Vector2(0, -20)
 @export var color := Color.WHITE

@@ -87,6 +87,8 @@ func handle_events(events: Array[Dictionary]) -> void:
 				_reset_prev(_prev_p_pos, world.p_pos, ev.slot)
 				_ensure_pool(_projectile_views, ProjectileView, ev.slot + 1)
 				_projectile_views[ev.slot].set_source(world.p_tower_def[ev.slot])
+				if ev.hero >= 0 and ev.hero < _hero_views.size():
+					_hero_views[ev.hero].play_attack(_time)
 			&"enemy_hit":
 				if ev.slot < _enemy_views.size():
 					_enemy_views[ev.slot].flash()
@@ -160,7 +162,7 @@ func sync(alpha: float) -> void:
 		var hv = _hero_views[i]
 		var hero_pos := Iso.to_screen(_prev_hero_pos[i].lerp(h.pos, alpha))
 		hv.update_view(_time, hero_pos.x - hv.position.x, h.edge, i == selected_hero, h.meter / 100.0,
-				h.hp / h.max_hp, h.dead_ticks > 0)
+				h.hp / h.max_hp, h.dead_ticks > 0, h.pos.distance_to(h.target) > 0.05)
 		hv.position = hero_pos
 
 	_sync_portals()
