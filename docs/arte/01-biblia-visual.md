@@ -153,7 +153,7 @@ Un rol secundario se nota en **un** rasgo. Por ejemplo, Astraion (Demoledor + Ba
 | Personaje | Silueta | Colores | Objeto | Notas |
 |---|---|---|---|---|
 | **Nexo** | Distorsionador: capa asimétrica en espiral, cuerpo esbelto | cian `#6FF3FF` / azul tinta `#1D2B4F` / blanco | Anillo-umbral que orbita a su espalda | Guardián: calma, gestos amplios; el portal repite la forma del anillo |
-| **Kira Volt** | Ruptor: triángulo hacia delante, coleta larga | magenta `#FF6FD8` / grafito `#2C2433` / amarillo chispa `#FFE14D` | Espada de energía con muescas que se iluminan (el filo, 0–6) | Las muescas muestran el filo acumulado: lectura de la mecánica en el diseño |
+| **Kira Volt** ✅ | Ruptor: triángulo hacia delante, coleta larga | magenta `#FF6FD8` / grafito `#2C2433` / amarillo chispa `#FFE14D` | Espada de energía recta, de un filo y punta en ángulo, con 6 muescas que se iluminan (el filo, 0–6) | **Diseño aprobado** (2026-10-23): [`art/concept/hero_blade/kira_concepto_v2.webp`](../../art/concept/hero_blade/kira_concepto_v2.webp). Chaqueta corta con top corto (decisión del usuario), mallas grafito con paneles rosas, guantes sin dedos y botas con suela rosa |
 
 ### Comunes
 
@@ -260,6 +260,12 @@ Antes de aprobar un diseño:
 6. **Material generado por IA:** si se usa, solo como boceto o referencia interna. El arte final debe ser original y revisarse con esta lista. **No** se usan nombres de obras ni de artistas en las indicaciones.
 
 ## 12. Formato de entrega y siguientes pasos
+
+### Proceso de diseño (decidido el 2026-10-23)
+1. **Concepto:** hoja de personaje generada con IA (ChatGPT o la API de imágenes de OpenAI) a partir de un encargo escrito desde esta biblia. Se revisa contra la silueta, la paleta, el objeto y la lista de §11, y se corrige sobre la misma imagen hasta aprobarla.
+2. **Versión de juego:** el mismo personaje, cabezón (≈ 3 cabezas) y en vista isométrica, para comprobar la lectura a ≈ 50 px.
+3. **Animación por piezas:** hoja con el personaje separado en piezas (cabeza, pelo, torso, brazos, piernas y arma), animadas en Godot por transformaciones. Generar cada fotograma por separado no sirve, porque el personaje cambia de uno a otro.
+4. Las imágenes aprobadas se guardan en `art/concept/<id>/` como referencia.
 
 ### Carpetas y nombres
 ```
