@@ -1,7 +1,7 @@
 ## Lee el plano de texto de una sala (sin nodos): bloques, pinchos, enemigos,
 ## banco e inicio, ya en píxeles del mundo.
 ## «#» bloque, «^» pinchos, «c» rastrero, «B» banco, «K» inicio, «D» dash,
-## «H» corazón extra; lo demás, aire.
+## «H» corazón extra, «G» jefe, «|» puerta de la arena; lo demás, aire.
 ## Las filas cortas se rellenan con aire.
 class_name RoomLayout
 extends RefCounted
@@ -17,6 +17,9 @@ var spikes: Array[Rect2] = []
 var enemy_spawns: Array[Vector2] = []   # pies
 var bench := Vector2.INF                # pies; INF si no hay
 var start := Vector2.INF                # pies; INF si no hay
+var boss_spawn := Vector2.INF           # pies; INF si no hay
+## Puerta de la arena: casillas que se cierran durante el combate (unidas en un rectángulo).
+var gate := Rect2()
 ## Objetos que se recogen: {kind: "dash"|"heart", pos: centro, id: "sala:col:fila"}.
 var pickups: Array[Dictionary] = []
 
@@ -46,6 +49,11 @@ static func parse(layout: Array, origin_tiles := Vector2i.ZERO, room_id := "", r
 					r.enemy_spawns.append(feet)
 				"B":
 					r.bench = feet
+				"G":
+					r.boss_spawn = feet
+				"|":
+					var cell := Rect2(o + Vector2(x, y) * TILE, Vector2.ONE * TILE)
+					r.gate = cell if r.gate.size == Vector2.ZERO else r.gate.merge(cell)
 			if PICKUP_KINDS.has(ch):
 				r.pickups.append({
 					"kind": PICKUP_KINDS[ch],

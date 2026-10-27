@@ -13,6 +13,8 @@ var notches := 0
 var _panel: Control
 var _toast: Label
 var _toast_t := 0.0
+var _boss_name := ""
+var _boss_ratio := 1.0
 
 
 func _ready() -> void:
@@ -48,6 +50,23 @@ func _process(dt: float) -> void:
 		_toast.modulate.a = clampf(_toast_t / 0.5, 0.0, 1.0)
 
 
+func show_boss(display_name: String) -> void:
+	_boss_name = display_name
+	_boss_ratio = 1.0
+	_panel.queue_redraw()
+
+
+func set_boss_ratio(ratio: float) -> void:
+	_boss_ratio = ratio
+	_panel.queue_redraw()
+
+
+func hide_boss() -> void:
+	_boss_name = ""
+	if _panel:
+		_panel.queue_redraw()
+
+
 func set_health(value: int, maximum: int) -> void:
 	hp = value
 	max_hp = maximum
@@ -70,3 +89,10 @@ func _draw_panel() -> void:
 		if i < notches and ready:
 			col = col.lightened(0.3)
 		_panel.draw_rect(Rect2(p, Vector2(12, 12)), col)
+	if _boss_name != "":
+		var bar := Rect2(340, 72, 600, 12)
+		_panel.draw_string(ThemeDB.fallback_font, bar.position + Vector2(0, -8), _boss_name,
+				HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(1, 1, 1, 0.85))
+		_panel.draw_rect(bar, Color(0, 0, 0, 0.6))
+		_panel.draw_rect(Rect2(bar.position, Vector2(bar.size.x * _boss_ratio, bar.size.y)), Color("c0395f"))
+		_panel.draw_rect(bar, Color(1, 1, 1, 0.4), false, 1.0)
