@@ -3,7 +3,7 @@
 Metroidvania 2D lateral para PC. Protagonista: **Kira**, espadachina con el filo de 6 muescas.
 El proyecto empezó como tower defense; ese código queda en el historial de git (hasta el commit `e3a39a8`).
 
-Estado: **movimiento** ([fase 1](docs/01-fase-1-movimiento.md)), **combate** ([fase 3](docs/02-combate.md)) y **un mundo de 5 salas con banco, guardado y mapa** ([fase 4](docs/03-salas-y-mapa.md)). Kira, los enemigos y el escenario son formas provisionales.
+Estado: **movimiento** ([fase 1](docs/01-fase-1-movimiento.md)), **combate** ([fase 3](docs/02-combate.md)) y **un mundo de 6 salas con banco, guardado y mapa** ([fase 4](docs/03-salas-y-mapa.md)) y **el dash**, la primera habilidad que abre camino ([fase 5](docs/04-dash.md)). Kira, los enemigos y el escenario son formas provisionales.
 
 ## Requisitos
 - Godot **4.7.x** estable, versión estándar con GDScript (no la .NET).
@@ -58,6 +58,7 @@ python tools/gen_rooms.py
 | Saltar (mantener = más alto) | Espacio / Z / K | A |
 | Tajo (↑ arriba, ↓ en el aire abajo) | X / J | X |
 | Tajo de filo (3 muescas) | C / L | Y |
+| Dash (cuando se consigue) | Shift / V | RB |
 | Descansar en un banco (guarda) | ↑ / W | Arriba |
 | Mapa | M / Tab | Select / Back |
 | Volver al último banco | R | |

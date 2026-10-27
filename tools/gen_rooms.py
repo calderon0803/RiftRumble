@@ -5,10 +5,10 @@ su tamaño, sus salidas (huecos en el borde) y lo que hay dentro. Así los hueco
 de salas vecinas encajan por construcción; tests/world_tests.gd lo comprueba.
 
 Uso: python tools/gen_rooms.py
-Símbolos: # bloque, ^ pinchos, c rastrero, B banco, K inicio, . aire.
+Símbolos: # bloque, ^ pinchos, c rastrero, B banco, K inicio, D dash, H corazón extra, . aire.
 Reglas de diseño (para que todo sea alcanzable con el salto de Kira, ~5 casillas):
 - entre plataformas, como mucho 4 casillas de subida y 2-3 de hueco;
-- los fosos, como mucho 4 casillas de ancho.
+- los fosos, como mucho 4 casillas de ancho (salvo los que piden dash: 7).
 """
 from pathlib import Path
 
@@ -42,12 +42,15 @@ class Room:
 
 rooms = []
 
-# A — Inicio (una pantalla). Sale por la derecha.
+# A — Inicio (una pantalla). Sale por la derecha; a la izquierda, un foso de
+# pinchos de 7 casillas que solo se cruza con el dash lleva al Abismo.
 a = Room("inicio", "Inicio", (0, 0), 40, 23)
 a.exit("right", 18, 21)
-a.plat(18, 12, 17)
-a.plat(15, 21, 26)
-a.put(4, 21, "K")
+a.exit("left", 18, 21)
+a.plat(22, 6, 12, "^")           # 7 casillas: saltando se llega a ~6, con dash a ~9
+a.plat(18, 17, 22)
+a.plat(15, 26, 31)
+a.put(24, 21, "K")
 rooms.append(a)
 
 # B — Pasillo (dos pantallas de ancho) con un foso de pinchos. Salidas a ambos lados.
@@ -96,12 +99,24 @@ e.plat(10, 4, 10)
 e.put(9, 17, "c")
 e.put(17, 13, "c")
 e.put(20, 21, "c")
+e.put(7, 9, "D")                 # el dash, en lo más alto
 rooms.append(e)
+
+# F — Abismo: al otro lado del foso del inicio (hace falta el dash). Corazón extra arriba.
+f = Room("abismo", "Abismo", (-40, 0), 40, 23)
+f.exit("right", 18, 21)
+f.plat(18, 26, 31)
+f.plat(14, 18, 23)
+f.plat(10, 10, 15)
+f.put(20, 21, "c")
+f.put(30, 21, "c")
+f.put(12, 9, "H")
+rooms.append(f)
 
 out = [
     "## Salas del mundo. GENERADO por tools/gen_rooms.py: edita el generador, no este archivo.",
     "## origin: posición de la esquina superior izquierda en casillas del mundo.",
-    "## Símbolos: # bloque, ^ pinchos, c rastrero, B banco, K inicio, . aire.",
+    "## Símbolos: # bloque, ^ pinchos, c rastrero, B banco, K inicio, D dash, H corazón extra, . aire.",
     "class_name Rooms",
     "extends RefCounted",
     "",

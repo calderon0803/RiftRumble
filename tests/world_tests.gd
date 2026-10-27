@@ -168,6 +168,7 @@ func _run() -> void:
 	w2.queue_free()
 	await _physics(2)
 
+	await _check_dash()
 	await _check_climbs()
 	SaveGame.erase(SAVE)
 	print("\n%d/%d comprobaciones correctas" % [_checks - _failures, _checks])
@@ -248,7 +249,8 @@ func _check_climbs() -> void:
 	var w := _new_world()
 	await _physics(3)
 	var routes := {
-		"inicio": [[22, 6, 9], [18, 12, 17], [15, 21, 26]],
+		"inicio": [[22, 13, 14], [18, 17, 22], [15, 26, 31]],
+		"abismo": [[22, 33, 35], [18, 26, 31], [14, 18, 23], [10, 10, 15]],
 		"pozo": [[45, 12, 15], [41, 18, 25], [37, 8, 15], [33, 18, 25], [29, 8, 15], [25, 18, 25],
 				[21, 8, 15], [17, 18, 25], [13, 8, 15], [10, 1, 6]],
 		"banco": [[22, 15, 17], [18, 20, 25], [14, 12, 18], [10, 22, 28]],
@@ -263,5 +265,86 @@ func _check_climbs() -> void:
 				failed.append("fila %d → %d" % [steps[i][0], steps[i + 1][0]])
 		check(failed.is_empty(), "%s: se sube saltando por todas las plataformas %s" % [room, str(failed)])
 	w.queue_free()
+	await _physics(2)
+	SaveGame.erase(SAVE)
+
+
+## Intenta cruzar el foso del inicio hacia la izquierda: carrerilla, salto y, si
+## `use_dash`, dash en lo alto. Devuelve si ha llegado al otro lado sin daño.
+func _try_pit(w: World, use_dash: bool) -> bool:
+	var kira := w.kira
+	kira.health.reset()
+	_place(w, "inicio", 18.5, 22.0)
+	kira.scripted_input = {"x": 0.0}
+	await _physics(20)
+	var hp0 := kira.health.hp
+	kira.scripted_input = {"x": -1.0}
+	while (kira.position.x - w.current.rect.position.x) / T > 13.6:
+		await physics_frame
+	kira.scripted_input = {"x": -1.0, "jump": true}
+	for i in 90:
+		if use_dash and i == 16:
+			kira.scripted_input = {"x": -1.0, "jump": true, "dash": true}
+		await physics_frame
+		if kira.health.hp < hp0 or w.current.id != "inicio":
+			break
+		if kira.is_on_floor() and i > 5:
+			break
+	kira.scripted_input = {"x": -1.0}
+	await _physics(30)
+	kira.scripted_input = {"x": 0.0}
+	return kira.health.hp == hp0 and (w.current.id == "abismo" or (kira.position.x - w.current.rect.position.x) / T < 6.0)
+
+
+func _check_dash() -> void:
+	print("Dash y objetos")
+	SaveGame.erase(SAVE)
+	var w := _new_world()
+	await _physics(3)
+	var kira := w.kira
+	check(not kira.motor.can_dash, "al empezar Kira no tiene el dash")
+	check(not await _try_pit(w, true), "sin dash no se cruza el foso de 7 casillas del inicio")
+
+	# El dash está en lo más alto del mirador.
+	w.enter_room("mirador")
+	check(w.pickups.size() == 1 and w.pickups[0].kind == "dash", "el orbe del dash está en el mirador")
+	_place(w, "mirador", 5.5, 10.0)
+	kira.scripted_input = {"x": 1.0}
+	await _physics(30)
+	kira.scripted_input = {"x": 0.0}
+	check(kira.motor.can_dash and w.pickups.is_empty(), "al tocarlo, Kira consigue el dash")
+	var data := SaveGame.load_from(SAVE)
+	check("dash" in data.get("abilities", []), "y se guarda en el momento")
+	w.enter_room("mirador")
+	check(w.pickups.is_empty(), "no vuelve a aparecer")
+
+	check(await _try_pit(w, true), "con el dash se cruza el foso")
+	kira.scripted_input = {"x": -1.0}
+	for i in 60:
+		await physics_frame
+		if w.current.id == "abismo":
+			break
+	kira.scripted_input = {"x": 0.0}
+	check(w.current.id == "abismo", "y se llega al abismo")
+	check(w.pickups.size() == 1 and w.pickups[0].kind == "heart", "donde hay un corazón extra")
+	var heart_pos: Vector2 = w.pickups[0].position
+	kira.place_at(heart_pos + Vector2(-40, 15))
+	kira.scripted_input = {"x": 1.0}
+	await _physics(20)
+	kira.scripted_input = {"x": 0.0}
+	check(kira.health.max_hp == Kira.MAX_HP + 1 and kira.health.hp == kira.health.max_hp, "el corazón sube la vida máxima a %d" % kira.health.max_hp)
+
+	w.queue_free()
+	await _physics(2)
+	var w2 := _new_world()
+	await _physics(3)
+	check(w2.kira.motor.can_dash and w2.kira.health.max_hp == Kira.MAX_HP + 1, "al volver a abrir conserva el dash y el corazón")
+	w2.kira.died.emit()
+	await _physics(3)
+	check(w2.kira.motor.can_dash and w2.kira.health.hp == Kira.MAX_HP + 1, "y también tras morir")
+	w2.new_game()
+	await _physics(2)
+	check(not w2.kira.motor.can_dash and w2.kira.health.max_hp == Kira.MAX_HP, "partida nueva: sin dash y con 5 corazones")
+	w2.queue_free()
 	await _physics(2)
 	SaveGame.erase(SAVE)

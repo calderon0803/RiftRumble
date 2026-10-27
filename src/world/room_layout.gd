@@ -1,6 +1,7 @@
 ## Lee el plano de texto de una sala (sin nodos): bloques, pinchos, enemigos,
 ## banco e inicio, ya en píxeles del mundo.
-## «#» bloque, «^» pinchos, «c» rastrero, «B» banco, «K» inicio; lo demás, aire.
+## «#» bloque, «^» pinchos, «c» rastrero, «B» banco, «K» inicio, «D» dash,
+## «H» corazón extra; lo demás, aire.
 ## Las filas cortas se rellenan con aire.
 class_name RoomLayout
 extends RefCounted
@@ -16,6 +17,10 @@ var spikes: Array[Rect2] = []
 var enemy_spawns: Array[Vector2] = []   # pies
 var bench := Vector2.INF                # pies; INF si no hay
 var start := Vector2.INF                # pies; INF si no hay
+## Objetos que se recogen: {kind: "dash"|"heart", pos: centro, id: "sala:col:fila"}.
+var pickups: Array[Dictionary] = []
+
+const PICKUP_KINDS := {"D": "dash", "H": "heart"}
 
 
 static func parse(layout: Array, origin_tiles := Vector2i.ZERO, room_id := "", room_name := "") -> RoomLayout:
@@ -41,6 +46,12 @@ static func parse(layout: Array, origin_tiles := Vector2i.ZERO, room_id := "", r
 					r.enemy_spawns.append(feet)
 				"B":
 					r.bench = feet
+			if PICKUP_KINDS.has(ch):
+				r.pickups.append({
+					"kind": PICKUP_KINDS[ch],
+					"pos": o + Vector2((x + 0.5) * TILE, (y + 0.5) * TILE),
+					"id": "%s:%d:%d" % [room_id, x, y],
+				})
 			if ch != "#" and ch != "^":
 				x += 1
 				continue
