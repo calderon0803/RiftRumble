@@ -9,7 +9,6 @@ extends Node2D
 const COLOR_BG := Color("141824")
 const FADE_TIME := 0.18
 const BENCH_REACH := 30.0
-const PICKUP_REACH := 30.0
 const HEART_BONUS := 1
 
 ## Dónde se guarda la partida (los tests usan otro archivo).
@@ -163,15 +162,8 @@ func enter_room(id: String) -> void:
 		boss.died.connect(_on_boss_died)
 		boss.health_changed.connect(hud.set_boss_ratio)
 		_room_node.add_child(boss)
-	for item in current.pickups:
-		if collected.has(item.id):
-			continue
-		var pk := Pickup.new()
-		pk.kind = item.kind
-		pk.id = item.id
-		pk.position = item.pos
-		_room_node.add_child(pk)
-		pickups.append(pk)
+	if boss == null:
+		_spawn_pickups()  # en la arena, solo tras vencer al jefe
 	cam.limit_left = int(current.rect.position.x)
 	cam.limit_top = int(current.rect.position.y)
 	cam.limit_right = int(current.rect.end.x)
@@ -220,6 +212,9 @@ func collect(pk: Pickup) -> void:
 		"dash":
 			kira.grant("dash")
 			hud.toast("¡Dash! Shift / V / RB: impulso rápido, también en el aire")
+		"wall_jump":
+			kira.grant("wall_jump")
+			hud.toast("¡Salto en pared! Empuja hacia una pared en el aire para deslizarte y salta desde ella")
 		"heart":
 			kira.set_max_hp(kira.health.max_hp + HEART_BONUS)
 			hud.toast("¡Corazón extra! Vida máxima: %d" % kira.health.max_hp)
@@ -312,13 +307,27 @@ func _on_boss_died(b: BossGuardian) -> void:
 	hud.hide_boss()
 	kira.set_max_hp(kira.health.max_hp + HEART_BONUS)
 	hud.toast("¡Has vencido al %s! Corazón extra: vida máxima %d" % [BossGuardian.DISPLAY_NAME, kira.health.max_hp])
+	_spawn_pickups()
 	save()
 
 
+func _spawn_pickups() -> void:
+	for item in current.pickups:
+		if collected.has(item.id):
+			continue
+		var pk := Pickup.new()
+		pk.kind = item.kind
+		pk.id = item.id
+		pk.position = item.pos
+		_room_node.add_child(pk)
+		pickups.append(pk)
+
+
+## Se recoge al tocarlo con cualquier parte del cuerpo.
 func _check_pickups() -> void:
-	var center := kira.position + Vector2(0, -Kira.SIZE.y / 2)
+	var body := Rect2(kira.position - Vector2(Kira.SIZE.x / 2, Kira.SIZE.y), Kira.SIZE).grow(Pickup.RADIUS)
 	for pk in pickups.duplicate():
-		if center.distance_to(pk.position) < PICKUP_REACH:
+		if body.has_point(pk.position):
 			collect(pk)
 
 

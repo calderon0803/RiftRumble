@@ -1,8 +1,8 @@
 ## Lee el plano de texto de una sala (sin nodos): bloques, pinchos, enemigos,
 ## banco e inicio, ya en píxeles del mundo.
 ## «#» bloque, «^» pinchos, «c» rastrero, «v» revoloteador, «s» escupidor,
-## «B» banco, «K» inicio, «D» dash, «H» corazón extra, «G» jefe, «|» puerta de
-## la arena; lo demás, aire.
+## «B» banco, «K» inicio, «D» dash, «W» salto en pared, «H» corazón extra, «G» jefe,
+## «|» puerta de la arena; lo demás, aire.
 ## Las filas cortas se rellenan con aire.
 class_name RoomLayout
 extends RefCounted
@@ -25,7 +25,7 @@ var gate := Rect2()
 ## Objetos que se recogen: {kind: "dash"|"heart", pos: centro, id: "sala:col:fila"}.
 var pickups: Array[Dictionary] = []
 
-const PICKUP_KINDS := {"D": "dash", "H": "heart"}
+const PICKUP_KINDS := {"D": "dash", "W": "wall_jump", "H": "heart"}
 
 
 static func parse(layout: Array, origin_tiles := Vector2i.ZERO, room_id := "", room_name := "") -> RoomLayout:

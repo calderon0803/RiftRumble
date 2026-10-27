@@ -30,14 +30,23 @@ const DASH_SPEED := 900.0
 const DASH_TIME := 0.18           # ≈ 5 casillas
 const DASH_COOLDOWN := 0.35
 
+## Pared: deslizarse (empujando hacia ella en el aire) y saltar desde ella.
+const WALL_SLIDE_SPEED := 140.0
+const WALL_JUMP_SPEED := Vector2(220.0, 760.0)   # hacia fuera y hacia arriba
+const WALL_JUMP_LOCK := 0.10      # sin control horizontal justo después (para que despegue)
+const WALL_COYOTE := 0.10         # aún se puede saltar justo después de soltarse
+
 var gravity := 2.0 * JUMP_HEIGHT / (TIME_TO_APEX * TIME_TO_APEX)
 var jump_speed := 2.0 * JUMP_HEIGHT / TIME_TO_APEX
 var jump_cut_speed := sqrt(2.0 * gravity * JUMP_MIN_HEIGHT)
 
 var velocity := Vector2.ZERO
 var facing := 1                   # 1 derecha, -1 izquierda
-## ¿Tiene ya el dash? (se consigue en el mundo)
+## Habilidades (se consiguen en el mundo).
 var can_dash := false
+var can_wall_jump := false
+## ¿Se está deslizando por una pared? (para el dibujo y los tests)
+var wall_sliding := false
 var dash_dir := 0                 # ≠ 0 mientras dura el dash
 var _coyote := 0.0
 var _buffer := 0.0
@@ -45,6 +54,9 @@ var _rising_jump := false
 var _dash_t := 0.0
 var _dash_cd := 0.0
 var _air_dash_used := false
+var _wall_coyote := 0.0
+var _wall_mem := 0
+var _lock := 0.0
 
 
 func is_dashing() -> bool:
@@ -57,9 +69,12 @@ func refresh_air_dash() -> void:
 
 
 ## Un paso. `move_x` en [-1, 1]; `jump_pressed` y `dash_pressed` solo el fotograma
-## en que se pulsan. Devuelve true si en este paso ha empezado un salto.
-func step(dt: float, move_x: float, jump_pressed: bool, jump_held: bool, on_floor: bool, dash_pressed := false) -> bool:
-	if move_x != 0.0 and not is_dashing():
+## en que se pulsan. `wall_dir`: 1 si hay pared pegada a la derecha, -1 a la
+## izquierda, 0 si no. Devuelve true si en este paso ha empezado un salto.
+func step(dt: float, move_x: float, jump_pressed: bool, jump_held: bool, on_floor: bool,
+		dash_pressed := false, wall_dir := 0) -> bool:
+	_lock = maxf(_lock - dt, 0.0)
+	if move_x != 0.0 and not is_dashing() and _lock <= 0.0:
 		facing = 1 if move_x > 0.0 else -1
 	if on_floor:
 		_air_dash_used = false
@@ -81,6 +96,17 @@ func step(dt: float, move_x: float, jump_pressed: bool, jump_held: bool, on_floo
 		if not on_floor:
 			_air_dash_used = true
 
+	# Pared: se desliza si está en el aire, cayendo y empujando hacia ella.
+	wall_sliding = can_wall_jump and not on_floor and wall_dir != 0 and not is_dashing() \
+			and signf(move_x) == wall_dir and velocity.y >= 0.0
+	if wall_sliding:
+		_wall_coyote = WALL_COYOTE
+		_wall_mem = wall_dir
+		_air_dash_used = false
+		facing = -wall_dir
+	else:
+		_wall_coyote -= dt
+
 	var jumped := false
 	if _buffer > 0.0 and _coyote > 0.0:
 		velocity.y = -jump_speed
@@ -89,6 +115,16 @@ func step(dt: float, move_x: float, jump_pressed: bool, jump_held: bool, on_floo
 		_rising_jump = true
 		jumped = true
 		_dash_t = 0.0  # saltar corta el dash (conserva la velocidad)
+	elif _buffer > 0.0 and _wall_coyote > 0.0 and can_wall_jump and not on_floor:
+		velocity = Vector2(-_wall_mem * WALL_JUMP_SPEED.x, -WALL_JUMP_SPEED.y)
+		facing = -_wall_mem
+		_buffer = 0.0
+		_wall_coyote = 0.0
+		_lock = WALL_JUMP_LOCK
+		_rising_jump = true
+		jumped = true
+		wall_sliding = false
+		_dash_t = 0.0
 
 	if is_dashing():
 		_dash_t -= dt
@@ -100,25 +136,26 @@ func step(dt: float, move_x: float, jump_pressed: bool, jump_held: bool, on_floo
 	if not jumped:
 		dash_dir = 0
 
-	# Horizontal
-	var target := move_x * RUN_SPEED
-	var accel: float
-	if on_floor:
-		var turning := move_x != 0.0 and signf(move_x) != signf(velocity.x) and velocity.x != 0.0
-		accel = GROUND_DECEL if (move_x == 0.0 or turning) else GROUND_ACCEL
-	else:
-		accel = AIR_DECEL if move_x == 0.0 else AIR_ACCEL
-	velocity.x = move_toward(velocity.x, target, accel * dt)
+	# Horizontal (justo tras saltar de una pared, sin control para que despegue)
+	if _lock <= 0.0:
+		var target := move_x * RUN_SPEED
+		var accel: float
+		if on_floor:
+			var turning := move_x != 0.0 and signf(move_x) != signf(velocity.x) and velocity.x != 0.0
+			accel = GROUND_DECEL if (move_x == 0.0 or turning) else GROUND_ACCEL
+		else:
+			accel = AIR_DECEL if move_x == 0.0 else AIR_ACCEL
+		velocity.x = move_toward(velocity.x, target, accel * dt)
 
 	# Soltar el botón mientras sube corta el salto (altura variable).
 	if _rising_jump and not jump_held and velocity.y < 0.0:
 		velocity.y = maxf(velocity.y, -jump_cut_speed)
 		_rising_jump = false
 
-	# Gravedad
+	# Gravedad (deslizándose por una pared, cae despacio)
 	if not (on_floor and velocity.y >= 0.0):
 		var g := gravity * (FALL_GRAVITY_MULT if velocity.y > 0.0 else 1.0)
-		velocity.y = minf(velocity.y + g * dt, MAX_FALL_SPEED)
+		velocity.y = minf(velocity.y + g * dt, WALL_SLIDE_SPEED if wall_sliding else MAX_FALL_SPEED)
 	elif not jumped:
 		velocity.y = gravity * dt  # un empujoncito contra el suelo para seguir pegada
 	return jumped

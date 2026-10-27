@@ -169,6 +169,7 @@ func _run() -> void:
 	await _physics(2)
 
 	await _check_dash()
+	await _check_wall_jump()
 	await _check_climbs()
 	SaveGame.erase(SAVE)
 	print("\n%d/%d comprobaciones correctas" % [_checks - _failures, _checks])
@@ -346,5 +347,88 @@ func _check_dash() -> void:
 	await _physics(2)
 	check(not w2.kira.motor.can_dash and w2.kira.health.max_hp == Kira.MAX_HP, "partida nueva: sin dash y con 5 corazones")
 	w2.queue_free()
+	await _physics(2)
+	SaveGame.erase(SAVE)
+
+
+## Trepa por paredes: empuja hacia `dir` y, cada vez que se desliza, vuelve a saltar.
+## (Llamar con Kira ya sin el aturdimiento de place_at.)
+## Para cuando Kira entra en `goal_room` o pasa por encima de `goal_y` (mundo).
+## Devuelve si lo consigue en `seconds`.
+func _climb(w: World, dir: float, goal_room: String, goal_y: float, seconds: float) -> bool:
+	var kira := w.kira
+	var held := false
+	for i in int(seconds * 60.0):
+		var press := false
+		if kira.is_on_floor() and i % 20 == 0:
+			press = true
+		elif kira.motor.wall_sliding:
+			press = true
+		held = press or (held and kira.velocity.y < 0.0)
+		# Suelta un fotograma antes de volver a pulsar, para que cuente como pulsación.
+		if press and kira.scripted_input.get("jump", false):
+			kira.scripted_input = {"x": dir, "jump": false}
+			await physics_frame
+		kira.scripted_input = {"x": dir, "jump": held}
+		await physics_frame
+		if w.current.id == goal_room or kira.position.y < goal_y:
+			kira.scripted_input = {"x": 0.0}
+			return true
+	kira.scripted_input = {"x": 0.0}
+	return false
+
+
+func _check_wall_jump() -> void:
+	print("Salto en pared")
+	SaveGame.erase(SAVE)
+	var w := _new_world()
+	await _physics(3)
+	var kira := w.kira
+	kira.grant("dash")
+	check(not kira.motor.can_wall_jump, "al empezar no tiene el salto en pared")
+	# Sin la habilidad no se llega a la salida de arriba a la derecha del pozo.
+	_place(w, "pozo", 24.5, 17.0)
+	await _physics(20)
+	check(not await _climb(w, 1.0, "cumbre", w.layouts["pozo"].rect.position.y + 7.0 * T, 6.0),
+			"sin él no se llega a lo alto de la pared derecha del pozo")
+
+	# El orbe está en la guarida, pero solo aparece al vencer al Guardián.
+	w.enter_room("guarida")
+	kira.place_at(w.current.rect.position + Vector2(26.5 * T, 22.0 * T))
+	check(w.pickups.is_empty(), "el orbe de la guarida no está mientras vive el Guardián")
+	w.boss.health.hp = 1
+	w.boss.take_hit(1, kira.position)
+	await _physics(2)
+	check(w.pickups.size() == 1 and w.pickups[0].kind == "wall_jump", "al vencerle aparece el orbe del salto en pared")
+	kira.place_at(w.pickups[0].position + Vector2(-40, 20))
+	kira.scripted_input = {"x": 1.0}
+	await _physics(40)
+	kira.scripted_input = {"x": 0.0}
+	check(kira.motor.can_wall_jump, "al tocarlo, Kira consigue el salto en pared")
+	check("wall_jump" in SaveGame.load_from(SAVE).get("abilities", []), "y se guarda en el momento")
+
+	# Con la habilidad: trepando por la pared derecha del pozo se llega a la cumbre.
+	_place(w, "pozo", 24.5, 17.0)
+	await _physics(20)
+	check(await _climb(w, 1.0, "cumbre", -INF, 10.0), "con él se trepa por la pared del pozo hasta la cumbre")
+
+	# En la cumbre, el corazón está arriba de un pasadizo estrecho entre dos columnas.
+	w.enter_room("cumbre")
+	var heart_y: float = w.current.rect.position.y + 4.0 * T  # un poco por encima del corazón
+	kira.grant("wall_jump")
+	_place(w, "cumbre", 16.5, 22.0)
+	kira.clear_abilities()
+	kira.grant("dash")
+	await _physics(20)
+	check(not await _climb(w, 1.0, "", heart_y, 5.0), "sin salto en pared no se sube por el pasadizo")
+	kira.grant("wall_jump")
+	_place(w, "cumbre", 16.5, 22.0)
+	await _physics(20)
+	var max0 := kira.health.max_hp
+	await _climb(w, 1.0, "", heart_y, 10.0)
+	await _physics(30)
+	check(kira.health.max_hp == max0 + 1, "con él se sube y se coge el corazón")
+
+	w.queue_free()
 	await _physics(2)
 	SaveGame.erase(SAVE)

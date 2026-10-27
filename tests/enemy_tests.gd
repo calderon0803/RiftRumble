@@ -209,7 +209,7 @@ func _run() -> void:
 			counts[sp.kind] = counts.get(sp.kind, 0) + 1
 		if id == "banco":
 			check(l.enemy_spawns.is_empty(), "la sala del banco no tiene enemigos")
-	check(counts.get("flyer", 0) == 3 and counts.get("spitter", 0) == 2,
+	check(counts.get("flyer", 0) == 4 and counts.get("spitter", 0) == 3,
 			"revoloteadores y escupidores repartidos por las salas %s" % str(counts))
 
 	room.queue_free()
