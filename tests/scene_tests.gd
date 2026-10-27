@@ -63,11 +63,33 @@ func _run() -> void:
 	await _physics(40)
 	check(kira.position.x > 47.0 * room.TILE and kira.is_on_floor(), "puede subirse al bloque de 2 casillas saltando")
 
+	print("Plataformas")
+	# Escalera de la izquierda: suelo → plataforma de la fila 18 (cols 10-14) → fila 15 (cols 18-22).
+	kira.respawn(Vector2(7.5 * room.TILE, 22.0 * room.TILE))
+	kira.scripted_input = {"x": 0.0, "jump": false}
+	await _physics(10)
+	kira.scripted_input = {"x": 1.0, "jump": true}
+	await _physics(24)
+	kira.scripted_input = {"x": 0.0, "jump": true}
+	await _physics(40)
+	check(kira.is_on_floor() and absf(kira.position.y - 18.0 * room.TILE) < 1.0,
+			"desde el suelo se sube a la primera plataforma (4 casillas) [%.1f, %.1f]" % [kira.position.x / room.TILE, kira.position.y / room.TILE])
+	# Corre hasta el borde y salta desde ahí.
+	kira.scripted_input = {"x": 1.0, "jump": false}
+	while kira.position.x < 14.3 * room.TILE:
+		await physics_frame
+	kira.scripted_input = {"x": 1.0, "jump": true}
+	await _physics(30)
+	kira.scripted_input = {"x": 0.0, "jump": true}
+	await _physics(40)
+	check(kira.is_on_floor() and absf(kira.position.y - 15.0 * room.TILE) < 1.0,
+			"y de ahí a la siguiente (3 casillas más arriba) [%.1f, %.1f]" % [kira.position.x / room.TILE, kira.position.y / room.TILE])
+
 	print("Techo")
 	kira.respawn(room.spawn)
 	kira.scripted_input = {"x": 0.0, "jump": false}
 	await _physics(20)
-	# Bajo la plataforma de la columna 10-14 (fila 16): techo a 5 casillas del suelo.
+	# Bajo la plataforma de la columna 10-14 (fila 18): techo a 3 casillas del suelo.
 	kira.position.x = 12.5 * room.TILE
 	await _physics(5)
 	kira.scripted_input = {"x": 0.0, "jump": true}
@@ -75,7 +97,7 @@ func _run() -> void:
 	for i in 40:
 		await physics_frame
 		min_y = minf(min_y, kira.position.y)
-	var ceiling_bottom := 17.0 * room.TILE
+	var ceiling_bottom := 19.0 * room.TILE
 	check(min_y - kira.SIZE.y >= ceiling_bottom - 1.0, "la cabeza no atraviesa el techo")
 	await _physics(60)
 	check(kira.is_on_floor(), "vuelve a caer al suelo")

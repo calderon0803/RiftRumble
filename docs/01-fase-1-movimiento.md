@@ -31,7 +31,7 @@ Una casilla son 32 px; la pantalla muestra 40 × 22,5 casillas.
 - [x] Salto con altura variable: un toque sube menos de la mitad que manteniendo.
 - [x] Se puede saltar justo después de salir de un borde (0,07 s) pero no tarde (0,17 s).
 - [x] Pulsar saltar justo antes de aterrizar salta al tocar el suelo; pulsarlo demasiado pronto no.
-- [x] En la sala: se queda en el suelo, choca con paredes sin atravesarlas, sube a un bloque de 2 casillas y el techo la frena.
+- [x] En la sala: se queda en el suelo, choca con paredes sin atravesarlas, sube a un bloque de 2 casillas, sube por la escalera de plataformas (4 casillas desde el suelo y 3 entre plataformas) y el techo la frena.
 - [x] La cámara la sigue sin salirse de la sala.
 
-Tests: `run_tests.gd` 12/12 y `scene_tests.gd` 10/10.
+Tests: `run_tests.gd` 12/12 y `scene_tests.gd` 12/12.
