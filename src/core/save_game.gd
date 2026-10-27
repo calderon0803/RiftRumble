@@ -3,6 +3,9 @@ class_name SaveGame
 extends RefCounted
 
 const DEFAULT_PATH := "user://partida.json"
+## Partida con la que trabajan el título y el mundo (los tests la cambian para no
+## tocar la de verdad).
+static var active_path := DEFAULT_PATH
 
 
 static func load_from(path: String) -> Dictionary:

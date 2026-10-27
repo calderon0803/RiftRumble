@@ -2,7 +2,7 @@
 ## sala se entra en la que hay en ese punto. Gestiona pinchos (vuelta al último
 ## suelo seguro), bancos (descansar y guardar), muerte (vuelta al último banco),
 ## objetos (dash, corazón extra), jefes (puerta que se cierra durante el combate),
-## el mapa y la partida guardada.
+## el mapa, la pausa, los efectos de cámara y la partida guardada.
 class_name World
 extends Node2D
 
@@ -10,9 +10,16 @@ const COLOR_BG := Color("141824")
 const FADE_TIME := 0.18
 const BENCH_REACH := 30.0
 const HEART_BONUS := 1
+const TITLE_SCENE := "res://src/ui/title.tscn"
+## Temblores de cámara (fuerza en píxeles, duración en segundos).
+const SHAKE_HURT := [9.0, 0.3]
+const SHAKE_HIT := [3.0, 0.1]
+const SHAKE_SPECIAL := [6.0, 0.16]
+const SHAKE_SLAM := [7.0, 0.3]
+const SHAKE_LAND := [2.5, 0.1]
 
 ## Dónde se guarda la partida (los tests usan otro archivo).
-var save_path := SaveGame.DEFAULT_PATH
+var save_path := SaveGame.active_path
 var hitstop_enabled := true
 
 var layouts := {}            # id → RoomLayout
@@ -20,7 +27,8 @@ var current: RoomLayout
 var kira: Kira
 var hud: Hud
 var map_view: MapView
-var cam: Camera2D
+var pause_menu: PauseMenu
+var cam: CameraShake
 var visited := {}            # id → true
 var bench_room := ""         # último banco ("" = ninguno: se vuelve al inicio)
 var bench_pos := Vector2.INF
@@ -43,11 +51,12 @@ func _ready() -> void:
 	for id in Rooms.DATA:
 		var d: Dictionary = Rooms.DATA[id]
 		layouts[id] = RoomLayout.parse(d.layout, d.origin, id, d.name)
+		layouts[id].theme = d.get("theme", Themes.DEFAULT)
 
 	kira = Kira.new()
 	kira.process_mode = Node.PROCESS_MODE_PAUSABLE
 	add_child(kira)
-	cam = Camera2D.new()
+	cam = CameraShake.new()
 	cam.position_smoothing_enabled = true
 	cam.position_smoothing_speed = 8.0
 	kira.add_child(cam)
@@ -56,6 +65,10 @@ func _ready() -> void:
 	map_view = MapView.new()
 	map_view.world = self
 	add_child(map_view)
+	pause_menu = PauseMenu.new()
+	add_child(pause_menu)
+	pause_menu.resume_requested.connect(close_pause)
+	pause_menu.title_requested.connect(go_to_title)
 	var fade_layer := CanvasLayer.new()
 	fade_layer.layer = 10
 	_fade = ColorRect.new()
@@ -65,11 +78,16 @@ func _ready() -> void:
 	fade_layer.add_child(_fade)
 	add_child(fade_layer)
 
-	kira.health_changed.connect(hud.set_health)
+	kira.health_changed.connect(_on_health_changed)
 	kira.notches_changed.connect(hud.set_notches)
-	kira.hit_landed.connect(func(special: bool):
+	kira.hit_landed.connect(func(special: bool, _at: Vector2):
+		var s: Array = SHAKE_SPECIAL if special else SHAKE_HIT
+		cam.shake(s[0], s[1])
 		if hitstop_enabled:
 			HitStop.apply(get_tree(), special))
+	kira.landed.connect(func(speed: float):
+		if speed > 800.0:
+			cam.shake(SHAKE_LAND[0], SHAKE_LAND[1]))
 	kira.died.connect(func(): respawn_at_checkpoint.call_deferred())
 
 	var data := SaveGame.load_from(save_path)
@@ -90,14 +108,18 @@ func _ready() -> void:
 
 
 func _physics_process(_dt: float) -> void:
+	if pause_menu.visible:
+		if Input.is_action_just_pressed(Controls.PAUSE) or Input.is_action_just_pressed(&"ui_cancel"):
+			pause_menu.back()
+		return
+	if Input.is_action_just_pressed(Controls.PAUSE) and not map_view.visible:
+		open_pause()
+		return
 	if Input.is_action_just_pressed(Controls.MAP):
 		map_view.visible = not map_view.visible
 		get_tree().paused = map_view.visible
 		map_view.queue_redraw()
 	if get_tree().paused:
-		return
-	if Input.is_action_just_pressed(Controls.NEW_GAME):
-		new_game()
 		return
 	if Input.is_action_just_pressed(Controls.RESET):
 		respawn_at_checkpoint()
@@ -123,6 +145,32 @@ func _physics_process(_dt: float) -> void:
 		_close_gate()
 
 
+func open_pause() -> void:
+	get_tree().paused = true
+	pause_menu.open()
+
+
+func close_pause() -> void:
+	pause_menu.close()
+	get_tree().paused = false
+
+
+func go_to_title() -> void:
+	get_tree().paused = false
+	get_tree().change_scene_to_file(TITLE_SCENE)
+
+
+var _last_hp := -1
+
+
+func _on_health_changed(hp: int, max_hp: int) -> void:
+	if _last_hp >= 0 and hp < _last_hp:
+		cam.shake(SHAKE_HURT[0], SHAKE_HURT[1])
+		hud.flash_damage()
+	_last_hp = hp
+	hud.set_health(hp, max_hp)
+
+
 ## Sala que contiene un punto del mundo ("" si ninguna).
 func room_at(p: Vector2) -> String:
 	for id in layouts:
@@ -146,9 +194,13 @@ func enter_room(id: String) -> void:
 	_room_node.process_mode = Node.PROCESS_MODE_PAUSABLE
 	add_child(_room_node)
 	move_child(_room_node, 0)  # detrás de Kira
+	var bg := BackgroundView.new()
+	_room_node.add_child(bg)
+	bg.setup(current)
 	var geo := RoomGeometry.new()
 	_room_node.add_child(geo)
 	geo.setup(current)
+	RenderingServer.set_default_clear_color(Themes.palette(current.theme).bg_bottom)
 	for spawn in current.enemy_spawns:
 		var e := Enemies.create(spawn.kind, spawn.pos, kira)
 		e.died.connect(_on_enemy_died)
@@ -160,6 +212,7 @@ func enter_room(id: String) -> void:
 		boss.target = kira
 		boss.arena = current.rect
 		boss.died.connect(_on_boss_died)
+		boss.slammed.connect(func(): cam.shake(SHAKE_SLAM[0], SHAKE_SLAM[1]))
 		boss.health_changed.connect(hud.set_boss_ratio)
 		_room_node.add_child(boss)
 	if boss == null:

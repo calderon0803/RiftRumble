@@ -9,6 +9,7 @@ const START := "inicio"
 const DATA := {
 	"inicio": {
 		"name": "Inicio",
+		"theme": "piedra",
 		"origin": Vector2i(0, 0),
 		"layout": [
 			"########################################",
@@ -38,6 +39,7 @@ const DATA := {
 	},
 	"pasillo": {
 		"name": "Pasillo",
+		"theme": "piedra",
 		"origin": Vector2i(40, 0),
 		"layout": [
 			"################################################################################",
@@ -67,6 +69,7 @@ const DATA := {
 	},
 	"pozo": {
 		"name": "Pozo",
+		"theme": "agua",
 		"origin": Vector2i(120, -23),
 		"layout": [
 			"##############################",
@@ -119,6 +122,7 @@ const DATA := {
 	},
 	"banco": {
 		"name": "Banco",
+		"theme": "calido",
 		"origin": Vector2i(90, -23),
 		"layout": [
 			"##############################",
@@ -148,6 +152,7 @@ const DATA := {
 	},
 	"mirador": {
 		"name": "Mirador",
+		"theme": "morado",
 		"origin": Vector2i(60, -23),
 		"layout": [
 			"##############################",
@@ -177,6 +182,7 @@ const DATA := {
 	},
 	"abismo": {
 		"name": "Abismo",
+		"theme": "morado",
 		"origin": Vector2i(-40, 0),
 		"layout": [
 			"########################################",
@@ -206,6 +212,7 @@ const DATA := {
 	},
 	"guarida": {
 		"name": "Guarida",
+		"theme": "rojo",
 		"origin": Vector2i(-80, 0),
 		"layout": [
 			"########################################",
@@ -235,6 +242,7 @@ const DATA := {
 	},
 	"cumbre": {
 		"name": "Cumbre",
+		"theme": "agua",
 		"origin": Vector2i(150, -23),
 		"layout": [
 			"##############################",

@@ -11,6 +11,7 @@ const TILE := 32
 
 var id := ""
 var name := ""
+var theme := Themes.DEFAULT
 var rows: Array = []
 var rect := Rect2()             # en píxeles del mundo
 var solids: Array[Rect2] = []   # tramos horizontales de bloques

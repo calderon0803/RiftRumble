@@ -16,8 +16,9 @@ from pathlib import Path
 
 
 class Room:
-    def __init__(self, rid, name, origin, w, h):
+    def __init__(self, rid, name, origin, w, h, theme="piedra"):
         self.id, self.name, self.origin, self.w, self.h = rid, name, origin, w, h
+        self.theme = theme  # paleta (src/world/themes.gd)
         self.g = [["." for _ in range(w)] for _ in range(h)]
         for x in range(w):
             self.g[0][x] = self.g[h - 1][x] = "#"
@@ -71,7 +72,7 @@ rooms.append(b)
 
 # C — Pozo (dos pantallas de alto): se entra por abajo a la izquierda y se sale
 # arriba a la izquierda subiendo por plataformas alternas.
-c = Room("pozo", "Pozo", (120, -23), 30, 46)
+c = Room("pozo", "Pozo", (120, -23), 30, 46, "agua")
 c.exit("left", 41, 44)
 c.exit("left", 6, 9)
 c.exit("right", 1, 6)            # arriba a la derecha (6 de alto): solo trepando por la pared
@@ -88,7 +89,7 @@ rooms.append(c)
 
 # D — Banco, encima del pasillo. Se entra por arriba a la derecha (desde el pozo)
 # y sale abajo a la izquierda hacia el mirador.
-d = Room("banco", "Banco", (90, -23), 30, 23)
+d = Room("banco", "Banco", (90, -23), 30, 23, "calido")
 d.exit("right", 6, 9)
 d.exit("left", 18, 21)
 d.plat(10, 22, 28)               # repisa de la entrada
@@ -98,7 +99,7 @@ d.put(8, 21, "B")
 rooms.append(d)
 
 # E — Mirador: sala sin salida con rastreros sobre plataformas.
-e = Room("mirador", "Mirador", (60, -23), 30, 23)
+e = Room("mirador", "Mirador", (60, -23), 30, 23, "morado")
 e.exit("right", 18, 21)
 e.plat(18, 6, 12)
 e.plat(14, 14, 20)
@@ -112,7 +113,7 @@ rooms.append(e)
 
 # F — Abismo: al otro lado del foso del inicio (hace falta el dash). Corazón extra
 # arriba y un banco antes de la guarida del jefe, a la izquierda.
-f = Room("abismo", "Abismo", (-40, 0), 40, 23)
+f = Room("abismo", "Abismo", (-40, 0), 40, 23, "morado")
 f.exit("right", 18, 21)
 f.exit("left", 18, 21)
 f.put(6, 21, "B")
@@ -127,7 +128,7 @@ rooms.append(f)
 
 # G — Guarida: arena del primer jefe. La puerta (columna 38) se cierra al entrar
 # y se abre al vencerlo. El jefe mide ~2,6 casillas: pasa bajo las repisas.
-g = Room("guarida", "Guarida", (-80, 0), 40, 23)
+g = Room("guarida", "Guarida", (-80, 0), 40, 23, "rojo")
 g.exit("right", 18, 21)
 for row in range(18, 22):
     g.put(38, row, "|")
@@ -139,7 +140,7 @@ rooms.append(g)
 
 # H — Cumbre: a la derecha de lo alto del pozo (hace falta el salto en pared).
 # Un pasadizo estrecho entre dos columnas guarda un corazón en lo alto.
-h = Room("cumbre", "Cumbre", (150, -23), 30, 23)
+h = Room("cumbre", "Cumbre", (150, -23), 30, 23, "agua")
 h.exit("left", 1, 6)
 h.plat(7, 1, 6)                  # repisa de la entrada
 for row in range(4, 20):         # pasadizo de 3 casillas (columnas 15-17)
@@ -164,6 +165,7 @@ out = [
 for r in rooms:
     out.append('\t"%s": {' % r.id)
     out.append('\t\t"name": "%s",' % r.name)
+    out.append('\t\t"theme": "%s",' % r.theme)
     out.append("\t\t\"origin\": Vector2i(%d, %d)," % r.origin)
     out.append('\t\t"layout": [')
     for row in r.rows():

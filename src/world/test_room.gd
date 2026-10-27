@@ -95,7 +95,7 @@ func _on_enemy_died(e: Node2D) -> void:
 	enemies.erase(e)
 
 
-func _on_hit_landed(special: bool) -> void:
+func _on_hit_landed(special: bool, _at := Vector2.ZERO) -> void:
 	if hitstop_enabled:
 		HitStop.apply(get_tree(), special)
 
@@ -105,6 +105,9 @@ func _build() -> void:
 	size_px = layout.rect.size
 	spawn = layout.start
 	enemy_spawns = layout.enemy_spawns.duplicate()
+	var bg := BackgroundView.new()
+	add_child(bg)
+	bg.setup(layout)
 	var geo := RoomGeometry.new()
 	add_child(geo)
 	geo.setup(layout)
