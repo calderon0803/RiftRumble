@@ -1,5 +1,5 @@
-## Kira en la sala: cuerpo físico, entrada, tajos, daño recibido y dibujo
-## provisional (un rectángulo hasta que haya sprites). El origen está a sus pies.
+## Kira en la sala: cuerpo físico, entrada, tajos, daño recibido y su dibujo
+## por piezas (esqueleto animado, art/kira/). El origen está a sus pies.
 class_name Kira
 extends CharacterBody2D
 
@@ -14,6 +14,12 @@ signal landed(fall_speed: float)
 const DUST_FALL_SPEED := 420.0
 
 const SIZE := Vector2(22, 44)
+const RIG := preload("res://art/kira/kira_rig.tres")
+const Anims := preload("res://src/player/rig/cutout_anims.gd")
+## Animación de cada tajo.
+const SLASH_ANIMS := {
+	KiraCombat.Dir.FORWARD: &"slash", KiraCombat.Dir.UP: &"slash_up", KiraCombat.Dir.DOWN: &"slash_down",
+}
 const COLOR_BODY := Color("ff4fa0")
 const COLOR_DARK := Color("9c2a63")
 const MAX_HP := 5
@@ -50,6 +56,8 @@ var _stun := 0.0
 var last_input := {}
 var _hit_this_swing := {}
 var _visual: Placeholder
+var rig: CutoutRig
+var _anim_clock := 0.0
 
 
 func _ready() -> void:
@@ -63,7 +71,11 @@ func _ready() -> void:
 	shape.shape = rect
 	shape.position = Vector2(0, -SIZE.y / 2)
 	add_child(shape)
+	rig = CutoutRig.new()
+	rig.setup(RIG)
+	add_child(rig)
 	_visual = Placeholder.new()
+	_visual.draw_body = false
 	add_child(_visual)
 
 
@@ -84,8 +96,8 @@ func _physics_process(dt: float) -> void:
 	var fall_speed := velocity.y
 	if motor.step(dt, inp.x, inp.jump_pressed, inp.jump_held, was_on_floor, inp.dash_pressed, _wall_dir()) and was_on_floor:
 		_spawn_fx(Dust.new(), position)
-	if motor.is_dashing() and not was_dashing:
-		_visual.dash_started()
+	if motor.is_dashing() and Engine.get_physics_frames() % 3 == 0:
+		_spawn_ghost()
 	if motor.is_dashing():
 		# Durante el dash no se ataca.
 		inp.attack_pressed = false
@@ -94,7 +106,7 @@ func _physics_process(dt: float) -> void:
 	var started := combat.step(dt, inp.attack_pressed, inp.special_pressed, inp.y, is_on_floor())
 	if not started.is_empty():
 		_hit_this_swing.clear()
-		_visual.slash(started, motor.facing)
+		rig.play(&"special" if started.special else SLASH_ANIMS[started.dir], true)
 	if combat.is_active():
 		_resolve_swing()
 	if combat.notches != notches_before:
@@ -109,6 +121,7 @@ func _physics_process(dt: float) -> void:
 
 	health.step(dt)
 	_check_contact_damage()
+	_update_rig(dt)
 	_visual.scale.x = motor.facing
 	_visual.dashing = motor.is_dashing()
 	_visual.wall_sliding = motor.wall_sliding
@@ -133,6 +146,48 @@ func respawn(at: Vector2) -> void:
 	_stun = 0.0
 	health_changed.emit(health.hp, health.max_hp)
 	notches_changed.emit(combat.notches)
+
+
+## Elige la animación según lo que está haciendo: tajo o golpe recibido en curso >
+## dash > pared > aire (subiendo / cayendo) > correr > reposo.
+func _update_rig(dt: float) -> void:
+	_anim_clock += dt
+	var cur := rig.current()
+	var busy := (cur in [&"slash", &"slash_up", &"slash_down", &"special", &"hit"]) and not rig.finished()
+	var speed := absf(velocity.x)
+	var rate := 1.0
+	if not busy:
+		var anim := &"idle"
+		if motor.is_dashing():
+			anim = &"dash"
+		elif motor.wall_sliding:
+			anim = &"wall_slide"
+		elif not is_on_floor():
+			anim = &"jump" if velocity.y < 0.0 else &"fall"
+		elif speed > 20.0:
+			anim = &"run"
+			rate = clampf(speed / Anims.RUN_REFERENCE_SPEED, 0.6, 1.5)
+		rig.play(anim)
+	rig.update(_anim_clock, motor.facing < 0, rate, speed)
+	var blink := health.invulnerable > 0.0 and int(Time.get_ticks_msec() / 70) % 2 == 0
+	rig.modulate.a = 0.35 if blink else 1.0
+
+
+## Copia de Kira que se desvanece (estela del dash).
+func _spawn_ghost() -> void:
+	if get_parent() == null:
+		return
+	var g := CutoutRig.new()
+	g.setup(RIG)
+	g.copy_state(rig)
+	g.update(_anim_clock, motor.facing < 0, 0.0, 0.0)
+	g.modulate = Color(1.0, 0.55, 0.85, 0.5)
+	g.position = position
+	g.z_index = -1
+	get_parent().add_child(g)
+	var t := g.create_tween()
+	t.tween_property(g, "modulate:a", 0.0, 0.22)
+	t.tween_callback(g.queue_free)
 
 
 ## Efecto (polvo, chispas) en el mismo nivel que Kira, para que no la siga.
@@ -226,6 +281,7 @@ func _check_contact_damage() -> void:
 	var away := -1.0 if enemy.global_position.x > global_position.x else 1.0
 	velocity = Vector2(HURT_KNOCKBACK.x * away, HURT_KNOCKBACK.y)
 	_stun = HURT_STUN
+	rig.play(&"hit", true)
 	health_changed.emit(health.hp, health.max_hp)
 	if health.is_dead():
 		died.emit()
@@ -271,62 +327,23 @@ func _read_input() -> Dictionary:
 	return inp
 
 
-## Dibujo provisional: cuerpo rosa con franja y ojo hacia donde mira, y el tajo
-## como un arco claro que se desvanece.
+## Efectos de dibujo encima de Kira: roce en la pared (y el cuerpo provisional de
+## rectángulo si `draw_body`, para pruebas sin esqueleto).
 class Placeholder extends Node2D:
-	const SLASH_TIME := 0.16
-	const TRAIL_TIME := 0.2
+	var draw_body := true
 	var blink := false
 	var dashing := false
 	var wall_sliding := false
-	var _trail_t := 0.0
-	var _slash := {}
-	var _slash_t := 0.0
-
-	func slash(attack: Dictionary, _facing: int) -> void:
-		_slash = attack
-		_slash_t = SLASH_TIME
-
-	func dash_started() -> void:
-		_trail_t = TRAIL_TIME
-
-	func _process(dt: float) -> void:
-		if _slash_t > 0.0:
-			_slash_t -= dt
-			queue_redraw()
-		if _trail_t > 0.0:
-			_trail_t -= dt
-			queue_redraw()
 
 	func _draw() -> void:
 		var s := Kira.SIZE
-		var alpha := 0.35 if blink and int(Time.get_ticks_msec() / 70) % 2 == 0 else 1.0
-		if _trail_t > 0.0:
-			# Estela del dash: copias que se desvanecen detrás.
-			var k := _trail_t / TRAIL_TIME
-			for i in 3:
-				var back := -(i + 1) * 14.0
-				draw_rect(Rect2(back - s.x / 2, -s.y, s.x, s.y), Color(Kira.COLOR_BODY, 0.35 * k / (i + 1)))
-		draw_rect(Rect2(-s.x / 2, -s.y, s.x, s.y), Color(Kira.COLOR_BODY, alpha))
-		draw_rect(Rect2(-s.x / 2, -s.y * 0.45, s.x, 6), Color(Kira.COLOR_DARK, alpha))
-		draw_rect(Rect2(s.x / 2 - 8, -s.y + 9, 4, 5), Color(Kira.COLOR_DARK, alpha))
+		if draw_body:
+			var alpha := 0.35 if blink and int(Time.get_ticks_msec() / 70) % 2 == 0 else 1.0
+			draw_rect(Rect2(-s.x / 2, -s.y, s.x, s.y), Color(Kira.COLOR_BODY, alpha))
+			draw_rect(Rect2(-s.x / 2, -s.y * 0.45, s.x, 6), Color(Kira.COLOR_DARK, alpha))
+			draw_rect(Rect2(s.x / 2 - 8, -s.y + 9, 4, 5), Color(Kira.COLOR_DARK, alpha))
 		if wall_sliding:
 			# Rozando la pared (que queda a la espalda: mira hacia fuera).
 			for i in 3:
 				var y := -s.y + 8.0 + i * 12.0 + fmod(Time.get_ticks_msec() / 20.0, 12.0)
 				draw_line(Vector2(-s.x / 2 - 2, y), Vector2(-s.x / 2 - 6, y + 4), Color(1, 1, 1, 0.5), 2.0)
-		if _slash_t <= 0.0 or _slash.is_empty():
-			return
-		var k := _slash_t / SLASH_TIME
-		var col := Color(1.0, 0.95, 0.7, k) if _slash.special else Color(1, 1, 1, k * 0.9)
-		var box: Array = Kira.SPECIAL_HITBOX if _slash.special else Kira.HITBOX[_slash.dir]
-		var c: Vector2 = box[0]
-		var r: float = maxf(box[1].x, box[1].y) * 0.55
-		var from := -PI * 0.45
-		match _slash.dir:
-			KiraCombat.Dir.UP:
-				from = PI * 1.05
-			KiraCombat.Dir.DOWN:
-				from = PI * 0.05
-		var pivot := c - Vector2(r * 0.5, 0) if _slash.dir == KiraCombat.Dir.FORWARD else Vector2(0, -22)
-		draw_arc(pivot, r, from, from + PI * 0.9, 16, col, 6.0 if _slash.special else 4.0)

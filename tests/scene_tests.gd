@@ -105,6 +105,7 @@ func _run() -> void:
 	check(kira.is_on_floor(), "vuelve a caer al suelo")
 
 	await _combat(room, kira)
+	await _animations(room, kira)
 
 	print("\n%d/%d comprobaciones correctas" % [_checks - _failures, _checks])
 	room.queue_free()
@@ -252,4 +253,63 @@ func _combat(room: TestRoom, kira: Kira) -> void:
 	e8.dir = 1
 	await _physics(120)
 	check(e8.position.x < 63.0 * room.TILE and e8.dir == -1, "se da la vuelta al llegar a una pared")
+	_clear_enemies(room)
+
+
+## Espera hasta `frames` fotogramas a que Kira esté en la animación `anim`.
+func _wait_anim(kira: Kira, anim: StringName, frames := 30) -> bool:
+	for i in frames:
+		if kira.rig.current() == anim:
+			return true
+		await physics_frame
+	return kira.rig.current() == anim
+
+
+func _animations(room: TestRoom, kira: Kira) -> void:
+	print("Dibujo y animaciones")
+	_clear_enemies(room)
+	var sprites := kira.rig.get_children().filter(func(n): return n is Sprite2D)
+	check(sprites.size() == 13, "Kira se dibuja por piezas (13 piezas)")
+	kira.grant("dash")
+	kira.respawn(Vector2(10.5 * room.TILE, 22.0 * room.TILE))
+	kira.scripted_input = {"x": 0.0}
+	await _physics(10)
+	check(await _wait_anim(kira, &"idle"), "quieta: reposo")
+	kira.scripted_input = {"x": 1.0}
+	check(await _wait_anim(kira, &"run"), "andando: carrera")
+	kira.scripted_input = {"x": 1.0, "jump": true}
+	check(await _wait_anim(kira, &"jump"), "subiendo: salto")
+	check(await _wait_anim(kira, &"fall", 60), "bajando: caída")
+	kira.scripted_input = {"x": 0.0}
+	await _physics(40)
+	kira.scripted_input = {"x": 0.0, "attack": true}
+	check(await _wait_anim(kira, &"slash", 3), "tajo hacia delante")
+	check(kira.rig.current() == &"slash", "y no lo corta otra animación")
+	kira.scripted_input = {"x": 0.0}
+	await _physics(30)
+	kira.scripted_input = {"x": 0.0, "y": -1.0, "attack": true}
+	check(await _wait_anim(kira, &"slash_up", 3), "tajo hacia arriba")
+	kira.scripted_input = {"x": 0.0}
+	await _physics(30)
+	kira.scripted_input = {"x": 0.0, "jump": true}
+	await _physics(12)
+	kira.scripted_input = {"x": 0.0, "y": 1.0, "jump": true, "attack": true}
+	check(await _wait_anim(kira, &"slash_down", 3), "tajo hacia abajo en el aire")
+	kira.scripted_input = {"x": 0.0}
+	await _physics(60)
+	kira.combat.notches = 3
+	kira.scripted_input = {"x": 0.0, "special": true}
+	check(await _wait_anim(kira, &"special", 3), "tajo de filo")
+	kira.scripted_input = {"x": 0.0}
+	await _physics(40)
+	kira.scripted_input = {"x": 1.0, "dash": true}
+	check(await _wait_anim(kira, &"dash", 3), "dash")
+	await _physics(3)
+	var ghosts := room.get_children().filter(func(n): return n is CutoutRig)
+	check(ghosts.size() > 0, "el dash deja una estela de copias de Kira")
+	kira.scripted_input = {"x": 0.0}
+	await _physics(30)
+	kira.health.invulnerable = 0.0
+	_crawler_at(room, kira.position.x / room.TILE + 0.3, 22.0)
+	check(await _wait_anim(kira, &"hit", 10), "al recibir daño: golpe")
 	_clear_enemies(room)
