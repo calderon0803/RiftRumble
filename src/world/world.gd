@@ -25,7 +25,7 @@ var cam: Camera2D
 var visited := {}            # id → true
 var bench_room := ""         # último banco ("" = ninguno: se vuelve al inicio)
 var bench_pos := Vector2.INF
-var enemies: Array[Crawler] = []
+var enemies: Array[Node2D] = []
 var collected := {}          # id de objeto → true
 var bosses_defeated := {}    # id de sala → true
 var boss: BossGuardian
@@ -150,9 +150,8 @@ func enter_room(id: String) -> void:
 	var geo := RoomGeometry.new()
 	_room_node.add_child(geo)
 	geo.setup(current)
-	for p in current.enemy_spawns:
-		var e := Crawler.new()
-		e.position = p
+	for spawn in current.enemy_spawns:
+		var e := Enemies.create(spawn.kind, spawn.pos, kira)
 		e.died.connect(_on_enemy_died)
 		_room_node.add_child(e)
 		enemies.append(e)
@@ -323,10 +322,10 @@ func _check_pickups() -> void:
 			collect(pk)
 
 
-func _on_enemy_died(e: Crawler) -> void:
+func _on_enemy_died(e: Node2D) -> void:
 	var fx := Burst.new()
-	fx.color = Crawler.COLOR
-	fx.position = e.position + Vector2(0, -Crawler.SIZE.y / 2)
+	fx.color = e.color
+	fx.position = Enemies.center_of(e)
 	_room_node.add_child(fx)
 	enemies.erase(e)
 

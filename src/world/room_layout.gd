@@ -1,7 +1,8 @@
 ## Lee el plano de texto de una sala (sin nodos): bloques, pinchos, enemigos,
 ## banco e inicio, ya en píxeles del mundo.
-## «#» bloque, «^» pinchos, «c» rastrero, «B» banco, «K» inicio, «D» dash,
-## «H» corazón extra, «G» jefe, «|» puerta de la arena; lo demás, aire.
+## «#» bloque, «^» pinchos, «c» rastrero, «v» revoloteador, «s» escupidor,
+## «B» banco, «K» inicio, «D» dash, «H» corazón extra, «G» jefe, «|» puerta de
+## la arena; lo demás, aire.
 ## Las filas cortas se rellenan con aire.
 class_name RoomLayout
 extends RefCounted
@@ -14,7 +15,8 @@ var rows: Array = []
 var rect := Rect2()             # en píxeles del mundo
 var solids: Array[Rect2] = []   # tramos horizontales de bloques
 var spikes: Array[Rect2] = []
-var enemy_spawns: Array[Vector2] = []   # pies
+## Enemigos: {kind, pos}; pos son los pies, salvo el revoloteador (centro de la casilla).
+var enemy_spawns: Array[Dictionary] = []
 var bench := Vector2.INF                # pies; INF si no hay
 var start := Vector2.INF                # pies; INF si no hay
 var boss_spawn := Vector2.INF           # pies; INF si no hay
@@ -45,8 +47,6 @@ static func parse(layout: Array, origin_tiles := Vector2i.ZERO, room_id := "", r
 			match ch:
 				"K":
 					r.start = feet
-				"c":
-					r.enemy_spawns.append(feet)
 				"B":
 					r.bench = feet
 				"G":
@@ -54,6 +54,10 @@ static func parse(layout: Array, origin_tiles := Vector2i.ZERO, room_id := "", r
 				"|":
 					var cell := Rect2(o + Vector2(x, y) * TILE, Vector2.ONE * TILE)
 					r.gate = cell if r.gate.size == Vector2.ZERO else r.gate.merge(cell)
+			if Enemies.KINDS.has(ch):
+				var kind: String = Enemies.KINDS[ch]
+				var center := o + Vector2((x + 0.5) * TILE, (y + 0.5) * TILE)
+				r.enemy_spawns.append({"kind": kind, "pos": center if kind == "flyer" else feet})
 			if PICKUP_KINDS.has(ch):
 				r.pickups.append({
 					"kind": PICKUP_KINDS[ch],

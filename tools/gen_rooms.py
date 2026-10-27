@@ -5,8 +5,9 @@ su tamaño, sus salidas (huecos en el borde) y lo que hay dentro. Así los hueco
 de salas vecinas encajan por construcción; tests/world_tests.gd lo comprueba.
 
 Uso: python tools/gen_rooms.py
-Símbolos: # bloque, ^ pinchos, c rastrero, B banco, K inicio, D dash, H corazón extra,
-G jefe, | puerta de la arena (abierta hasta que empieza el combate), . aire.
+Símbolos: # bloque, ^ pinchos, c rastrero, v revoloteador, s escupidor, B banco,
+K inicio, D dash, H corazón extra, G jefe, | puerta de la arena (abierta hasta que
+empieza el combate), . aire.
 Reglas de diseño (para que todo sea alcanzable con el salto de Kira, ~5 casillas):
 - entre plataformas, como mucho 4 casillas de subida y 2-3 de hueco;
 - los fosos, como mucho 4 casillas de ancho (salvo los que piden dash: 7).
@@ -65,6 +66,7 @@ b.plat(14, 52, 57)
 b.put(15, 21, "c")
 b.put(45, 21, "c")
 b.put(66, 21, "c")
+b.put(55, 13, "s")               # escupidor sobre la plataforma alta
 rooms.append(b)
 
 # C — Pozo (dos pantallas de alto): se entra por abajo a la izquierda y se sale
@@ -78,6 +80,8 @@ for i, row in enumerate([41, 37, 33, 29, 25, 21, 17, 13]):
     c0, c1 = right if i % 2 == 0 else left
     c.plat(row, c0, c1)
 c.put(11, 28, "c")               # sobre la plataforma de la fila 29
+c.put(13, 35, "v")               # revoloteadores en el hueco del pozo
+c.put(21, 19, "v")
 rooms.append(c)
 
 # D — Banco, encima del pasillo. Se entra por arriba a la derecha (desde el pozo)
@@ -101,6 +105,7 @@ e.put(9, 17, "c")
 e.put(17, 13, "c")
 e.put(20, 21, "c")
 e.put(7, 9, "D")                 # el dash, en lo más alto
+e.put(24, 7, "v")
 rooms.append(e)
 
 # F — Abismo: al otro lado del foso del inicio (hace falta el dash). Corazón extra
@@ -115,6 +120,7 @@ f.plat(10, 10, 15)
 f.put(20, 21, "c")
 f.put(30, 21, "c")
 f.put(12, 9, "H")
+f.put(14, 9, "s")                # vigila el corazón
 rooms.append(f)
 
 # G — Guarida: arena del primer jefe. La puerta (columna 38) se cierra al entrar
@@ -131,8 +137,8 @@ rooms.append(g)
 out = [
     "## Salas del mundo. GENERADO por tools/gen_rooms.py: edita el generador, no este archivo.",
     "## origin: posición de la esquina superior izquierda en casillas del mundo.",
-    "## Símbolos: # bloque, ^ pinchos, c rastrero, B banco, K inicio, D dash, H corazón extra,",
-    "## G jefe, | puerta de la arena, . aire.",
+    "## Símbolos: # bloque, ^ pinchos, c rastrero, v revoloteador, s escupidor, B banco,",
+    "## K inicio, D dash, H corazón extra, G jefe, | puerta de la arena, . aire.",
     "class_name Rooms",
     "extends RefCounted",
     "",

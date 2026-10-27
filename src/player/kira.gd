@@ -177,6 +177,8 @@ func _check_contact_damage() -> void:
 	var dmg: int = enemy.contact_damage if "contact_damage" in enemy else 1
 	if not health.damage(dmg, HURT_INVULNERABLE):
 		return
+	if enemy.has_method("on_hit_kira"):
+		enemy.on_hit_kira()
 	var away := -1.0 if enemy.global_position.x > global_position.x else 1.0
 	velocity = Vector2(HURT_KNOCKBACK.x * away, HURT_KNOCKBACK.y)
 	_stun = HURT_STUN

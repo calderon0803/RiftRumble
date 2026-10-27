@@ -36,8 +36,8 @@ var hud: Hud
 var spawn := Vector2.ZERO
 var size_px := Vector2.ZERO
 var hitstop_enabled := true
-var enemy_spawns: Array[Vector2] = []
-var enemies: Array[Crawler] = []
+var enemy_spawns: Array[Dictionary] = []
+var enemies: Array[Node2D] = []
 var layout: RoomLayout
 
 
@@ -80,18 +80,17 @@ func _spawn_enemies() -> void:
 		if is_instance_valid(e):
 			e.queue_free()
 	enemies.clear()
-	for p in enemy_spawns:
-		var e := Crawler.new()
-		e.position = p
+	for spawn in enemy_spawns:
+		var e := Enemies.create(spawn.kind, spawn.pos, kira)
 		e.died.connect(_on_enemy_died)
 		add_child(e)
 		enemies.append(e)
 
 
-func _on_enemy_died(e: Crawler) -> void:
+func _on_enemy_died(e: Node2D) -> void:
 	var fx := Burst.new()
-	fx.color = Crawler.COLOR
-	fx.position = e.position + Vector2(0, -Crawler.SIZE.y / 2)
+	fx.color = e.color
+	fx.position = Enemies.center_of(e)
 	add_child(fx)
 	enemies.erase(e)
 

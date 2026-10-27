@@ -152,7 +152,7 @@ func _run() -> void:
 		if w.current.id != "banco":
 			break
 	check(w.current.id == "mirador", "por la izquierda del banco se llega al mirador")
-	check(w.enemies.size() == 3, "con sus 3 rastreros")
+	check(w.enemies.filter(func(e): return e is Crawler).size() == 3, "con sus 3 rastreros")
 	kira.scripted_input = {"x": 0.0}
 
 	print("Cargar partida")
