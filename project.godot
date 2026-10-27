@@ -1,29 +1,27 @@
 ; Engine configuration file.
-; RIFT RUMBLE — prueba de concepto (Fase 1)
+; RIFT RUMBLE — metroidvania 2D lateral
 
 config_version=5
 
 [application]
 
 config/name="RIFT RUMBLE"
-config/description="Tower defense isométrico 2.5D"
-run/main_scene="res://src/ui/campaign.tscn"
+config/description="Metroidvania 2D lateral"
+run/main_scene="res://src/world/test_room.tscn"
 config/features=PackedStringArray("4.7")
-
-[autoload]
-
-Save="*res://src/services/save_service.gd"
-Session="*res://src/services/session.gd"
 
 [display]
 
 window/size/viewport_width=1280
 window/size/viewport_height=720
 window/stretch/mode="canvas_items"
-window/stretch/aspect="expand"
+window/stretch/aspect="keep"
+
+[physics]
+
+common/physics_ticks_per_second=60
 
 [rendering]
 
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
-textures/canvas_textures/default_texture_filter=0
