@@ -7,7 +7,7 @@ config_version=5
 
 config/name="RIFT RUMBLE"
 config/description="Metroidvania 2D lateral"
-run/main_scene="res://src/world/test_room.tscn"
+run/main_scene="res://src/world/world.tscn"
 config/features=PackedStringArray("4.7")
 
 [display]

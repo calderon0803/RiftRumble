@@ -1,6 +1,5 @@
-## Sala de prueba: se construye a partir de un plano de texto.
-## «#» = bloque sólido, «K» = donde aparece Kira, «c» = rastrero, cualquier otra
-## cosa = aire. Las filas cortas se rellenan con aire.
+## Sala de prueba (para los tests y para probar mecánicas sueltas): una sola sala
+## a partir de un plano de texto (ver RoomLayout), con Kira, cámara y marcador.
 class_name TestRoom
 extends Node2D
 
@@ -31,12 +30,6 @@ const LAYOUT := [
 	"########################################################################",
 ]
 const COLOR_BG := Color("141824")
-const COLOR_BLOCK := Color("3a4258")
-const COLOR_EDGE := Color("6b7896")
-
-## Micropausa al acertar un golpe (segundos reales).
-const HITSTOP := 0.05
-const HITSTOP_SPECIAL := 0.10
 
 var kira: Kira
 var hud: Hud
@@ -45,7 +38,7 @@ var size_px := Vector2.ZERO
 var hitstop_enabled := true
 var enemy_spawns: Array[Vector2] = []
 var enemies: Array[Crawler] = []
-var _solids: Array[Rect2] = []
+var layout: RoomLayout
 
 
 func _ready() -> void:
@@ -104,48 +97,15 @@ func _on_enemy_died(e: Crawler) -> void:
 
 
 func _on_hit_landed(special: bool) -> void:
-	if not hitstop_enabled:
-		return
-	Engine.time_scale = 0.05
-	await get_tree().create_timer(HITSTOP_SPECIAL if special else HITSTOP, true, false, true).timeout
-	Engine.time_scale = 1.0
+	if hitstop_enabled:
+		HitStop.apply(get_tree(), special)
 
 
 func _build() -> void:
-	var width := 0
-	for row in LAYOUT:
-		width = maxi(width, row.length())
-	size_px = Vector2(width * TILE, LAYOUT.size() * TILE)
-	var body := StaticBody2D.new()
-	add_child(body)
-	for y in LAYOUT.size():
-		var row: String = LAYOUT[y]
-		var x := 0
-		while x < row.length():
-			var ch := row[x]
-			if ch == "K":
-				spawn = Vector2((x + 0.5) * TILE, (y + 1) * TILE)
-			elif ch == "c":
-				enemy_spawns.append(Vector2((x + 0.5) * TILE, (y + 1) * TILE))
-			if ch != "#":
-				x += 1
-				continue
-			# Tramo horizontal de bloques: una sola forma de colisión.
-			var x0 := x
-			while x < row.length() and row[x] == "#":
-				x += 1
-			var r := Rect2(x0 * TILE, y * TILE, (x - x0) * TILE, TILE)
-			_solids.append(r)
-			var shape := CollisionShape2D.new()
-			var rect := RectangleShape2D.new()
-			rect.size = r.size
-			shape.shape = rect
-			shape.position = r.get_center()
-			body.add_child(shape)
-	queue_redraw()
-
-
-func _draw() -> void:
-	for r in _solids:
-		draw_rect(r, COLOR_BLOCK)
-		draw_rect(Rect2(r.position, Vector2(r.size.x, 3)), COLOR_EDGE)
+	layout = RoomLayout.parse(LAYOUT)
+	size_px = layout.rect.size
+	spawn = layout.start
+	enemy_spawns = layout.enemy_spawns.duplicate()
+	var geo := RoomGeometry.new()
+	add_child(geo)
+	geo.setup(layout)
