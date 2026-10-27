@@ -15,9 +15,9 @@ const AIR_ACCEL := 2200.0
 const AIR_DECEL := 1200.0
 
 ## Salto: altura máxima (manteniendo), mínima (toque) y tiempo hasta lo alto.
-const JUMP_HEIGHT := 4.2 * TILE
+const JUMP_HEIGHT := 5.3 * TILE
 const JUMP_MIN_HEIGHT := 1.2 * TILE
-const TIME_TO_APEX := 0.36
+const TIME_TO_APEX := 0.39
 const FALL_GRAVITY_MULT := 1.7    # cae más rápido de lo que sube
 const MAX_FALL_SPEED := 960.0
 

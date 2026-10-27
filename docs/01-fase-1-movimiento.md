@@ -15,9 +15,9 @@ Kira es un rectángulo provisional hasta que haya sprites.
 |---|---|---|
 | Velocidad de carrera | 280 px/s (8,75 casillas/s) | |
 | Arranque / frenada en suelo | 6 / 5 fotogramas | respuesta inmediata |
-| Salto máximo (manteniendo) | 4,2 casillas (≈4 real) | |
+| Salto máximo (manteniendo) | 5,3 casillas (≈5,1 real) | |
 | Salto mínimo (toque) | 1,2 casillas (≈1,5 real) | altura variable al soltar |
-| Tiempo hasta lo alto | 0,36 s | |
+| Tiempo hasta lo alto | 0,39 s | |
 | Gravedad al caer | ×1,7 | cae más rápido de lo que sube |
 | Velocidad máxima de caída | 960 px/s | |
 | Margen tras salir de un borde | 0,10 s | |

@@ -67,7 +67,7 @@ func _initialize() -> void:
 			land = i
 			break
 	var air_time := (land - 2) * DT
-	check(air_time > 0.55 and air_time < 0.75, "salto completo en el aire %.2f s (cae más rápido de lo que sube)" % air_time)
+	check(air_time > 0.6 and air_time < 0.8, "salto completo en el aire %.2f s (cae más rápido de lo que sube)" % air_time)
 
 	print("Carrera")
 	var run := simulate(60, func(_f): return [1.0, false])

@@ -55,7 +55,8 @@ func _run() -> void:
 		await physics_frame
 		top = minf(top, kira.position.y)
 	var h := (y0 - top) / KiraMotor.TILE
-	check(h > 3.8 and h < 4.4, "salta %.2f casillas" % h)
+	var target := KiraMotor.JUMP_HEIGHT / KiraMotor.TILE
+	check(h > target * 0.9 and h < target * 1.02, "salta %.2f casillas" % h)
 	kira.scripted_input = {"x": 0.0, "jump": false}
 	await _physics(5)
 	kira.scripted_input = {"x": 1.0, "jump": true}
