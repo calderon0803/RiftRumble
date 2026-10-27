@@ -1,7 +1,5 @@
-## Tests de escena (con el árbol y la vista reales, sin ventana).
+## Tests en la sala de prueba real, con física (sin ventana).
 ## Uso: godot --headless --path . --script res://tests/scene_tests.gd
-## Comprueba que reiniciar y pausar no dejan entidades, nodos huérfanos ni
-## simulación avanzando.
 extends SceneTree
 
 var _failures := 0
@@ -19,77 +17,68 @@ func _initialize() -> void:
 	_run.call_deferred()
 
 
-func _frames(n: int) -> void:
+func _physics(n: int) -> void:
 	for i in n:
-		await process_frame
+		await physics_frame
 
 
 func _run() -> void:
-	var main: Node = load("res://src/view/main.tscn").instantiate()
-	root.add_child(main)
-	await _frames(5)
-	main.autoplay = true
-	Engine.time_scale = 4.0
+	var room: TestRoom = load("res://src/world/test_room.tscn").instantiate()
+	root.add_child(room)
+	var kira: Kira = room.kira
+	kira.scripted_input = {"x": 0.0, "jump": false}
+	var floor_y := float((room.LAYOUT.size() - 1) * room.TILE)
 
-	# Partida en marcha y reinicio repetido.
-	await _frames(120)
-	main._restart()
-	await _frames(90)
-	var baseline := Performance.get_monitor(Performance.OBJECT_NODE_COUNT)
-	for i in 10:
-		await _frames(60)  # con enemigos, proyectiles y efectos activos
-		main._restart()
-	await _frames(90)  # deja que se liberen los nodos marcados con queue_free
-	var after := Performance.get_monitor(Performance.OBJECT_NODE_COUNT)
-	check(absf(after - baseline) <= 40, "10 reinicios no acumulan nodos (%d → %d)" % [baseline, after])
-	check(Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT) == 0, "sin nodos huérfanos")
-	check(main.world.tick < 30 * 4 * 3, "el reinicio crea una simulación nueva (tick %d)" % main.world.tick)
+	print("Suelo")
+	await _physics(30)
+	check(kira.is_on_floor(), "aparece y se queda en el suelo")
+	check(absf(kira.position.y - floor_y) < 1.0, "los pies a la altura del suelo (%.1f / %.1f)" % [kira.position.y, floor_y])
+	await _physics(60)
+	check(kira.is_on_floor(), "sigue en el suelo quieta (no rebota ni se despega)")
 
-	# Pausa: la simulación no avanza.
-	main.paused = true
-	var t0: int = main.world.tick
-	await _frames(60)
-	check(main.world.tick == t0, "en pausa la simulación no avanza")
-	main.paused = false
-	await _frames(30)
-	check(main.world.tick > t0, "al reanudar vuelve a avanzar")
+	print("Pared")
+	kira.scripted_input = {"x": 1.0, "jump": false}
+	await _physics(420)
+	# Bloque de 2 casillas de alto en la columna 47 de la fila del suelo.
+	var wall_x := 47.0 * room.TILE
+	check(kira.position.x <= wall_x - kira.SIZE.x / 2 + 0.5, "choca con el bloque y no lo atraviesa (x %.1f, pared %.0f)" % [kira.position.x, wall_x])
+	check(kira.position.x > wall_x - kira.SIZE.x, "llega hasta tocarlo")
+	check(kira.is_on_floor(), "sigue en el suelo contra la pared")
 
-	Engine.time_scale = 1.0
-	main.queue_free()
-	await _frames(2)
+	print("Salto en la sala")
+	kira.scripted_input = {"x": 0.0, "jump": false}
+	await _physics(10)
+	var y0 := kira.position.y
+	var top := y0
+	kira.scripted_input = {"x": 0.0, "jump": true}
+	for i in 50:
+		await physics_frame
+		top = minf(top, kira.position.y)
+	var h := (y0 - top) / KiraMotor.TILE
+	check(h > 3.8 and h < 4.4, "salta %.2f casillas" % h)
+	kira.scripted_input = {"x": 0.0, "jump": false}
+	await _physics(5)
+	kira.scripted_input = {"x": 1.0, "jump": true}
+	await _physics(40)
+	check(kira.position.x > 47.0 * room.TILE and kira.is_on_floor(), "puede subirse al bloque de 2 casillas saltando")
 
-	# Flujo de pantallas: campaña → preparación → partida → volver al mapa.
-	var camp: Node = load("res://src/ui/campaign.tscn").instantiate()
-	root.add_child(camp)
-	current_scene = camp
-	await _frames(10)
-	camp._open_prep("w1_m5")
-	await _frames(5)
-	check(not camp._play_button.disabled, "con 2 héroes elegidos se puede jugar")
-	camp._toggle_hero(false, camp._chosen[0])
-	check(camp._play_button.disabled, "con 1 héroe no se puede jugar")
-	camp._toggle_hero(true, "hero_portal" if not "hero_portal" in camp._chosen else "hero_blade")
-	var chosen: PackedStringArray = camp._chosen.duplicate()
-	# Quita una torre del equipo: la partida solo debe permitir las elegidas.
-	var dropped: String = camp._chosen_towers[0]
-	camp._toggle_tower(false, dropped, Button.new())
-	var camp_towers: PackedStringArray = camp._chosen_towers.duplicate()
-	camp._play()
-	await _frames(10)
-	var game: Node = current_scene
-	check(game != null and game.name == "Main", "jugar abre la partida")
-	check(root.get_node("Session").mission_id == "w1_m5", "la sesión lleva la misión elegida")
-	var hero_ids := []
-	for h in game.world.heroes.heroes:
-		hero_ids.append(String(h.def.id))
-	check(hero_ids == Array(chosen), "la partida usa los héroes elegidos, en ese orden")
-	check(Array(game.world.allowed_towers) == Array(camp_towers), "la partida usa el equipo de torres elegido")
-	check(game.world.build(0, StringName(dropped)) == &"unknown_tower", "no se puede construir una torre fuera del equipo")
-	game._go_to_campaign()
-	await _frames(10)
-	check(current_scene != null and current_scene.name == "Campaign", "«Volver al mapa» regresa a la campaña")
-	current_scene.queue_free()
-	await _frames(2)
+	print("Techo")
+	kira.respawn(room.spawn)
+	kira.scripted_input = {"x": 0.0, "jump": false}
+	await _physics(20)
+	# Bajo la plataforma de la columna 10-14 (fila 16): techo a 5 casillas del suelo.
+	kira.position.x = 12.5 * room.TILE
+	await _physics(5)
+	kira.scripted_input = {"x": 0.0, "jump": true}
+	var min_y := kira.position.y
+	for i in 40:
+		await physics_frame
+		min_y = minf(min_y, kira.position.y)
+	var ceiling_bottom := 17.0 * room.TILE
+	check(min_y - kira.SIZE.y >= ceiling_bottom - 1.0, "la cabeza no atraviesa el techo")
+	await _physics(60)
+	check(kira.is_on_floor(), "vuelve a caer al suelo")
 
-	print("\n%d comprobaciones, %d fallos" % [_checks, _failures])
+	print("\n%d/%d comprobaciones correctas" % [_checks - _failures, _checks])
+	room.queue_free()
 	quit(1 if _failures > 0 else 0)
