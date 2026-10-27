@@ -1,13 +1,15 @@
 ## El mundo: salas colocadas en una cuadrícula común (ver Rooms). Al salir de una
 ## sala se entra en la que hay en ese punto. Gestiona pinchos (vuelta al último
 ## suelo seguro), bancos (descansar y guardar), muerte (vuelta al último banco),
-## el mapa y la partida guardada.
+## objetos (dash, corazón extra), el mapa y la partida guardada.
 class_name World
 extends Node2D
 
 const COLOR_BG := Color("141824")
 const FADE_TIME := 0.18
 const BENCH_REACH := 30.0
+const PICKUP_REACH := 30.0
+const HEART_BONUS := 1
 
 ## Dónde se guarda la partida (los tests usan otro archivo).
 var save_path := SaveGame.DEFAULT_PATH
@@ -23,6 +25,8 @@ var visited := {}            # id → true
 var bench_room := ""         # último banco ("" = ninguno: se vuelve al inicio)
 var bench_pos := Vector2.INF
 var enemies: Array[Crawler] = []
+var collected := {}          # id de objeto → true
+var pickups: Array[Pickup] = []
 var last_safe := Vector2.ZERO
 var _room_node: Node2D
 var _fade: ColorRect
@@ -68,8 +72,14 @@ func _ready() -> void:
 	if data.get("bench_room", "") in layouts:
 		bench_room = data.bench_room
 		bench_pos = Vector2(data.bench[0], data.bench[1])
-		for id in data.get("visited", []):
-			visited[id] = true
+	for id in data.get("visited", []):
+		visited[id] = true
+	for id in data.get("collected", []):
+		collected[id] = true
+	for a in data.get("abilities", []):
+		kira.grant(a)
+	if data.has("max_hp"):
+		kira.set_max_hp(int(data.max_hp))
 	respawn_at_checkpoint()
 
 
@@ -101,6 +111,7 @@ func _physics_process(_dt: float) -> void:
 	if kira.is_on_floor() and not _near_spikes(kira.position):
 		last_safe = kira.position
 	_check_bench()
+	_check_pickups()
 
 
 ## Sala que contiene un punto del mundo ("" si ninguna).
@@ -115,6 +126,7 @@ func enter_room(id: String) -> void:
 	if _room_node:
 		_room_node.queue_free()
 	enemies.clear()
+	pickups.clear()
 	current = layouts[id]
 	visited[id] = true
 	_room_node = Node2D.new()
@@ -130,6 +142,15 @@ func enter_room(id: String) -> void:
 		e.died.connect(_on_enemy_died)
 		_room_node.add_child(e)
 		enemies.append(e)
+	for item in current.pickups:
+		if collected.has(item.id):
+			continue
+		var pk := Pickup.new()
+		pk.kind = item.kind
+		pk.id = item.id
+		pk.position = item.pos
+		_room_node.add_child(pk)
+		pickups.append(pk)
 	cam.limit_left = int(current.rect.position.x)
 	cam.limit_top = int(current.rect.position.y)
 	cam.limit_right = int(current.rect.end.x)
@@ -160,9 +181,27 @@ func rest_at_bench() -> void:
 func save() -> void:
 	SaveGame.save_to(save_path, {
 		"bench_room": bench_room,
-		"bench": [bench_pos.x, bench_pos.y],
+		"bench": [bench_pos.x, bench_pos.y] if bench_room != "" else [],
 		"visited": visited.keys(),
+		"collected": collected.keys(),
+		"abilities": kira.abilities.keys(),
+		"max_hp": kira.health.max_hp,
 	})
+
+
+## Recoge un objeto: lo aplica y guarda en el momento (no vuelve a aparecer).
+func collect(pk: Pickup) -> void:
+	collected[pk.id] = true
+	pickups.erase(pk)
+	pk.queue_free()
+	match pk.kind:
+		"dash":
+			kira.grant("dash")
+			hud.toast("¡Dash! Shift / V / RB: impulso rápido, también en el aire")
+		"heart":
+			kira.set_max_hp(kira.health.max_hp + HEART_BONUS)
+			hud.toast("¡Corazón extra! Vida máxima: %d" % kira.health.max_hp)
+	save()
 
 
 func new_game() -> void:
@@ -170,6 +209,9 @@ func new_game() -> void:
 	bench_room = ""
 	bench_pos = Vector2.INF
 	visited.clear()
+	collected.clear()
+	kira.clear_abilities()
+	kira.set_max_hp(Kira.MAX_HP)
 	respawn_at_checkpoint()
 	hud.toast("Partida nueva")
 
@@ -211,6 +253,13 @@ func _check_bench() -> void:
 	var near := absf(kira.position.x - current.bench.x) < BENCH_REACH and absf(kira.position.y - current.bench.y) < 4.0
 	if near and kira.last_input.get("up_pressed", false):
 		rest_at_bench()
+
+
+func _check_pickups() -> void:
+	var center := kira.position + Vector2(0, -Kira.SIZE.y / 2)
+	for pk in pickups.duplicate():
+		if center.distance_to(pk.position) < PICKUP_REACH:
+			collect(pk)
 
 
 func _on_enemy_died(e: Crawler) -> void:

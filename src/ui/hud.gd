@@ -22,9 +22,9 @@ func _ready() -> void:
 	_panel.draw.connect(_draw_panel)
 	add_child(_panel)
 	var label := Label.new()
-	label.text = "Saltar: Espacio / Z  ·  Tajo: X / J (↑ arriba, ↓ en el aire abajo)  ·  Tajo de filo: C / L  ·  Banco: ↑  ·  Mapa: M / Tab  ·  R: último banco  ·  F5: partida nueva"
+	label.text = "Saltar: Espacio / Z  ·  Tajo: X / J (↑ arriba, ↓ en el aire abajo)  ·  Tajo de filo: C / L  ·  Dash: Shift / V  ·  Banco: ↑  ·  Mapa: M / Tab  ·  R: último banco  ·  F5: partida nueva"
 	label.position = Vector2(190, 20)
-	label.add_theme_font_size_override("font_size", 13)
+	label.add_theme_font_size_override("font_size", 12)
 	label.add_theme_color_override("font_color", Color(1, 1, 1, 0.6))
 	add_child(label)
 	_toast = Label.new()

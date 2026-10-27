@@ -106,6 +106,61 @@ func _initialize() -> void:
 	var too_early := simulate(120, func(f): return [0.0, (f >= 2 and f < 4) or (f >= landing - 14 and f < landing - 12)])
 	check(too_early.jumps.size() == 1, "pulsar demasiado pronto no cuenta")
 
+	print("Dash")
+	var nd := KiraMotor.new()
+	nd.step(DT, 1.0, false, false, true, true)
+	check(not nd.is_dashing(), "sin la habilidad no hay dash")
+	var dm := KiraMotor.new()
+	dm.can_dash = true
+	var dx := 0.0
+	var dy_max := 0.0
+	var dash_frames := 0
+	dm.step(DT, 0.0, false, false, false, true)
+	while dm.is_dashing() and dash_frames < 30:
+		dx += dm.velocity.x * DT
+		dy_max = maxf(dy_max, absf(dm.velocity.y))
+		dash_frames += 1
+		dm.step(DT, 0.0, false, false, false)
+	check(dx / tile > 4.5 and dx / tile < 5.5, "el dash recorre %.1f casillas" % (dx / tile))
+	check(dy_max == 0.0, "sin caer mientras dura (también en el aire)")
+	for i in 40:
+		dm.step(DT, 0.0, false, false, false)
+	dm.step(DT, 0.0, false, false, false, true)
+	check(not dm.is_dashing(), "solo un dash en el aire")
+	dm.step(DT, 0.0, false, false, true)
+	dm.step(DT, 0.0, false, false, true, true)
+	check(dm.is_dashing(), "al tocar el suelo vuelve a tenerlo")
+	var cd := KiraMotor.new()
+	cd.can_dash = true
+	cd.step(DT, 1.0, false, false, true, true)
+	for i in 12:
+		cd.step(DT, 1.0, false, false, true)
+	cd.step(DT, 1.0, false, false, true, true)
+	check(not cd.is_dashing(), "hay que esperar un poco entre dashes en el suelo")
+	var rf := KiraMotor.new()
+	rf.can_dash = true
+	rf.step(DT, 0.0, false, false, false, true)
+	for i in 40:
+		rf.step(DT, 0.0, false, false, false)
+	rf.refresh_air_dash()
+	rf.step(DT, 0.0, false, false, false, true)
+	check(rf.is_dashing(), "rebotar sobre un enemigo devuelve el dash en el aire")
+	var lf := KiraMotor.new()
+	lf.can_dash = true
+	lf.step(DT, -1.0, false, false, true, true)
+	check(lf.velocity.x < 0.0 and lf.facing == -1, "va hacia donde se pulsa")
+
+	# Alcance horizontal: salto con carrerilla frente a salto + dash.
+	var run_jump := simulate(120, func(f): return [1.0, f >= 30])
+	var jump_x0: float = run_jump.path[29].x
+	var jump_land := 0.0
+	for i in range(31, run_jump.path.size()):
+		if run_jump.path[i].y >= 0.0:
+			jump_land = run_jump.path[i].x
+			break
+	var jump_reach := (jump_land - jump_x0) / tile
+	check(jump_reach < 7.0, "saltando con carrerilla se cruzan %.1f casillas" % jump_reach)
+
 	print("Tajos y filo")
 	var c := KiraCombat.new()
 	var a := c.step(DT, true, false, 0.0, true)

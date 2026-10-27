@@ -47,4 +47,4 @@ y guardar, y un mapa para orientarse.
 - [x] Partida nueva: borra el guardado y vuelve al inicio.
 - [x] Todas las plataformas de inicio, pozo, banco y mirador se alcanzan saltando con la física real.
 
-Tests: `world_tests.gd` 28/28 (además de `run_tests.gd` 27/27 y `scene_tests.gd` 30/30).
+Tests: `world_tests.gd` 28/28 (antes del dash).

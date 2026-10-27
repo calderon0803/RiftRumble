@@ -10,6 +10,7 @@ const MOVE_DOWN := &"move_down"
 const JUMP := &"jump"
 const ATTACK := &"attack"
 const SPECIAL := &"special"
+const DASH := &"dash"
 const MAP := &"map"
 const RESET := &"reset"
 const NEW_GAME := &"new_game"
@@ -25,6 +26,7 @@ static func ensure() -> void:
 	_add(JUMP, [KEY_SPACE, KEY_Z, KEY_K], [JOY_BUTTON_A])
 	_add(ATTACK, [KEY_X, KEY_J], [JOY_BUTTON_X])
 	_add(SPECIAL, [KEY_C, KEY_L], [JOY_BUTTON_Y])
+	_add(DASH, [KEY_SHIFT, KEY_V], [JOY_BUTTON_RIGHT_SHOULDER])
 	_add(MAP, [KEY_M, KEY_TAB], [JOY_BUTTON_BACK])
 	_add(RESET, [KEY_R], [])
 	_add(NEW_GAME, [KEY_F5], [])

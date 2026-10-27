@@ -37,7 +37,7 @@ var motor := KiraMotor.new()
 var combat := KiraCombat.new()
 var health := Health.new(MAX_HP)
 ## Para los tests: si no está vacío, se usa en lugar del teclado o el mando.
-## Claves: "x" y "y" (float), "jump", "attack" y "special" (bool, mantenidos).
+## Claves: "x" y "y" (float), "jump", "attack", "special" y "dash" (bool, mantenidos).
 var scripted_input := {}
 var _scripted_was := {}
 var _stun := 0.0
@@ -71,9 +71,17 @@ func _physics_process(dt: float) -> void:
 		inp.jump_pressed = false
 		inp.attack_pressed = false
 		inp.special_pressed = false
+		inp.dash_pressed = false
 
 	motor.velocity = velocity
-	motor.step(dt, inp.x, inp.jump_pressed, inp.jump_held, is_on_floor())
+	var was_dashing := motor.is_dashing()
+	motor.step(dt, inp.x, inp.jump_pressed, inp.jump_held, is_on_floor(), inp.dash_pressed)
+	if motor.is_dashing() and not was_dashing:
+		_visual.dash_started()
+	if motor.is_dashing():
+		# Durante el dash no se ataca.
+		inp.attack_pressed = false
+		inp.special_pressed = false
 	var notches_before := combat.notches
 	var started := combat.step(dt, inp.attack_pressed, inp.special_pressed, inp.y, is_on_floor())
 	if not started.is_empty():
@@ -89,6 +97,7 @@ func _physics_process(dt: float) -> void:
 	health.step(dt)
 	_check_contact_damage()
 	_visual.scale.x = motor.facing
+	_visual.dashing = motor.is_dashing()
 	_visual.blink = health.invulnerable > 0.0
 	_visual.queue_redraw()
 
@@ -97,19 +106,44 @@ func _physics_process(dt: float) -> void:
 func place_at(at: Vector2) -> void:
 	position = at
 	velocity = Vector2.ZERO
-	motor = KiraMotor.new()
+	_new_motor()
 	_stun = HURT_STUN
 
 
 func respawn(at: Vector2) -> void:
 	position = at
 	velocity = Vector2.ZERO
-	motor = KiraMotor.new()
+	_new_motor()
 	combat.reset()
 	health.reset()
 	_stun = 0.0
 	health_changed.emit(health.hp, health.max_hp)
 	notches_changed.emit(combat.notches)
+
+
+## Habilidades conseguidas (se conservan al reaparecer).
+var abilities := {}
+
+
+func grant(ability: String) -> void:
+	abilities[ability] = true
+	motor.can_dash = abilities.has("dash")
+
+
+func clear_abilities() -> void:
+	abilities.clear()
+	motor.can_dash = false
+
+
+func set_max_hp(value: int) -> void:
+	health.max_hp = value
+	health.hp = value
+	health_changed.emit(health.hp, health.max_hp)
+
+
+func _new_motor() -> void:
+	motor = KiraMotor.new()
+	motor.can_dash = abilities.has("dash")
 
 
 ## Enemigos que toca el tajo en curso (cada uno, una vez por tajo).
@@ -128,6 +162,7 @@ func _resolve_swing() -> void:
 		hit_landed.emit(cur.special)
 		if cur.dir == KiraCombat.Dir.DOWN:
 			motor.velocity.y = -POGO_SPEED
+			motor.refresh_air_dash()
 		elif cur.dir == KiraCombat.Dir.FORWARD:
 			motor.velocity.x = -motor.facing * RECOIL_SPEED
 
@@ -175,10 +210,11 @@ func _read_input() -> Dictionary:
 		inp.attack_pressed = Input.is_action_just_pressed(Controls.ATTACK)
 		inp.special_pressed = Input.is_action_just_pressed(Controls.SPECIAL)
 		inp.up_pressed = Input.is_action_just_pressed(Controls.MOVE_UP)
+		inp.dash_pressed = Input.is_action_just_pressed(Controls.DASH)
 		return inp
 	inp.x = scripted_input.get("x", 0.0)
 	inp.y = scripted_input.get("y", 0.0)
-	for key in ["jump", "attack", "special"]:
+	for key in ["jump", "attack", "special", "dash"]:
 		var held: bool = scripted_input.get(key, false)
 		inp[key + "_held"] = held
 		inp[key + "_pressed"] = held and not _scripted_was.get(key, false)
@@ -193,7 +229,10 @@ func _read_input() -> Dictionary:
 ## como un arco claro que se desvanece.
 class Placeholder extends Node2D:
 	const SLASH_TIME := 0.16
+	const TRAIL_TIME := 0.2
 	var blink := false
+	var dashing := false
+	var _trail_t := 0.0
 	var _slash := {}
 	var _slash_t := 0.0
 
@@ -201,14 +240,26 @@ class Placeholder extends Node2D:
 		_slash = attack
 		_slash_t = SLASH_TIME
 
+	func dash_started() -> void:
+		_trail_t = TRAIL_TIME
+
 	func _process(dt: float) -> void:
 		if _slash_t > 0.0:
 			_slash_t -= dt
+			queue_redraw()
+		if _trail_t > 0.0:
+			_trail_t -= dt
 			queue_redraw()
 
 	func _draw() -> void:
 		var s := Kira.SIZE
 		var alpha := 0.35 if blink and int(Time.get_ticks_msec() / 70) % 2 == 0 else 1.0
+		if _trail_t > 0.0:
+			# Estela del dash: copias que se desvanecen detrás.
+			var k := _trail_t / TRAIL_TIME
+			for i in 3:
+				var back := -(i + 1) * 14.0
+				draw_rect(Rect2(back - s.x / 2, -s.y, s.x, s.y), Color(Kira.COLOR_BODY, 0.35 * k / (i + 1)))
 		draw_rect(Rect2(-s.x / 2, -s.y, s.x, s.y), Color(Kira.COLOR_BODY, alpha))
 		draw_rect(Rect2(-s.x / 2, -s.y * 0.45, s.x, 6), Color(Kira.COLOR_DARK, alpha))
 		draw_rect(Rect2(s.x / 2 - 8, -s.y + 9, 4, 5), Color(Kira.COLOR_DARK, alpha))
