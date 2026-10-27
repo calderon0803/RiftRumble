@@ -75,7 +75,7 @@ func _physics_process(dt: float) -> void:
 
 	motor.velocity = velocity
 	var was_dashing := motor.is_dashing()
-	motor.step(dt, inp.x, inp.jump_pressed, inp.jump_held, is_on_floor(), inp.dash_pressed)
+	motor.step(dt, inp.x, inp.jump_pressed, inp.jump_held, is_on_floor(), inp.dash_pressed, _wall_dir())
 	if motor.is_dashing() and not was_dashing:
 		_visual.dash_started()
 	if motor.is_dashing():
@@ -98,6 +98,7 @@ func _physics_process(dt: float) -> void:
 	_check_contact_damage()
 	_visual.scale.x = motor.facing
 	_visual.dashing = motor.is_dashing()
+	_visual.wall_sliding = motor.wall_sliding
 	_visual.blink = health.invulnerable > 0.0
 	_visual.queue_redraw()
 
@@ -127,12 +128,28 @@ var abilities := {}
 
 func grant(ability: String) -> void:
 	abilities[ability] = true
+	_apply_abilities()
+
+
+func _apply_abilities() -> void:
 	motor.can_dash = abilities.has("dash")
+	motor.can_wall_jump = abilities.has("wall_jump")
+
+
+## 1 si hay pared pegada a la derecha, -1 a la izquierda, 0 si no (o en el suelo).
+func _wall_dir() -> int:
+	if is_on_floor():
+		return 0
+	if test_move(global_transform, Vector2(2, 0)):
+		return 1
+	if test_move(global_transform, Vector2(-2, 0)):
+		return -1
+	return 0
 
 
 func clear_abilities() -> void:
 	abilities.clear()
-	motor.can_dash = false
+	_apply_abilities()
 
 
 func set_max_hp(value: int) -> void:
@@ -143,7 +160,7 @@ func set_max_hp(value: int) -> void:
 
 func _new_motor() -> void:
 	motor = KiraMotor.new()
-	motor.can_dash = abilities.has("dash")
+	_apply_abilities()
 
 
 ## Enemigos que toca el tajo en curso (cada uno, una vez por tajo).
@@ -234,6 +251,7 @@ class Placeholder extends Node2D:
 	const TRAIL_TIME := 0.2
 	var blink := false
 	var dashing := false
+	var wall_sliding := false
 	var _trail_t := 0.0
 	var _slash := {}
 	var _slash_t := 0.0
@@ -265,6 +283,11 @@ class Placeholder extends Node2D:
 		draw_rect(Rect2(-s.x / 2, -s.y, s.x, s.y), Color(Kira.COLOR_BODY, alpha))
 		draw_rect(Rect2(-s.x / 2, -s.y * 0.45, s.x, 6), Color(Kira.COLOR_DARK, alpha))
 		draw_rect(Rect2(s.x / 2 - 8, -s.y + 9, 4, 5), Color(Kira.COLOR_DARK, alpha))
+		if wall_sliding:
+			# Rozando la pared (que queda a la espalda: mira hacia fuera).
+			for i in 3:
+				var y := -s.y + 8.0 + i * 12.0 + fmod(Time.get_ticks_msec() / 20.0, 12.0)
+				draw_line(Vector2(-s.x / 2 - 2, y), Vector2(-s.x / 2 - 6, y + 4), Color(1, 1, 1, 0.5), 2.0)
 		if _slash_t <= 0.0 or _slash.is_empty():
 			return
 		var k := _slash_t / SLASH_TIME

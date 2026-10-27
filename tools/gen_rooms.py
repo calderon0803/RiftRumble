@@ -6,8 +6,8 @@ de salas vecinas encajan por construcción; tests/world_tests.gd lo comprueba.
 
 Uso: python tools/gen_rooms.py
 Símbolos: # bloque, ^ pinchos, c rastrero, v revoloteador, s escupidor, B banco,
-K inicio, D dash, H corazón extra, G jefe, | puerta de la arena (abierta hasta que
-empieza el combate), . aire.
+K inicio, D dash, W salto en pared, H corazón extra, G jefe, | puerta de la arena
+(abierta hasta que empieza el combate), . aire.
 Reglas de diseño (para que todo sea alcanzable con el salto de Kira, ~5 casillas):
 - entre plataformas, como mucho 4 casillas de subida y 2-3 de hueco;
 - los fosos, como mucho 4 casillas de ancho (salvo los que piden dash: 7).
@@ -74,6 +74,8 @@ rooms.append(b)
 c = Room("pozo", "Pozo", (120, -23), 30, 46)
 c.exit("left", 41, 44)
 c.exit("left", 6, 9)
+c.exit("right", 1, 6)            # arriba a la derecha (6 de alto): solo trepando por la pared
+                                 # (sin repisa: estorbaría al trepar; recoge la de la cumbre)
 c.plat(10, 1, 6)                 # repisa de la salida de arriba
 left, right = (8, 15), (18, 25)
 for i, row in enumerate([41, 37, 33, 29, 25, 21, 17, 13]):
@@ -132,13 +134,27 @@ for row in range(18, 22):
 g.plat(18, 4, 8)
 g.plat(18, 30, 34)
 g.put(12, 21, "G")
+g.put(20, 20, "W")               # recompensa: aparece al vencer al jefe
 rooms.append(g)
+
+# H — Cumbre: a la derecha de lo alto del pozo (hace falta el salto en pared).
+# Un pasadizo estrecho entre dos columnas guarda un corazón en lo alto.
+h = Room("cumbre", "Cumbre", (150, -23), 30, 23)
+h.exit("left", 1, 6)
+h.plat(7, 1, 6)                  # repisa de la entrada
+for row in range(4, 20):         # pasadizo de 3 casillas (columnas 15-17)
+    h.put(14, row, "#")
+    h.put(18, row, "#")
+h.put(17, 5, "H")                # pegado a la pared derecha del pasadizo
+h.put(24, 10, "v")
+h.put(25, 21, "s")
+rooms.append(h)
 
 out = [
     "## Salas del mundo. GENERADO por tools/gen_rooms.py: edita el generador, no este archivo.",
     "## origin: posición de la esquina superior izquierda en casillas del mundo.",
     "## Símbolos: # bloque, ^ pinchos, c rastrero, v revoloteador, s escupidor, B banco,",
-    "## K inicio, D dash, H corazón extra, G jefe, | puerta de la arena, . aire.",
+    "## K inicio, D dash, W salto en pared, H corazón extra, G jefe, | puerta de la arena, . aire.",
     "class_name Rooms",
     "extends RefCounted",
     "",

@@ -1,9 +1,9 @@
-## Objeto que se recoge al tocarlo: el dash (orbe azul) o un corazón extra.
+## Objeto que se recoge al tocarlo: una habilidad (orbe) o un corazón extra.
 class_name Pickup
 extends Node2D
 
 const RADIUS := 14.0
-const COLORS := {"dash": Color("6fd3ff"), "heart": Color("ff4fa0")}
+const COLORS := {"dash": Color("6fd3ff"), "wall_jump": Color("9dff8a"), "heart": Color("ff4fa0")}
 
 var kind := "dash"
 var id := ""

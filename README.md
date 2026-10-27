@@ -3,7 +3,7 @@
 Metroidvania 2D lateral para PC. Protagonista: **Kira**, espadachina con el filo de 6 muescas.
 El proyecto empezó como tower defense; ese código queda en el historial de git (hasta el commit `e3a39a8`).
 
-Estado: **movimiento** ([fase 1](docs/01-fase-1-movimiento.md)), **combate** ([fase 3](docs/02-combate.md)) y **un mundo de 7 salas con bancos, guardado y mapa** ([fase 4](docs/03-salas-y-mapa.md)) **el dash**, la primera habilidad que abre camino ([fase 5](docs/04-dash.md)), **el primer jefe**, el Guardián ([fase 6](docs/05-jefe-guardian.md)), y **tres tipos de enemigo** ([fase 7](docs/06-enemigos.md)). Kira, los enemigos y el escenario son formas provisionales.
+Estado: **movimiento** ([fase 1](docs/01-fase-1-movimiento.md)), **combate** ([fase 3](docs/02-combate.md)) y **un mundo de 8 salas con bancos, guardado y mapa** ([fase 4](docs/03-salas-y-mapa.md)) **el dash**, la primera habilidad que abre camino ([fase 5](docs/04-dash.md)), **el primer jefe**, el Guardián ([fase 6](docs/05-jefe-guardian.md)), **tres tipos de enemigo** ([fase 7](docs/06-enemigos.md)) y **el salto en pared** ([fase 8](docs/07-salto-en-pared.md)). Kira, los enemigos y el escenario son formas provisionales.
 
 ## Requisitos
 - Godot **4.7.x** estable, versión estándar con GDScript (no la .NET).
@@ -69,6 +69,7 @@ python tools/gen_rooms.py
 | Tajo (↑ arriba, ↓ en el aire abajo) | X / J | X |
 | Tajo de filo (3 muescas) | C / L | Y |
 | Dash (cuando se consigue) | Shift / V | RB |
+| Salto en pared (cuando se consigue) | empujar hacia la pared en el aire + saltar | |
 | Descansar en un banco (guarda) | ↑ / W | Arriba |
 | Mapa | M / Tab | Select / Back |
 | Volver al último banco | R | |

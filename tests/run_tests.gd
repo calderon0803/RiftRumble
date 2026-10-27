@@ -161,6 +161,47 @@ func _initialize() -> void:
 	var jump_reach := (jump_land - jump_x0) / tile
 	check(jump_reach < 7.0, "saltando con carrerilla se cruzan %.1f casillas" % jump_reach)
 
+	print("Salto en pared")
+	var nw := KiraMotor.new()
+	nw.velocity.y = 600.0
+	nw.step(DT, 1.0, false, false, false, false, 1)
+	check(not nw.wall_sliding and nw.velocity.y > KiraMotor.WALL_SLIDE_SPEED, "sin la habilidad no se desliza")
+	var wm := KiraMotor.new()
+	wm.can_wall_jump = true
+	wm.velocity.y = 600.0
+	for i in 20:
+		wm.step(DT, 1.0, false, false, false, false, 1)
+	check(wm.wall_sliding and wm.velocity.y <= KiraMotor.WALL_SLIDE_SPEED, "empujando hacia la pared en el aire, se desliza despacio")
+	check(wm.facing == -1, "mirando hacia fuera de la pared")
+	var no_push := KiraMotor.new()
+	no_push.can_wall_jump = true
+	no_push.velocity.y = 300.0
+	no_push.step(DT, 0.0, false, false, false, false, 1)
+	check(not no_push.wall_sliding, "si no empuja hacia ella, cae normal")
+	wm.step(DT, 1.0, true, true, false, false, 1)
+	check(wm.velocity.x < 0.0 and wm.velocity.y < -600.0, "saltar desde la pared la lanza hacia fuera y hacia arriba")
+	var vx0 := wm.velocity.x
+	wm.step(DT, 1.0, false, true, false)
+	check(wm.velocity.x == vx0, "un instante sin control para despegarse")
+	var wd := KiraMotor.new()
+	wd.can_wall_jump = true
+	wd.can_dash = true
+	wd.step(DT, 0.0, false, false, false, true)
+	for i in 40:
+		wd.step(DT, 0.0, false, false, false)
+	wd.velocity.y = 200.0
+	wd.step(DT, -1.0, false, false, false, false, -1)
+	wd.step(DT, 0.0, false, false, false, true)
+	check(wd.is_dashing(), "deslizarse por una pared devuelve el dash del aire")
+	var late := KiraMotor.new()
+	late.can_wall_jump = true
+	late.velocity.y = 200.0
+	late.step(DT, 1.0, false, false, false, false, 1)
+	for i in 3:
+		late.step(DT, 0.0, false, false, false)
+	late.step(DT, 0.0, true, true, false)
+	check(late.velocity.y < -600.0, "se puede saltar justo después de soltarse (0,05 s)")
+
 	print("Tajos y filo")
 	var c := KiraCombat.new()
 	var a := c.step(DT, true, false, 0.0, true)
