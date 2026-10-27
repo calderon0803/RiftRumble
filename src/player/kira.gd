@@ -41,6 +41,8 @@ var health := Health.new(MAX_HP)
 var scripted_input := {}
 var _scripted_was := {}
 var _stun := 0.0
+## Entrada del último paso (la usa el mundo, p. ej. ↑ para sentarse en un banco).
+var last_input := {}
 var _hit_this_swing := {}
 var _visual: Placeholder
 
@@ -62,6 +64,7 @@ func _ready() -> void:
 
 func _physics_process(dt: float) -> void:
 	var inp := _read_input()
+	last_input = inp
 	_stun = maxf(_stun - dt, 0.0)
 	if _stun > 0.0:
 		inp.x = 0.0
@@ -88,6 +91,14 @@ func _physics_process(dt: float) -> void:
 	_visual.scale.x = motor.facing
 	_visual.blink = health.invulnerable > 0.0
 	_visual.queue_redraw()
+
+
+## La coloca en un sitio sin cambiar su vida ni su filo (p. ej., tras pisar pinchos).
+func place_at(at: Vector2) -> void:
+	position = at
+	velocity = Vector2.ZERO
+	motor = KiraMotor.new()
+	_stun = HURT_STUN
 
 
 func respawn(at: Vector2) -> void:
@@ -163,6 +174,7 @@ func _read_input() -> Dictionary:
 		inp.jump_pressed = Input.is_action_just_pressed(Controls.JUMP)
 		inp.attack_pressed = Input.is_action_just_pressed(Controls.ATTACK)
 		inp.special_pressed = Input.is_action_just_pressed(Controls.SPECIAL)
+		inp.up_pressed = Input.is_action_just_pressed(Controls.MOVE_UP)
 		return inp
 	inp.x = scripted_input.get("x", 0.0)
 	inp.y = scripted_input.get("y", 0.0)
@@ -171,6 +183,9 @@ func _read_input() -> Dictionary:
 		inp[key + "_held"] = held
 		inp[key + "_pressed"] = held and not _scripted_was.get(key, false)
 		_scripted_was[key] = held
+	var up: bool = inp.y < -0.5
+	inp.up_pressed = up and not _scripted_was.get("up", false)
+	_scripted_was["up"] = up
 	return inp
 
 

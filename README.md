@@ -3,20 +3,21 @@
 Metroidvania 2D lateral para PC. Protagonista: **Kira**, espadachina con el filo de 6 muescas.
 El proyecto empezó como tower defense; ese código queda en el historial de git (hasta el commit `e3a39a8`).
 
-Estado: **movimiento** ([fase 1](docs/01-fase-1-movimiento.md)) y **combate** ([fase 3](docs/02-combate.md)) en una sala de prueba, con Kira y los enemigos como formas provisionales.
+Estado: **movimiento** ([fase 1](docs/01-fase-1-movimiento.md)), **combate** ([fase 3](docs/02-combate.md)) y **un mundo de 5 salas con banco, guardado y mapa** ([fase 4](docs/03-salas-y-mapa.md)). Kira, los enemigos y el escenario son formas provisionales.
 
 ## Requisitos
 - Godot **4.7.x** estable, versión estándar con GDScript (no la .NET).
 
 ## Estructura
 ```
-src/core/     Utilidades comunes (controles)
+src/core/     Utilidades comunes (controles, partida guardada)
 src/player/   Kira: movimiento sin nodos (KiraMotor) y cuerpo en la sala (Kira)
 src/combat/   Tajos y filo (KiraCombat) y vida (Health), sin nodos
 src/enemies/  Enemigos
-src/ui/       Marcador
+src/ui/       Marcador y mapa
 src/fx/       Efectos
-src/world/    Salas
+src/world/    Mundo y salas (rooms.gd lo genera tools/gen_rooms.py)
+tools/        Generadores
 tests/        Tests headless
 art/concept/  Diseño de los personajes
 docs/         Decisiones y resultados por fase
@@ -40,6 +41,16 @@ Tests en la sala (con física):
 godot --headless --path . --script res://tests/scene_tests.gd
 ```
 
+Tests del mundo (salas, pinchos, banco, guardado y plataformas alcanzables):
+```bash
+godot --headless --path . --script res://tests/world_tests.gd
+```
+
+Regenerar las salas tras editar `tools/gen_rooms.py`:
+```bash
+python tools/gen_rooms.py
+```
+
 ## Controles
 | Acción | Teclado | Mando |
 |---|---|---|
@@ -47,4 +58,7 @@ godot --headless --path . --script res://tests/scene_tests.gd
 | Saltar (mantener = más alto) | Espacio / Z / K | A |
 | Tajo (↑ arriba, ↓ en el aire abajo) | X / J | X |
 | Tajo de filo (3 muescas) | C / L | Y |
-| Volver al inicio | R | Select / Back |
+| Descansar en un banco (guarda) | ↑ / W | Arriba |
+| Mapa | M / Tab | Select / Back |
+| Volver al último banco | R | |
+| Partida nueva | F5 | |
