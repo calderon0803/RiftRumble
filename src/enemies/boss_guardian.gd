@@ -9,6 +9,8 @@ extends CharacterBody2D
 
 signal died(boss: BossGuardian)
 signal health_changed(ratio: float)
+## Ha aterrizado del salto aplastante (para el temblor de cámara).
+signal slammed
 
 enum State { IDLE, CHARGE_WINDUP, CHARGE, STUNNED, SLAM_WINDUP, SLAM_AIR, SLAM_RECOVER, DEAD }
 
@@ -159,6 +161,7 @@ func _start_slam() -> void:
 
 func _land() -> void:
 	velocity.x = 0.0
+	slammed.emit()
 	for d in [-1, 1]:
 		var w := Shockwave.new()
 		w.dir = d

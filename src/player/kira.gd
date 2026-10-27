@@ -5,8 +5,13 @@ extends CharacterBody2D
 
 signal health_changed(hp: int, max_hp: int)
 signal notches_changed(notches: int)
-signal hit_landed(special: bool)
+signal hit_landed(special: bool, at: Vector2)
 signal died
+## Ha caído al suelo desde cierta velocidad (para temblor y polvo).
+signal landed(fall_speed: float)
+
+## Caída mínima para levantar polvo al aterrizar.
+const DUST_FALL_SPEED := 420.0
 
 const SIZE := Vector2(22, 44)
 const COLOR_BODY := Color("ff4fa0")
@@ -75,7 +80,10 @@ func _physics_process(dt: float) -> void:
 
 	motor.velocity = velocity
 	var was_dashing := motor.is_dashing()
-	motor.step(dt, inp.x, inp.jump_pressed, inp.jump_held, is_on_floor(), inp.dash_pressed, _wall_dir())
+	var was_on_floor := is_on_floor()
+	var fall_speed := velocity.y
+	if motor.step(dt, inp.x, inp.jump_pressed, inp.jump_held, was_on_floor, inp.dash_pressed, _wall_dir()) and was_on_floor:
+		_spawn_fx(Dust.new(), position)
 	if motor.is_dashing() and not was_dashing:
 		_visual.dash_started()
 	if motor.is_dashing():
@@ -93,6 +101,11 @@ func _physics_process(dt: float) -> void:
 		notches_changed.emit(combat.notches)
 	velocity = motor.velocity
 	move_and_slide()
+	if is_on_floor() and not was_on_floor and fall_speed > DUST_FALL_SPEED:
+		var dust := Dust.new()
+		dust.amount = clampf(fall_speed / 700.0, 0.7, 1.6)
+		_spawn_fx(dust, position)
+		landed.emit(fall_speed)
 
 	health.step(dt)
 	_check_contact_damage()
@@ -120,6 +133,14 @@ func respawn(at: Vector2) -> void:
 	_stun = 0.0
 	health_changed.emit(health.hp, health.max_hp)
 	notches_changed.emit(combat.notches)
+
+
+## Efecto (polvo, chispas) en el mismo nivel que Kira, para que no la siga.
+func _spawn_fx(fx: Node2D, at: Vector2) -> void:
+	if get_parent() == null:
+		return
+	fx.position = at
+	get_parent().add_child(fx)
 
 
 ## Habilidades conseguidas (se conservan al reaparecer).
@@ -176,7 +197,13 @@ func _resolve_swing() -> void:
 		if not enemy.take_hit(cur.damage, position):
 			continue
 		combat.on_hit()
-		hit_landed.emit(cur.special)
+		var at: Vector2 = enemy.center() if enemy.has_method("center") else enemy.global_position
+		var sp := Sparks.new()
+		if cur.special:
+			sp.color = Color("f5e27a")
+			sp.count = 12
+		_spawn_fx(sp, at)
+		hit_landed.emit(cur.special, at)
 		if cur.dir == KiraCombat.Dir.DOWN:
 			motor.velocity.y = -POGO_SPEED
 			motor.refresh_air_dash()

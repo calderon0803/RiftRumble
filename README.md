@@ -3,7 +3,7 @@
 Metroidvania 2D lateral para PC. Protagonista: **Kira**, espadachina con el filo de 6 muescas.
 El proyecto empezó como tower defense; ese código queda en el historial de git (hasta el commit `e3a39a8`).
 
-Estado: **movimiento** ([fase 1](docs/01-fase-1-movimiento.md)), **combate** ([fase 3](docs/02-combate.md)) y **un mundo de 8 salas con bancos, guardado y mapa** ([fase 4](docs/03-salas-y-mapa.md)) **el dash**, la primera habilidad que abre camino ([fase 5](docs/04-dash.md)), **el primer jefe**, el Guardián ([fase 6](docs/05-jefe-guardian.md)), **tres tipos de enemigo** ([fase 7](docs/06-enemigos.md)) y **el salto en pared** ([fase 8](docs/07-salto-en-pared.md)). Kira, los enemigos y el escenario son formas provisionales.
+Estado: **movimiento** ([fase 1](docs/01-fase-1-movimiento.md)), **combate** ([fase 3](docs/02-combate.md)) y **un mundo de 8 salas con bancos, guardado y mapa** ([fase 4](docs/03-salas-y-mapa.md)) **el dash**, la primera habilidad que abre camino ([fase 5](docs/04-dash.md)), **el primer jefe**, el Guardián ([fase 6](docs/05-jefe-guardian.md)), **tres tipos de enemigo** ([fase 7](docs/06-enemigos.md)) **el salto en pared** ([fase 8](docs/07-salto-en-pared.md)) y **pulido**: título, pausa, efectos de golpe y escenario por zonas ([fase 9](docs/08-pulido.md)). Kira, los enemigos y el escenario son formas provisionales.
 
 ## Requisitos
 - Godot **4.7.x** estable, versión estándar con GDScript (no la .NET).
@@ -14,7 +14,7 @@ src/core/     Utilidades comunes (controles, partida guardada)
 src/player/   Kira: movimiento sin nodos (KiraMotor) y cuerpo en la sala (Kira)
 src/combat/   Tajos y filo (KiraCombat) y vida (Health), sin nodos
 src/enemies/  Enemigos
-src/ui/       Marcador y mapa
+src/ui/       Título, pausa, marcador y mapa
 src/fx/       Efectos
 src/world/    Mundo y salas (rooms.gd lo genera tools/gen_rooms.py)
 tools/        Generadores
@@ -56,6 +56,11 @@ Tests de los enemigos:
 godot --headless --path . --script res://tests/enemy_tests.gd
 ```
 
+Tests del título, la pausa y los efectos:
+```bash
+godot --headless --path . --script res://tests/ui_tests.gd
+```
+
 Regenerar las salas tras editar `tools/gen_rooms.py`:
 ```bash
 python tools/gen_rooms.py
@@ -72,5 +77,6 @@ python tools/gen_rooms.py
 | Salto en pared (cuando se consigue) | empujar hacia la pared en el aire + saltar | |
 | Descansar en un banco (guarda) | ↑ / W | Arriba |
 | Mapa | M / Tab | Select / Back |
+| Pausa (y lista de controles) | Esc / P | Start |
 | Volver al último banco | R | |
-| Partida nueva | F5 | |
+| Partida nueva | desde el título | |

@@ -13,6 +13,8 @@ var notches := 0
 var _panel: Control
 var _toast: Label
 var _toast_t := 0.0
+var _hurt_t := 0.0
+const HURT_FLASH := 0.35
 var _boss_name := ""
 var _boss_ratio := 1.0
 
@@ -23,12 +25,12 @@ func _ready() -> void:
 	_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_panel.draw.connect(_draw_panel)
 	add_child(_panel)
-	var label := Label.new()
-	label.text = "Saltar: Espacio / Z  ·  Tajo: X / J (↑ arriba, ↓ en el aire abajo)  ·  Tajo de filo: C / L  ·  Dash: Shift / V  ·  Pared: empuja + salta  ·  Banco: ↑  ·  Mapa: M / Tab  ·  R: último banco  ·  F5: partida nueva"
-	label.position = Vector2(190, 20)
-	label.add_theme_font_size_override("font_size", 11)
-	label.add_theme_color_override("font_color", Color(1, 1, 1, 0.6))
-	add_child(label)
+	var hint := Label.new()
+	hint.text = "Esc: pausa y controles  ·  M: mapa"
+	hint.position = Vector2(1060, 14)
+	hint.add_theme_font_size_override("font_size", 12)
+	hint.add_theme_color_override("font_color", Color(1, 1, 1, 0.35))
+	add_child(hint)
 	_toast = Label.new()
 	_toast.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_toast.position = Vector2(0, 600)
@@ -44,10 +46,23 @@ func toast(text: String) -> void:
 	_toast_t = 2.0
 
 
+## Destello rojo en los bordes al recibir daño.
+func flash_damage() -> void:
+	_hurt_t = HURT_FLASH
+	_panel.queue_redraw()
+
+
+func hurt_flash() -> float:
+	return _hurt_t
+
+
 func _process(dt: float) -> void:
 	if _toast_t > 0.0:
 		_toast_t -= dt
 		_toast.modulate.a = clampf(_toast_t / 0.5, 0.0, 1.0)
+	if _hurt_t > 0.0:
+		_hurt_t = maxf(_hurt_t - dt, 0.0)
+		_panel.queue_redraw()
 
 
 func show_boss(display_name: String) -> void:
@@ -79,6 +94,16 @@ func set_notches(value: int) -> void:
 
 
 func _draw_panel() -> void:
+	if _hurt_t > 0.0:
+		var a := 0.45 * _hurt_t / HURT_FLASH
+		var col := Color(0.9, 0.1, 0.2, a)
+		for i in 6:
+			var w := 10.0 + i * 10.0
+			var c := Color(col, a * (1.0 - i / 6.0))
+			_panel.draw_rect(Rect2(0, 0, 1280, w), c)
+			_panel.draw_rect(Rect2(0, 720 - w, 1280, w), c)
+			_panel.draw_rect(Rect2(0, 0, w, 720), c)
+			_panel.draw_rect(Rect2(1280 - w, 0, w, 720), c)
 	for i in max_hp:
 		var p := Vector2(20 + i * 30, 18)
 		_panel.draw_rect(Rect2(p, Vector2(22, 20)), HEART if i < hp else EMPTY)
