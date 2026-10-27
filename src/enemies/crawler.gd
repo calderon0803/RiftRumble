@@ -3,7 +3,7 @@
 class_name Crawler
 extends CharacterBody2D
 
-signal died(enemy: Crawler)
+signal died(enemy: Node2D)
 
 const SIZE := Vector2(30, 22)
 const SPEED := 60.0
@@ -16,6 +16,7 @@ const COLOR := Color("6fdc8c")
 const COLOR_DARK := Color("1f4a2e")
 
 var contact_damage := 1
+var color := COLOR
 var health := Health.new(MAX_HP)
 var dir := -1
 var _knock := 0.0
@@ -48,6 +49,10 @@ func _physics_process(dt: float) -> void:
 	velocity.y = minf(velocity.y + GRAVITY * dt, MAX_FALL)
 	move_and_slide()
 	queue_redraw()
+
+
+func center() -> Vector2:
+	return position + Vector2(0, -SIZE.y / 2)
 
 
 ## Recibe un tajo desde `from` (posición de quien golpea). Devuelve si le ha dado.

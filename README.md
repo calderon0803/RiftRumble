@@ -3,7 +3,7 @@
 Metroidvania 2D lateral para PC. Protagonista: **Kira**, espadachina con el filo de 6 muescas.
 El proyecto empezó como tower defense; ese código queda en el historial de git (hasta el commit `e3a39a8`).
 
-Estado: **movimiento** ([fase 1](docs/01-fase-1-movimiento.md)), **combate** ([fase 3](docs/02-combate.md)) y **un mundo de 7 salas con bancos, guardado y mapa** ([fase 4](docs/03-salas-y-mapa.md)) **el dash**, la primera habilidad que abre camino ([fase 5](docs/04-dash.md)), y **el primer jefe**, el Guardián ([fase 6](docs/05-jefe-guardian.md)). Kira, los enemigos y el escenario son formas provisionales.
+Estado: **movimiento** ([fase 1](docs/01-fase-1-movimiento.md)), **combate** ([fase 3](docs/02-combate.md)) y **un mundo de 7 salas con bancos, guardado y mapa** ([fase 4](docs/03-salas-y-mapa.md)) **el dash**, la primera habilidad que abre camino ([fase 5](docs/04-dash.md)), **el primer jefe**, el Guardián ([fase 6](docs/05-jefe-guardian.md)), y **tres tipos de enemigo** ([fase 7](docs/06-enemigos.md)). Kira, los enemigos y el escenario son formas provisionales.
 
 ## Requisitos
 - Godot **4.7.x** estable, versión estándar con GDScript (no la .NET).
@@ -49,6 +49,11 @@ godot --headless --path . --script res://tests/world_tests.gd
 Tests del jefe:
 ```bash
 godot --headless --path . --script res://tests/boss_tests.gd
+```
+
+Tests de los enemigos:
+```bash
+godot --headless --path . --script res://tests/enemy_tests.gd
 ```
 
 Regenerar las salas tras editar `tools/gen_rooms.py`:
