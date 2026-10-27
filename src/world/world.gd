@@ -1,7 +1,8 @@
 ## El mundo: salas colocadas en una cuadrícula común (ver Rooms). Al salir de una
 ## sala se entra en la que hay en ese punto. Gestiona pinchos (vuelta al último
 ## suelo seguro), bancos (descansar y guardar), muerte (vuelta al último banco),
-## objetos (dash, corazón extra), el mapa y la partida guardada.
+## objetos (dash, corazón extra), jefes (puerta que se cierra durante el combate),
+## el mapa y la partida guardada.
 class_name World
 extends Node2D
 
@@ -26,6 +27,10 @@ var bench_room := ""         # último banco ("" = ninguno: se vuelve al inicio)
 var bench_pos := Vector2.INF
 var enemies: Array[Crawler] = []
 var collected := {}          # id de objeto → true
+var bosses_defeated := {}    # id de sala → true
+var boss: BossGuardian
+var gate_closed := false
+var _gate_body: Node2D
 var pickups: Array[Pickup] = []
 var last_safe := Vector2.ZERO
 var _room_node: Node2D
@@ -76,6 +81,8 @@ func _ready() -> void:
 		visited[id] = true
 	for id in data.get("collected", []):
 		collected[id] = true
+	for id in data.get("bosses", []):
+		bosses_defeated[id] = true
 	for a in data.get("abilities", []):
 		kira.grant(a)
 	if data.has("max_hp"):
@@ -112,6 +119,9 @@ func _physics_process(_dt: float) -> void:
 		last_safe = kira.position
 	_check_bench()
 	_check_pickups()
+	if boss and not gate_closed and current.gate.has_area() \
+			and kira.position.x < current.gate.position.x - 2.0 * RoomLayout.TILE:
+		_close_gate()
 
 
 ## Sala que contiene un punto del mundo ("" si ninguna).
@@ -127,6 +137,10 @@ func enter_room(id: String) -> void:
 		_room_node.queue_free()
 	enemies.clear()
 	pickups.clear()
+	boss = null
+	gate_closed = false
+	_gate_body = null
+	hud.hide_boss()
 	current = layouts[id]
 	visited[id] = true
 	_room_node = Node2D.new()
@@ -142,6 +156,14 @@ func enter_room(id: String) -> void:
 		e.died.connect(_on_enemy_died)
 		_room_node.add_child(e)
 		enemies.append(e)
+	if current.boss_spawn != Vector2.INF and not bosses_defeated.has(id):
+		boss = BossGuardian.new()
+		boss.position = current.boss_spawn
+		boss.target = kira
+		boss.arena = current.rect
+		boss.died.connect(_on_boss_died)
+		boss.health_changed.connect(hud.set_boss_ratio)
+		_room_node.add_child(boss)
 	for item in current.pickups:
 		if collected.has(item.id):
 			continue
@@ -186,6 +208,7 @@ func save() -> void:
 		"collected": collected.keys(),
 		"abilities": kira.abilities.keys(),
 		"max_hp": kira.health.max_hp,
+		"bosses": bosses_defeated.keys(),
 	})
 
 
@@ -210,6 +233,7 @@ func new_game() -> void:
 	bench_pos = Vector2.INF
 	visited.clear()
 	collected.clear()
+	bosses_defeated.clear()
 	kira.clear_abilities()
 	kira.set_max_hp(Kira.MAX_HP)
 	respawn_at_checkpoint()
@@ -255,6 +279,43 @@ func _check_bench() -> void:
 		rest_at_bench()
 
 
+## Empieza el combate: se cierra la puerta de la arena.
+func _close_gate() -> void:
+	gate_closed = true
+	var body := StaticBody2D.new()
+	body.collision_layer = Kira.LAYER_WORLD
+	var shape := CollisionShape2D.new()
+	var rect := RectangleShape2D.new()
+	rect.size = current.gate.size
+	shape.shape = rect
+	shape.position = current.gate.get_center()
+	body.add_child(shape)
+	var bars := GateBars.new()
+	bars.rect = current.gate
+	body.add_child(bars)
+	_room_node.add_child(body)
+	_gate_body = body
+	hud.show_boss(BossGuardian.DISPLAY_NAME)
+
+
+func _on_boss_died(b: BossGuardian) -> void:
+	bosses_defeated[current.id] = true
+	for i in 5:
+		var fx := Burst.new()
+		fx.color = BossGuardian.COLOR.lightened(0.3)
+		fx.position = b.position + Vector2(randf_range(-30, 30), -randf_range(10, 80))
+		_room_node.add_child(fx)
+	b.queue_free()
+	boss = null
+	if _gate_body:
+		_gate_body.queue_free()
+		_gate_body = null
+	hud.hide_boss()
+	kira.set_max_hp(kira.health.max_hp + HEART_BONUS)
+	hud.toast("¡Has vencido al %s! Corazón extra: vida máxima %d" % [BossGuardian.DISPLAY_NAME, kira.health.max_hp])
+	save()
+
+
 func _check_pickups() -> void:
 	var center := kira.position + Vector2(0, -Kira.SIZE.y / 2)
 	for pk in pickups.duplicate():
@@ -274,3 +335,15 @@ func _flash_fade() -> void:
 	_fade.modulate.a = 1.0
 	var t := create_tween()
 	t.tween_property(_fade, "modulate:a", 0.0, FADE_TIME)
+
+
+## Barrotes de la puerta cerrada de la arena.
+class GateBars extends Node2D:
+	var rect := Rect2()
+
+	func _draw() -> void:
+		draw_rect(rect, Color(0.1, 0.1, 0.15, 0.6))
+		var n := 4
+		for i in n:
+			var x := rect.position.x + (i + 0.5) * rect.size.x / n
+			draw_line(Vector2(x, rect.position.y), Vector2(x, rect.end.y), Color("8a93ad"), 4.0)
