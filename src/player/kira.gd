@@ -1,22 +1,54 @@
-## Kira en la sala: cuerpo físico, entrada y dibujo provisional (un rectángulo
-## hasta que haya sprites). El origen está a sus pies.
+## Kira en la sala: cuerpo físico, entrada, tajos, daño recibido y dibujo
+## provisional (un rectángulo hasta que haya sprites). El origen está a sus pies.
 class_name Kira
 extends CharacterBody2D
+
+signal health_changed(hp: int, max_hp: int)
+signal notches_changed(notches: int)
+signal hit_landed(special: bool)
+signal died
 
 const SIZE := Vector2(22, 44)
 const COLOR_BODY := Color("ff4fa0")
 const COLOR_DARK := Color("9c2a63")
+const MAX_HP := 5
+
+## Capas de física: 1 escenario, 2 Kira, 3 enemigos.
+const LAYER_WORLD := 1
+const LAYER_KIRA := 2
+const LAYER_ENEMY := 4
+
+## Zonas de golpe (centro y tamaño, respecto a los pies, mirando a la derecha).
+const HITBOX := {
+	KiraCombat.Dir.FORWARD: [Vector2(34, -24), Vector2(52, 38)],
+	KiraCombat.Dir.UP: [Vector2(0, -62), Vector2(40, 44)],
+	KiraCombat.Dir.DOWN: [Vector2(0, 20), Vector2(40, 46)],
+}
+const SPECIAL_HITBOX := [Vector2(52, -26), Vector2(96, 54)]
+
+## Sensación de golpe
+const POGO_SPEED := 620.0          # rebote al acertar un tajo hacia abajo
+const RECOIL_SPEED := 140.0        # retroceso al acertar un tajo hacia delante
+const HURT_KNOCKBACK := Vector2(240, -320)
+const HURT_INVULNERABLE := 1.0
+const HURT_STUN := 0.22            # sin control tras recibir un golpe
 
 var motor := KiraMotor.new()
+var combat := KiraCombat.new()
+var health := Health.new(MAX_HP)
 ## Para los tests: si no está vacío, se usa en lugar del teclado o el mando.
-## Claves: "x" (float) y "jump" (bool, mantenido).
+## Claves: "x" y "y" (float), "jump", "attack" y "special" (bool, mantenidos).
 var scripted_input := {}
-var _scripted_jump_was := false
-var _visual: Node2D
+var _scripted_was := {}
+var _stun := 0.0
+var _hit_this_swing := {}
+var _visual: Placeholder
 
 
 func _ready() -> void:
 	Controls.ensure()
+	collision_layer = LAYER_KIRA
+	collision_mask = LAYER_WORLD
 	floor_snap_length = 6.0
 	var shape := CollisionShape2D.new()
 	var rect := RectangleShape2D.new()
@@ -29,35 +61,154 @@ func _ready() -> void:
 
 
 func _physics_process(dt: float) -> void:
-	var move_x: float
-	var jump_held: bool
-	var jump_pressed: bool
-	if scripted_input.is_empty():
-		move_x = Input.get_axis(Controls.MOVE_LEFT, Controls.MOVE_RIGHT)
-		jump_held = Input.is_action_pressed(Controls.JUMP)
-		jump_pressed = Input.is_action_just_pressed(Controls.JUMP)
-	else:
-		move_x = scripted_input.get("x", 0.0)
-		jump_held = scripted_input.get("jump", false)
-		jump_pressed = jump_held and not _scripted_jump_was
-		_scripted_jump_was = jump_held
+	var inp := _read_input()
+	_stun = maxf(_stun - dt, 0.0)
+	if _stun > 0.0:
+		inp.x = 0.0
+		inp.jump_pressed = false
+		inp.attack_pressed = false
+		inp.special_pressed = false
+
 	motor.velocity = velocity
-	motor.step(dt, move_x, jump_pressed, jump_held, is_on_floor())
+	motor.step(dt, inp.x, inp.jump_pressed, inp.jump_held, is_on_floor())
+	var notches_before := combat.notches
+	var started := combat.step(dt, inp.attack_pressed, inp.special_pressed, inp.y, is_on_floor())
+	if not started.is_empty():
+		_hit_this_swing.clear()
+		_visual.slash(started, motor.facing)
+	if combat.is_active():
+		_resolve_swing()
+	if combat.notches != notches_before:
+		notches_changed.emit(combat.notches)
 	velocity = motor.velocity
 	move_and_slide()
+
+	health.step(dt)
+	_check_contact_damage()
 	_visual.scale.x = motor.facing
+	_visual.blink = health.invulnerable > 0.0
+	_visual.queue_redraw()
 
 
 func respawn(at: Vector2) -> void:
 	position = at
 	velocity = Vector2.ZERO
 	motor = KiraMotor.new()
+	combat.reset()
+	health.reset()
+	_stun = 0.0
+	health_changed.emit(health.hp, health.max_hp)
+	notches_changed.emit(combat.notches)
 
 
-## Dibujo provisional: cuerpo rosa, franja oscura y un ojo hacia donde mira.
+## Enemigos que toca el tajo en curso (cada uno, una vez por tajo).
+func _resolve_swing() -> void:
+	var cur := combat.current
+	var box: Array = SPECIAL_HITBOX if cur.special else HITBOX[cur.dir]
+	var center: Vector2 = box[0]
+	center.x *= motor.facing
+	for enemy in _overlapping_enemies(position + center, box[1]):
+		if _hit_this_swing.has(enemy) or not enemy.has_method("take_hit"):
+			continue
+		_hit_this_swing[enemy] = true
+		if not enemy.take_hit(cur.damage, position):
+			continue
+		combat.on_hit()
+		hit_landed.emit(cur.special)
+		if cur.dir == KiraCombat.Dir.DOWN:
+			motor.velocity.y = -POGO_SPEED
+		elif cur.dir == KiraCombat.Dir.FORWARD:
+			motor.velocity.x = -motor.facing * RECOIL_SPEED
+
+
+func _check_contact_damage() -> void:
+	if health.invulnerable > 0.0 or health.is_dead():
+		return
+	var hits := _overlapping_enemies(position + Vector2(0, -SIZE.y / 2), SIZE - Vector2(4, 4))
+	if hits.is_empty():
+		return
+	var enemy: Node2D = hits[0]
+	var dmg: int = enemy.contact_damage if "contact_damage" in enemy else 1
+	if not health.damage(dmg, HURT_INVULNERABLE):
+		return
+	var away := -1.0 if enemy.global_position.x > global_position.x else 1.0
+	velocity = Vector2(HURT_KNOCKBACK.x * away, HURT_KNOCKBACK.y)
+	_stun = HURT_STUN
+	health_changed.emit(health.hp, health.max_hp)
+	if health.is_dead():
+		died.emit()
+
+
+func _overlapping_enemies(center: Vector2, size: Vector2) -> Array:
+	var rect := RectangleShape2D.new()
+	rect.size = size
+	var q := PhysicsShapeQueryParameters2D.new()
+	q.shape = rect
+	q.transform = Transform2D(0.0, center)
+	q.collision_mask = LAYER_ENEMY
+	q.collide_with_bodies = true
+	var out := []
+	for r in get_world_2d().direct_space_state.intersect_shape(q, 16):
+		if not out.has(r.collider):
+			out.append(r.collider)
+	return out
+
+
+func _read_input() -> Dictionary:
+	var inp := {}
+	if scripted_input.is_empty():
+		inp.x = Input.get_axis(Controls.MOVE_LEFT, Controls.MOVE_RIGHT)
+		inp.y = Input.get_axis(Controls.MOVE_UP, Controls.MOVE_DOWN)
+		inp.jump_held = Input.is_action_pressed(Controls.JUMP)
+		inp.jump_pressed = Input.is_action_just_pressed(Controls.JUMP)
+		inp.attack_pressed = Input.is_action_just_pressed(Controls.ATTACK)
+		inp.special_pressed = Input.is_action_just_pressed(Controls.SPECIAL)
+		return inp
+	inp.x = scripted_input.get("x", 0.0)
+	inp.y = scripted_input.get("y", 0.0)
+	for key in ["jump", "attack", "special"]:
+		var held: bool = scripted_input.get(key, false)
+		inp[key + "_held"] = held
+		inp[key + "_pressed"] = held and not _scripted_was.get(key, false)
+		_scripted_was[key] = held
+	return inp
+
+
+## Dibujo provisional: cuerpo rosa con franja y ojo hacia donde mira, y el tajo
+## como un arco claro que se desvanece.
 class Placeholder extends Node2D:
+	const SLASH_TIME := 0.16
+	var blink := false
+	var _slash := {}
+	var _slash_t := 0.0
+
+	func slash(attack: Dictionary, _facing: int) -> void:
+		_slash = attack
+		_slash_t = SLASH_TIME
+
+	func _process(dt: float) -> void:
+		if _slash_t > 0.0:
+			_slash_t -= dt
+			queue_redraw()
+
 	func _draw() -> void:
 		var s := Kira.SIZE
-		draw_rect(Rect2(-s.x / 2, -s.y, s.x, s.y), Kira.COLOR_BODY)
-		draw_rect(Rect2(-s.x / 2, -s.y * 0.45, s.x, 6), Kira.COLOR_DARK)
-		draw_rect(Rect2(s.x / 2 - 8, -s.y + 9, 4, 5), Kira.COLOR_DARK)
+		var alpha := 0.35 if blink and int(Time.get_ticks_msec() / 70) % 2 == 0 else 1.0
+		draw_rect(Rect2(-s.x / 2, -s.y, s.x, s.y), Color(Kira.COLOR_BODY, alpha))
+		draw_rect(Rect2(-s.x / 2, -s.y * 0.45, s.x, 6), Color(Kira.COLOR_DARK, alpha))
+		draw_rect(Rect2(s.x / 2 - 8, -s.y + 9, 4, 5), Color(Kira.COLOR_DARK, alpha))
+		if _slash_t <= 0.0 or _slash.is_empty():
+			return
+		var k := _slash_t / SLASH_TIME
+		var col := Color(1.0, 0.95, 0.7, k) if _slash.special else Color(1, 1, 1, k * 0.9)
+		var box: Array = Kira.SPECIAL_HITBOX if _slash.special else Kira.HITBOX[_slash.dir]
+		var c: Vector2 = box[0]
+		var r: float = maxf(box[1].x, box[1].y) * 0.55
+		var from := -PI * 0.45
+		match _slash.dir:
+			KiraCombat.Dir.UP:
+				from = PI * 1.05
+			KiraCombat.Dir.DOWN:
+				from = PI * 0.05
+		var pivot := c - Vector2(r * 0.5, 0) if _slash.dir == KiraCombat.Dir.FORWARD else Vector2(0, -22)
+		draw_arc(pivot, r, from, from + PI * 0.9, 16, col, 6.0 if _slash.special else 4.0)

@@ -5,7 +5,11 @@ extends RefCounted
 
 const MOVE_LEFT := &"move_left"
 const MOVE_RIGHT := &"move_right"
+const MOVE_UP := &"move_up"
+const MOVE_DOWN := &"move_down"
 const JUMP := &"jump"
+const ATTACK := &"attack"
+const SPECIAL := &"special"
 const RESET := &"reset"
 
 
@@ -14,7 +18,11 @@ static func ensure() -> void:
 		return
 	_add(MOVE_LEFT, [KEY_A, KEY_LEFT], [JOY_BUTTON_DPAD_LEFT], JOY_AXIS_LEFT_X, -1.0)
 	_add(MOVE_RIGHT, [KEY_D, KEY_RIGHT], [JOY_BUTTON_DPAD_RIGHT], JOY_AXIS_LEFT_X, 1.0)
+	_add(MOVE_UP, [KEY_W, KEY_UP], [JOY_BUTTON_DPAD_UP], JOY_AXIS_LEFT_Y, -1.0)
+	_add(MOVE_DOWN, [KEY_S, KEY_DOWN], [JOY_BUTTON_DPAD_DOWN], JOY_AXIS_LEFT_Y, 1.0)
 	_add(JUMP, [KEY_SPACE, KEY_Z, KEY_K], [JOY_BUTTON_A])
+	_add(ATTACK, [KEY_X, KEY_J], [JOY_BUTTON_X])
+	_add(SPECIAL, [KEY_C, KEY_L], [JOY_BUTTON_Y])
 	_add(RESET, [KEY_R], [JOY_BUTTON_BACK])
 
 

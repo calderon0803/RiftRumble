@@ -3,7 +3,7 @@
 Metroidvania 2D lateral para PC. Protagonista: **Kira**, espadachina con el filo de 6 muescas.
 El proyecto empezó como tower defense; ese código queda en el historial de git (hasta el commit `e3a39a8`).
 
-Estado: **fase 1, movimiento** (correr y saltar en una sala de prueba). Ver [docs/01-fase-1-movimiento.md](docs/01-fase-1-movimiento.md).
+Estado: **movimiento** ([fase 1](docs/01-fase-1-movimiento.md)) y **combate** ([fase 3](docs/02-combate.md)) en una sala de prueba, con Kira y los enemigos como formas provisionales.
 
 ## Requisitos
 - Godot **4.7.x** estable, versión estándar con GDScript (no la .NET).
@@ -12,6 +12,10 @@ Estado: **fase 1, movimiento** (correr y saltar en una sala de prueba). Ver [doc
 ```
 src/core/     Utilidades comunes (controles)
 src/player/   Kira: movimiento sin nodos (KiraMotor) y cuerpo en la sala (Kira)
+src/combat/   Tajos y filo (KiraCombat) y vida (Health), sin nodos
+src/enemies/  Enemigos
+src/ui/       Marcador
+src/fx/       Efectos
 src/world/    Salas
 tests/        Tests headless
 art/concept/  Diseño de los personajes
@@ -41,4 +45,6 @@ godot --headless --path . --script res://tests/scene_tests.gd
 |---|---|---|
 | Moverse | ← → / A D | Stick izquierdo / cruceta |
 | Saltar (mantener = más alto) | Espacio / Z / K | A |
+| Tajo (↑ arriba, ↓ en el aire abajo) | X / J | X |
+| Tajo de filo (3 muescas) | C / L | Y |
 | Volver al inicio | R | Select / Back |

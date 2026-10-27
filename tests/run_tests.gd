@@ -106,5 +106,53 @@ func _initialize() -> void:
 	var too_early := simulate(120, func(f): return [0.0, (f >= 2 and f < 4) or (f >= landing - 14 and f < landing - 12)])
 	check(too_early.jumps.size() == 1, "pulsar demasiado pronto no cuenta")
 
+	print("Tajos y filo")
+	var c := KiraCombat.new()
+	var a := c.step(DT, true, false, 0.0, true)
+	check(not a.is_empty() and a.dir == KiraCombat.Dir.FORWARD and c.is_active(), "pulsar ataque empieza un tajo hacia delante")
+	var again := c.step(DT, true, false, 0.0, true)
+	check(again.is_empty(), "no se encadena otro tajo antes de recuperarse")
+	var frames := 1
+	while c.step(DT, false, false, 0.0, true).is_empty() and c.is_active():
+		frames += 1
+	check(frames * DT <= KiraCombat.ACTIVE + DT, "el golpe dura %.2f s" % (frames * DT))
+	for i in 30:
+		c.step(DT, false, false, 0.0, true)
+	check(c.step(DT, true, false, -1.0, true).dir == KiraCombat.Dir.UP, "con arriba, tajo hacia arriba")
+	for i in 30:
+		c.step(DT, false, false, 0.0, true)
+	check(c.step(DT, true, false, 1.0, true).dir == KiraCombat.Dir.FORWARD, "con abajo en el suelo, tajo normal")
+	for i in 30:
+		c.step(DT, false, false, 0.0, true)
+	check(c.step(DT, true, false, 1.0, false).dir == KiraCombat.Dir.DOWN, "con abajo en el aire, tajo hacia abajo")
+	var f := KiraCombat.new()
+	for i in 10:
+		f.step(DT, true, false, 0.0, true)
+		f.on_hit()
+		for j in 30:
+			f.step(DT, false, false, 0.0, true)
+	check(f.notches == KiraCombat.NOTCHES_MAX, "cada acierto llena una muesca, hasta 6")
+	var sp := f.step(DT, false, true, 0.0, true)
+	check(not sp.is_empty() and sp.special and sp.damage == KiraCombat.SPECIAL_DAMAGE and f.notches == 3,
+			"el tajo de filo gasta 3 muescas y hace %d de daño" % KiraCombat.SPECIAL_DAMAGE)
+	f.on_hit()
+	check(f.notches == 3, "el tajo de filo no llena muescas")
+	var empty := KiraCombat.new()
+	empty.notches = 2
+	check(empty.step(DT, false, true, 0.0, true).is_empty() and empty.notches == 2, "con menos de 3 muescas no sale")
+
+	print("Vida")
+	var h := Health.new(5)
+	check(h.damage(1, 1.0) and h.hp == 4, "recibe daño")
+	check(not h.damage(1, 1.0) and h.hp == 4, "invulnerable justo después")
+	for i in 61:
+		h.step(DT)
+	check(h.damage(1, 1.0) and h.hp == 3, "pasado 1 s vuelve a recibir daño")
+	h.invulnerable = 0.0
+	h.damage(10)
+	check(h.is_dead() and h.hp == 0, "no baja de 0")
+	h.reset()
+	check(h.hp == 5 and not h.is_dead(), "reiniciar devuelve toda la vida")
+
 	print("\n%d/%d comprobaciones correctas" % [_checks - _failures, _checks])
 	quit(1 if _failures > 0 else 0)
