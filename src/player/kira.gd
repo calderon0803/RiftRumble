@@ -13,7 +13,7 @@ signal landed(fall_speed: float)
 ## Caída mínima para levantar polvo al aterrizar.
 const DUST_FALL_SPEED := 420.0
 
-const SIZE := Vector2(22, 44)
+const SIZE := Vector2(24, 56)
 const RIG := preload("res://art/kira/kira_rig.tres")
 const Anims := preload("res://src/player/rig/cutout_anims.gd")
 ## Animación de cada tajo.
@@ -31,11 +31,11 @@ const LAYER_ENEMY := 4
 
 ## Zonas de golpe (centro y tamaño, respecto a los pies, mirando a la derecha).
 const HITBOX := {
-	KiraCombat.Dir.FORWARD: [Vector2(34, -24), Vector2(52, 38)],
-	KiraCombat.Dir.UP: [Vector2(0, -62), Vector2(40, 44)],
-	KiraCombat.Dir.DOWN: [Vector2(0, 20), Vector2(40, 46)],
+	KiraCombat.Dir.FORWARD: [Vector2(40, -30), Vector2(60, 46)],
+	KiraCombat.Dir.UP: [Vector2(0, -80), Vector2(48, 52)],
+	KiraCombat.Dir.DOWN: [Vector2(0, 22), Vector2(46, 48)],
 }
-const SPECIAL_HITBOX := [Vector2(52, -26), Vector2(96, 54)]
+const SPECIAL_HITBOX := [Vector2(58, -32), Vector2(104, 62)]
 
 ## Sensación de golpe
 const POGO_SPEED := 620.0          # rebote al acertar un tajo hacia abajo
@@ -58,6 +58,12 @@ var _hit_this_swing := {}
 var _visual: Placeholder
 var rig: CutoutRig
 var _anim_clock := 0.0
+## Animaciones dibujadas fotograma a fotograma (pack «Kira» de Sprite Kitchen, montadas
+## con tools/art/import_pack.py). El montaje por piezas ya no se ve: solo marca qué
+## acción toca y los tiempos de los tajos.
+const FRAME_ANIMS_DIR := "res://art/kira/anims"
+var _frames_sprite: AnimatedSprite2D
+var _restart_frames := false
 
 
 func _ready() -> void:
@@ -74,6 +80,8 @@ func _ready() -> void:
 	rig = CutoutRig.new()
 	rig.setup(RIG)
 	add_child(rig)
+	_frames_sprite = _build_frame_anims()
+	add_child(_frames_sprite)
 	_visual = Placeholder.new()
 	_visual.draw_body = false
 	add_child(_visual)
@@ -107,6 +115,7 @@ func _physics_process(dt: float) -> void:
 	if not started.is_empty():
 		_hit_this_swing.clear()
 		rig.play(&"special" if started.special else SLASH_ANIMS[started.dir], true)
+		_restart_frames = true
 	if combat.is_active():
 		_resolve_swing()
 	if combat.notches != notches_before:
@@ -171,16 +180,52 @@ func _update_rig(dt: float) -> void:
 	rig.update(_anim_clock, motor.facing < 0, rate, speed)
 	var blink := health.invulnerable > 0.0 and int(Time.get_ticks_msec() / 70) % 2 == 0
 	rig.modulate.a = 0.35 if blink else 1.0
+	# Dibujo: la animación dibujada de la acción (un tajo nuevo la empieza de cero).
+	rig.visible = false
+	var cur_anim := rig.current()
+	if _frames_sprite.sprite_frames.has_animation(cur_anim):
+		if _frames_sprite.animation != cur_anim or _restart_frames:
+			_frames_sprite.play(cur_anim)
+			_frames_sprite.frame = 0
+			_restart_frames = false
+		elif not _frames_sprite.is_playing() and _frames_sprite.sprite_frames.get_animation_loop(cur_anim):
+			_frames_sprite.play(cur_anim)
+		_frames_sprite.speed_scale = rate
+	_frames_sprite.flip_h = motor.facing < 0
+	_frames_sprite.modulate.a = rig.modulate.a
+
+
+func _build_frame_anims() -> AnimatedSprite2D:
+	var sp := AnimatedSprite2D.new()
+	var frames := SpriteFrames.new()
+	frames.remove_animation(&"default")
+	var meta: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(FRAME_ANIMS_DIR + "/anims.json"))
+	var feet := Vector2(meta.feet[0], meta.feet[1])
+	for anim: String in meta.anims:
+		var cfg: Dictionary = meta.anims[anim]
+		frames.add_animation(anim)
+		frames.set_animation_speed(anim, cfg.fps)
+		frames.set_animation_loop(anim, cfg.loop)
+		for i in int(cfg.count):
+			frames.add_frame(anim, load("%s/%s/frame_%d.png" % [FRAME_ANIMS_DIR, anim, i]))
+	sp.sprite_frames = frames
+	sp.centered = false
+	sp.offset = -feet       # los pies en el origen de Kira
+	sp.scale = Vector2.ONE * 0.5
+	sp.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	return sp
 
 
 ## Copia de Kira que se desvanece (estela del dash).
 func _spawn_ghost() -> void:
 	if get_parent() == null:
 		return
-	var g := CutoutRig.new()
-	g.setup(RIG)
-	g.copy_state(rig)
-	g.update(_anim_clock, motor.facing < 0, 0.0, 0.0)
+	var g := Sprite2D.new()
+	g.texture = _frames_sprite.sprite_frames.get_frame_texture(_frames_sprite.animation, _frames_sprite.frame)
+	g.centered = false
+	g.offset = _frames_sprite.offset
+	g.scale = _frames_sprite.scale
+	g.flip_h = _frames_sprite.flip_h
 	g.modulate = Color(1.0, 0.55, 0.85, 0.5)
 	g.position = position
 	g.z_index = -1
@@ -282,6 +327,7 @@ func _check_contact_damage() -> void:
 	velocity = Vector2(HURT_KNOCKBACK.x * away, HURT_KNOCKBACK.y)
 	_stun = HURT_STUN
 	rig.play(&"hit", true)
+	_restart_frames = true
 	health_changed.emit(health.hp, health.max_hp)
 	if health.is_dead():
 		died.emit()

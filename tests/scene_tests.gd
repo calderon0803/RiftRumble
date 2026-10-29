@@ -268,10 +268,9 @@ func _wait_anim(kira: Kira, anim: StringName, frames := 30) -> bool:
 func _animations(room: TestRoom, kira: Kira) -> void:
 	print("Dibujo y animaciones")
 	_clear_enemies(room)
-	var sprites := kira.rig.get_children().filter(func(n): return n is Sprite2D)
-	check(sprites.size() == 13, "Kira se dibuja por piezas (13 piezas)")
+	check(not kira.rig.visible and kira._frames_sprite.visible, "Kira se dibuja con sus dibujos (no con el montaje por piezas)")
 	kira.grant("dash")
-	kira.respawn(Vector2(10.5 * room.TILE, 22.0 * room.TILE))
+	kira.respawn(Vector2(5.5 * room.TILE, 22.0 * room.TILE))  # sin plataformas encima
 	kira.scripted_input = {"x": 0.0}
 	await _physics(10)
 	check(await _wait_anim(kira, &"idle"), "quieta: reposo")
@@ -305,7 +304,7 @@ func _animations(room: TestRoom, kira: Kira) -> void:
 	kira.scripted_input = {"x": 1.0, "dash": true}
 	check(await _wait_anim(kira, &"dash", 3), "dash")
 	await _physics(3)
-	var ghosts := room.get_children().filter(func(n): return n is CutoutRig)
+	var ghosts := room.get_children().filter(func(n): return n is Sprite2D)
 	check(ghosts.size() > 0, "el dash deja una estela de copias de Kira")
 	kira.scripted_input = {"x": 0.0}
 	await _physics(30)
