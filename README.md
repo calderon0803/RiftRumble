@@ -3,7 +3,7 @@
 Metroidvania 2D lateral para PC. Protagonista: **Kira**, espadachina con el filo de 6 muescas.
 El proyecto empezó como tower defense; ese código queda en el historial de git (hasta el commit `e3a39a8`).
 
-Estado: **movimiento** ([fase 1](docs/01-fase-1-movimiento.md)), **combate** ([fase 3](docs/02-combate.md)) y **un mundo de 8 salas con bancos, guardado y mapa** ([fase 4](docs/03-salas-y-mapa.md)) **el dash**, la primera habilidad que abre camino ([fase 5](docs/04-dash.md)), **el primer jefe**, el Guardián ([fase 6](docs/05-jefe-guardian.md)), **tres tipos de enemigo** ([fase 7](docs/06-enemigos.md)) **el salto en pared** ([fase 8](docs/07-salto-en-pared.md)) y **pulido**: título, pausa, efectos de golpe y escenario por zonas ([fase 9](docs/08-pulido.md)). Kira, los enemigos y el escenario son formas provisionales.
+Estado: **movimiento** ([fase 1](docs/01-fase-1-movimiento.md)), **combate** ([fase 3](docs/02-combate.md)) y **un mundo de 8 salas con bancos, guardado y mapa** ([fase 4](docs/03-salas-y-mapa.md)) **el dash**, la primera habilidad que abre camino ([fase 5](docs/04-dash.md)), **el primer jefe**, el Guardián ([fase 6](docs/05-jefe-guardian.md)), **tres tipos de enemigo** ([fase 7](docs/06-enemigos.md)) **el salto en pared** ([fase 8](docs/07-salto-en-pared.md)) y **pulido**: título, pausa, efectos de golpe y escenario por zonas ([fase 9](docs/08-pulido.md)), y **Kira dibujada por piezas** con sus animaciones ([fase 10](docs/09-sprites-kira.md)). Los enemigos y el escenario siguen siendo formas provisionales.
 
 ## Requisitos
 - Godot **4.7.x** estable, versión estándar con GDScript (no la .NET).
@@ -11,7 +11,7 @@ Estado: **movimiento** ([fase 1](docs/01-fase-1-movimiento.md)), **combate** ([f
 ## Estructura
 ```
 src/core/     Utilidades comunes (controles, partida guardada)
-src/player/   Kira: movimiento sin nodos (KiraMotor) y cuerpo en la sala (Kira)
+src/player/   Kira: movimiento sin nodos (KiraMotor), cuerpo en la sala (Kira) y su esqueleto animado (rig/)
 src/combat/   Tajos y filo (KiraCombat) y vida (Health), sin nodos
 src/enemies/  Enemigos
 src/ui/       Título, pausa, marcador y mapa
@@ -20,6 +20,7 @@ src/world/    Mundo y salas (rooms.gd lo genera tools/gen_rooms.py)
 tools/        Generadores
 tests/        Tests headless
 art/concept/  Diseño de los personajes
+art/kira/     Piezas y esqueleto de Kira (los genera tools/art/cut_parts.py)
 docs/         Decisiones y resultados por fase
 ```
 
@@ -59,6 +60,16 @@ godot --headless --path . --script res://tests/enemy_tests.gd
 Tests del título, la pausa y los efectos:
 ```bash
 godot --headless --path . --script res://tests/ui_tests.gd
+```
+
+Ver todas las animaciones de Kira en una imagen:
+```bash
+godot --path . --script res://tools/rig_preview.gd -- res://art/kira/kira_rig.tres animaciones.png
+```
+
+Volver a montar el esqueleto de Kira tras editar `art/kira/rig.json`:
+```bash
+python tools/art/cut_parts.py kira montar
 ```
 
 Regenerar las salas tras editar `tools/gen_rooms.py`:

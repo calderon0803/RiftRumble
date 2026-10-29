@@ -110,7 +110,7 @@ func take_hit(damage: int, from: Vector2) -> bool:
 func _target_center() -> Vector2:
 	if target == null:
 		return Vector2.INF
-	return target.global_position + Vector2(0, -22)
+	return target.global_position + Vector2(0, -Kira.SIZE.y / 2)
 
 
 func _draw() -> void:
