@@ -1,6 +1,6 @@
-# Argumento principal
+﻿# Argumento principal
 
-> Estado: en definición (2026-11-02). **[D]** = decidido · **[P]** = propuesta pendiente de confirmar · **[?]** = sin decidir.
+> Estado: argumento principal cerrado (2026-11-02). **[D]** = decidido · **[P]** = propuesta pendiente de confirmar · **[?]** = sin decidir.
 > Sustituye al marco anterior («la Gran Interferencia superpone realidades y Nexo recluta héroes»), que se reinterpreta
 > dentro de esta historia (ver §6).
 
@@ -43,8 +43,13 @@ costará la vida.
 
 ## 4. Personajes
 
-### El desarrollador [D]
-Hombre. Es el personaje que controla el jugador (su avatar dentro del juego). Nombre y aspecto **[?]**.
+### Álex, el desarrollador [D]
+Es el personaje que controla el jugador.
+- **Aspecto: avatar de pruebas.** Un maniquí gris sin texturas, con la cuadrícula de pruebas a la vista. Cada mundo
+  superado le deja un detalle del estilo de ese mundo: empieza como prototipo y termina siendo alguien.
+- **[P]** Dentro del juego aparece con su usuario de pruebas (por ejemplo, `dev_01`). Nexo le llama siempre por ese
+  usuario; Kira, que le conoce, por su nombre: Álex.
+- Arma y recurso de combate propios: **[?]** (§6).
 
 ### Kira Volt [D]
 Protagonista del **primer juego que hizo el desarrollador y que nunca terminó**. Su espada con el filo de 6 muescas
@@ -63,6 +68,16 @@ El **guía de la versión de prueba**: el personaje del tutorial que programó e
 sala de depuración, donde estaba el atajo de salida que ha desaparecido.
 - **Sabe desde el principio que terminar el juego mata al desarrollador, y se lo calla** para que no se rinda.
 - Cuando la verdad sale a la luz, la confianza entre los dos se rompe.
+- **Por qué lo calló:** como guía del tutorial, su código le obliga a conseguir que el jugador no abandone, una
+  norma que escribió el propio desarrollador. Contarle la verdad iba contra su programación.
+- **Se redime [D]:** en la Frontera Imposible lo confiesa y **rompe esa norma por primera vez**: deja de intentar
+  retenerle y le dice qué le espera en cada camino.
+- **En cada final [D]:**
+  - *Terminar:* le acompaña hasta el último nivel y es la última cara que ve. Cumple su función de guía hasta el final.
+  - *Quedarse:* es el único que se alegra, porque su código ha conseguido lo que pedía. Escena final: en el Umbral
+    recibe al primer jugador nuevo con las mismas palabras que le dijo al desarrollador. El ciclo empieza otra vez.
+  - *Oculto:* le da a Kira **el tutorial de su último nivel**: guía a la protagonista abandonada hasta donde el
+    desarrollador no puede llegar.
 
 ### La revelación [D]
 En el **Vertedero de Ideas** (mundo 5, cerca del final), el desarrollador encuentra, **con ayuda de Kira**, una nota
@@ -78,16 +93,21 @@ Zerik y sus registros de errores, el personaje que sabe que está en una pelícu
 ### El Rey del Reinicio [?]
 Jefe del Reino del Continue. Hoy su derrota se cuenta como una redención («deja de pulsar CONTINUE»).
 
-## 5. Los seis mundos [P]
-Cada mundo es uno de los juegos o prototipos del desarrollador:
-| Mundo | Qué juego era |
-|---|---|
-| Reino del Continue | un juego de plataformas que se quedó atascado en bucle |
-| Academia del Último Hechizo | **[?]** |
-| La Última Sesión | **[?]** |
-| Neón de Medianoche | **[?]** |
-| Vertedero de Ideas | su carpeta de ideas descartadas |
-| Frontera Imposible | **[?]** (último mundo; jefe final: el Editor) |
+## 5. Los seis mundos [D]
+Los mundos cuentan **la vida del desarrollador como creador**: cada uno es un juego de una etapa distinta y su jefe
+encarna el miedo que tenía entonces. Se va de los miedos más viejos a su error más reciente.
+
+El juego de Kira **no es uno de los seis**: quedó tan a medias que solo existe en trozos repartidos por todos ellos.
+Cada trozo terminado enciende una muesca de su espada (§3.1).
+
+| # | Mundo | Qué juego era | Jefe: lo que representa | Trozo del juego de Kira |
+|---|---|---|---|---|
+| 1 | Reino del Continue | Su primer juego publicado, de plataformas. Vendió poco y lo relanzó una y otra vez con parches y versiones. | **Rey del Reinicio**: el miedo a que la única salida sea empezar de cero. | Su **primer nivel**, el tutorial que nunca se probó. |
+| 2 | Academia del Último Hechizo | El proyecto de cuando estudiaba desarrollo: fantasía y magia. | **Alumno Eterno**: el miedo a equivocarse, que no le dejaba dar nada por terminado. | Su **técnica de espada**: el filo de 6 muescas, la mecánica estrella sin pulir. |
+| 3 | La Última Sesión | Un juego de terror de una game jam, donde se pasó el tiempo cortando escenas para llegar. | **Proyeccionista**: el que corta «lo que sobra», aunque sea lo importante. | **La escena de su pasado**, cortada antes de escribirse: aquí se cuenta quién es Kira. |
+| 4 | Neón de Medianoche | El juego del gran estudio donde trabajó: una ciudad optimizada en la que nadie sabe por qué hace lo que hace. | **Administrador**: la etapa en la que trabajaba sin saber para qué. | **Su ciudad**, el nivel más grande, con los habitantes sin programar. |
+| 5 | Vertedero de Ideas | Su carpeta de ideas descartadas. | **Algoritmo**: lo que decide qué ideas sirven y cuáles se tiran. | **Su final**, nunca escrito. Aquí está también la nota que destapa a Nexo (§4). |
+| 6 | Frontera Imposible | El juego de realidad virtual que hace ahora, el que lo provocó todo; mezcla las reglas de los anteriores. | **El Editor**: la IA a la que dejó decidir por él. | **Su pantalla de título**: la última muesca, el juego listo para existir. |
 
 ## 6. Qué cambia respecto a lo anterior
 - La **Gran Interferencia** pasa a ser la fusión provocada por el error de la IA.
@@ -98,6 +118,7 @@ Cada mundo es uno de los juegos o prototipos del desarrollador:
   desarrollador necesitará **su propia arma y su propio recurso de combate**.
 
 ## 7. Pendiente de decidir
-1. Qué era cada mundo antes de la fusión, y qué trozo del juego de Kira aparece en cada uno.
-2. Nombre y aspecto del desarrollador.
-3. Si Nexo recupera la confianza después de la revelación, y qué papel tiene en cada final.
+El argumento principal está cerrado. Queda:
+1. El usuario de pruebas de Álex (propuesta: `dev_01`).
+2. El arma y el recurso de combate de Álex.
+3. Llevarlo al código: Álex como personaje jugable, Kira con apariciones puntuales y las muescas como avance del final oculto.
