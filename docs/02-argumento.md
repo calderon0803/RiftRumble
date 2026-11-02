@@ -49,7 +49,16 @@ Es el personaje que controla el jugador.
   superado le deja un detalle del estilo de ese mundo: empieza como prototipo y termina siendo alguien.
 - **[P]** Dentro del juego aparece con su usuario de pruebas (por ejemplo, `dev_01`). Nexo le llama siempre por ese
   usuario; Kira, que le conoce, por su nombre: Álex.
-- Arma y recurso de combate propios: **[?]** (§6).
+
+#### El cursor y la depuración [D]
+- **Arma: el cursor.** La flecha del ratón del editor, convertida en arma. El combate que ya funciona no cambia,
+  solo su forma:
+  - *Tajo* → **clic**: golpe con la punta del cursor, en las tres direcciones (el clic hacia abajo rebota igual).
+  - *Dash* → **arrastrar**: Álex se desplaza como un objeto arrastrado por el editor, intocable mientras dura.
+- **[P]** Como su avatar, el cursor cambia de forma con cada mundo superado (flecha, mano, mira, pincel...).
+- **Recurso: depuración.** Una barra que se llena con cada golpe que acierta (sustituye a las muescas, que son de Kira).
+  - **Parche:** mantener para recuperar vida; gasta depuración.
+  - **Excepción:** disparo a distancia; gasta depuración. **[P]** Sale como una ventana de error que vuela.
 
 ### Kira Volt [D]
 Protagonista del **primer juego que hizo el desarrollador y que nunca terminó**. Su espada con el filo de 6 muescas
@@ -120,5 +129,5 @@ Cada trozo terminado enciende una muesca de su espada (§3.1).
 ## 7. Pendiente de decidir
 El argumento principal está cerrado. Queda:
 1. El usuario de pruebas de Álex (propuesta: `dev_01`).
-2. El arma y el recurso de combate de Álex.
-3. Llevarlo al código: Álex como personaje jugable, Kira con apariciones puntuales y las muescas como avance del final oculto.
+2. Llevarlo al código: Álex con el cursor y la depuración como personaje jugable, Kira con apariciones puntuales y
+   las muescas como avance del final oculto.
