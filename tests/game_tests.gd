@@ -105,6 +105,13 @@ func _init() -> void:
 
 	print("Nivel 1-1 de Kira")
 	check(g.portal_open(1), "tras hablar con Kira se abre su nivel")
+	check(g.props.filter(func(o): return o["type"] == "T").is_empty(), "el portal ya no está junto a Kira")
+	g.load_room("sotano", "1"); g.enemies.clear(); step(3)
+	check(g.tile_at(50, 16) == "w" and g.is_solid("w"), "en el Sótano, el portal está detrás de un muro falso")
+	g.P.x = 48 * 32; g.P.y = 18 * 32 - g.P.h; g.P.vy = 0; g.P.face = 1; step(5)
+	for i in 4:
+		step(1, {}, ["attack"]); step(20)
+	check(g.tile_at(50, 16) == "." and g.tile_at(50, 17) == ".", "dos clics por casilla rompen el muro falso")
 	var T_: Dictionary = g.props.filter(func(o): return o["type"] == "T")[0]
 	g.P.x = T_["x"] - 9; g.P.y = T_["y"] - g.P.h
 	step(3); step(1, {}, ["interact"]); step(30)
@@ -127,7 +134,7 @@ func _init() -> void:
 	for i in 12:
 		step(4, {}, ["confirm"])
 	step(30)
-	check(g.room.id == "inicio" and not g.portal_open(1), "se vuelve a la Pantalla de Inicio y el portal se cierra")
+	check(g.room.id == "sotano" and not g.portal_open(1), "se vuelve a la cámara secreta del Sótano y el portal se cierra")
 
 	print("Grietas")
 	fresh(); g.load_room("inicio", "1"); g.enemies.clear()
@@ -350,6 +357,8 @@ func _init() -> void:
 	for i in 12:
 		step(4, {}, ["confirm"])
 	check(g.portal_open(2), "se abre la sala de su técnica")
+	g.load_room("observatorio", "1"); g.enemies.clear(); step(3)
+	check(g.tile_at(39, 13) == "w" and g.props.any(func(o): return o["type"] == "T"), "su portal está en el Observatorio, detrás de un muro falso")
 	g.load_room("kira2", "1"); step(5)
 	var dummies := g.enemies.filter(func(e): return e.kind == "dummy")
 	check(dummies.size() == 3, "hay tres muñecos de entrenamiento")

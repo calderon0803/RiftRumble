@@ -224,7 +224,7 @@ func tile_at(tx: int, ty: int) -> String:
 
 ## Casillas que no se atraviesan: bloque, bloques rompibles y la puerta de una arena en combate.
 func is_solid(c: String) -> bool:
-	return c == "#" or c == "b" or c == "n" or (c == "d" and arena_active)
+	return c == "#" or c == "b" or c == "n" or c == "w" or (c == "d" and arena_active)
 
 
 func solid_pt(px: float, py: float) -> bool:
@@ -1061,14 +1061,15 @@ func resolve_attack() -> void:
 			P.dash_charges = 2 if has("carrera") else 1
 
 
-## Bloques rompibles ("b", "n"): dos clics los rompen. Los "n" sueltan fragmentos.
+## Bloques rompibles ("b", "n", "w"): dos clics los rompen. Los "n" sueltan fragmentos; los "w" son muros
+## falsos que se ven como una pared normal hasta el primer clic.
 ## Devuelve si el clic ha dado en alguno (para rebotar con el clic hacia abajo).
 func break_blocks(b: Rect2) -> bool:
 	var any := false
 	for ty in range(floori(b.position.y / T), floori(b.end.y / T) + 1):
 		for tx in range(floori(b.position.x / T), floori(b.end.x / T) + 1):
 			var c := tile_at(tx, ty)
-			if (c != "b" and c != "n") or not b.intersects(Rect2(tx * T, ty * T, T, T)):
+			if not c in ["b", "n", "w"] or not b.intersects(Rect2(tx * T, ty * T, T, T)):
 				continue
 			var key := Vector2i(tx, ty)
 			if P.atk_hits.has(key):

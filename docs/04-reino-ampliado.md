@@ -35,6 +35,9 @@ Umbral ─ Inicio ─ Pasarela ─ Cruce ─ Arena de los Rastreros ─ Bloque S
   dispara orbes y el escupidor lanza tres a la vez.
 - **Fuente**: cura vida y depuración, una vez por intento.
 - **Fragmentos escondidos**: 8 de golpe, una vez por intento.
+- **Muros falsos** («w»): se dibujan igual que una pared y solo se delatan al golpearlos (primer clic: grietas;
+  segundo: se rompen). Esconden los **portales de Kira**: el del Nivel 1-1 está al fondo del **Sótano** y el de su
+  Técnica, al fondo del **Observatorio** de la Academia. Kira da la pista al presentarse, sin decir dónde exactamente.
 - **Cada intento empieza con el mapa como nuevo**: bloques sin romper, arenas por superar y fuentes llenas.
 - Las grietas pasan a 8 por intento (5 en el Reino y 3 en la Academia).
 

@@ -139,7 +139,8 @@ func _solid(x: int, y: int) -> bool:
 	var r := game.room
 	if x < 0 or y < 0 or x >= r.w or y >= r.h:
 		return true
-	return r.g[y][x] == "#" or (r.g[y][x] == "d" and game.arena_active)
+	# El muro falso cuenta como pared para los bordes: así no se delata.
+	return r.g[y][x] == "#" or r.g[y][x] == "w" or (r.g[y][x] == "d" and game.arena_active)
 
 
 func _draw_tiles() -> void:
@@ -154,7 +155,7 @@ func _draw_tiles() -> void:
 		for x in range(x0, x1 + 1):
 			var ch: String = r.g[y][x]
 			var p := Vector2(x * T, y * T) - _cam
-			if ch == "#":
+			if ch == "#" or ch == "w":
 				var inner := _solid(x - 1, y) and _solid(x + 1, y) and _solid(x, y - 1) and _solid(x, y + 1)
 				draw_rect(Rect2(p, Vector2(T, T)), deep if inner else stone)
 				if not inner:
@@ -175,6 +176,11 @@ func _draw_tiles() -> void:
 					draw_rect(Rect2(p.x + 4, p.y, 2, T), Color(_rim, 0.25))
 				if not _solid(x + 1, y):
 					draw_rect(Rect2(p.x + T - 4, p.y, 4, T), OUT)
+				if ch == "w" and game.hits.has(Vector2i(x, y)):
+					# Muro falso golpeado una vez: ahora sí se ven las grietas.
+					draw_polyline(PackedVector2Array([p + Vector2(6, 4), p + Vector2(14, 14), p + Vector2(9, 22), p + Vector2(17, 29)]), OUT, 2.5)
+					draw_polyline(PackedVector2Array([p + Vector2(26, 5), p + Vector2(19, 16), p + Vector2(27, 24)]), OUT, 2.5)
+					glow(p + Vector2(16, 16), 20, Color("ff6fd8"), 0.3)
 			elif ch == "=":
 				draw_rect(Rect2(p, Vector2(T, 10)), stone)
 				draw_rect(Rect2(p, Vector2(T, 3)), OUT)
