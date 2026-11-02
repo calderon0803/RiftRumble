@@ -8,7 +8,7 @@ static var path := "user://partida.json"
 static func defaults() -> Dictionary:
 	return {"frags": 0, "deaths": 0, "wings": false, "boss": false,
 		"up": {"corazon": 0, "dano": 0, "precarga": 0, "continue": 0},
-		"talk": 0, "kira_talk": 0, "wing_talk": false, "end_talk": false, "seen_intro": false}
+		"talk": 0, "kira_talk": 0, "kira_frags": 0, "wing_talk": false, "end_talk": false, "seen_intro": false}
 
 
 static func load_meta() -> Dictionary:
@@ -32,6 +32,8 @@ static func load_meta() -> Dictionary:
 	m["frags"] = int(m["frags"])
 	m["deaths"] = int(m["deaths"])
 	m["talk"] = int(m["talk"])
+	m["kira_talk"] = int(m["kira_talk"])
+	m["kira_frags"] = int(m["kira_frags"])
 	return m
 
 

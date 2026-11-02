@@ -1,4 +1,4 @@
-﻿# Argumento principal
+# Argumento principal
 
 > Estado: argumento principal cerrado (2026-11-02). **[D]** = decidido · **[P]** = propuesta pendiente de confirmar · **[?]** = sin decidir.
 > Sustituye al marco anterior («la Gran Interferencia superpone realidades y Nexo recluta héroes»), que se reinterpreta
@@ -129,5 +129,12 @@ Cada trozo terminado enciende una muesca de su espada (§3.1).
 ## 7. Pendiente de decidir
 El argumento principal está cerrado. Queda:
 1. El usuario de pruebas de Álex (propuesta: `dev_01`).
-2. Llevarlo al código: Álex con el cursor y la depuración como personaje jugable, Kira con apariciones puntuales y
-   las muescas como avance del final oculto.
+2. Trozos del juego de Kira en los mundos 2 a 6 (el del mundo 1 ya está en el código, ver §8).
+
+## 8. En el código
+- Se juega con Álex (maniquí de pruebas, cursor y depuración). Kira aparece en la Pantalla de Inicio.
+- **Primer trozo: el Nivel 1-1 de Kira.** Tras presentarse, Kira abre un portal junto a ella. Dentro, su tutorial
+  está a medias: el puente sobre el foso y un escalón son bloques sin colocar (contorno a trazos con «?») que Álex
+  coloca con clics, y hay carteles con sus notas «TODO». La bandera del final enciende la primera muesca de la
+  espada de Kira, ella habla y el portal se cierra. Los bloques colocados no se guardan: si muere dentro, al volver
+  el nivel vuelve a estar a medias.

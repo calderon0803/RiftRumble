@@ -303,6 +303,9 @@ func load_room(id: String, entry: String, carry := Vector2.ZERO) -> void:
 	var prev := room
 	if id == "trono":
 		set_arena(false)
+	if id == "kira1":
+		# Los bloques colocados no se guardan: cada visita el nivel vuelve a estar a medias.
+		rooms[id] = Data.build_rooms()[id]
 	room = rooms[id]
 	enemies.clear(); projs.clear(); pickups.clear(); slashes.clear(); props.clear()
 	boss = null
@@ -720,12 +723,23 @@ func resolve_attack() -> void:
 			burst(Vector2(q.x, q.y), 8, Color("ff9ab0"), 180)
 	if P.atk_dir == "down" and not pogo and touching_spikes(b):
 		pogo = true
+	place_blocks(b)
 	if pogo and not P.pogo_done:
 		P.pogo_done = true
 		P.vy = -POGO
 		P.air_jumps = 1
 		if has("disciplina"):
 			P.dash_charges = 2 if has("carrera") else 1
+
+
+## Un clic sobre un bloque sin colocar ("p") lo coloca: pasa a ser una plataforma que se pisa.
+func place_blocks(b: Rect2) -> void:
+	for ty in range(floori(b.position.y / T), floori(b.end.y / T) + 1):
+		for tx in range(floori(b.position.x / T), floori(b.end.x / T) + 1):
+			if tile_at(tx, ty) == "p" and b.intersects(Rect2(tx * T, ty * T, T, T)):
+				room.g[ty][tx] = "="
+				burst(Vector2(tx * T + 16, ty * T + 6), 8, Color("ff6fd8"), 160, 0.0, true)
+				num(tx * T + 16, ty * T - 4, "Colocado", Color("ff6fd8"))
 
 
 func hit_enemy_melee(e: Ent, b: Rect2) -> void:
@@ -1018,6 +1032,23 @@ func new_kira_talk() -> bool:
 	return int(meta["kira_talk"]) < Data.KIRA_SEQ.size()
 
 
+## El nivel de Kira se abre cuando ella se ha presentado, y se cierra al terminarlo.
+func portal_open() -> bool:
+	return int(meta["kira_talk"]) >= 1 and int(meta["kira_frags"]) < 1
+
+
+## Tocar la bandera del nivel de Kira enciende una muesca de su espada.
+func complete_kira_fragment() -> void:
+	var n := int(meta["kira_frags"])
+	meta["kira_frags"] = n + 1
+	save()
+	flash_a = 0.7; flash_col = Color("ff6fd8")
+	burst(P.center(), 60, Color("ff6fd8"), 420, 0.0, true)
+	banner = {"text": "Nivel 1-1 de Kira", "sub": "Primera muesca encendida", "t": 0.0}
+	open_dialog("Kira Volt", Color("ff6fd8"), Data.KIRA_FRAG[mini(n, Data.KIRA_FRAG.size() - 1)],
+		func(): state = "trans"; trans = {"t": 0.0, "to": "inicio", "entry": "K", "loaded": false, "carry": Vector2.ZERO})
+
+
 func open_dialog(speaker: String, col: Color, lines: Array, on_end := Callable()) -> void:
 	dialog = {"speaker": speaker, "col": col, "lines": lines, "i": 0, "t": 0.0, "on_end": on_end}
 	state = "dialog"
@@ -1038,6 +1069,9 @@ func prompt_for(o: Dictionary) -> String:
 	match o["type"]:
 		"O": return "Hablar con Nexo"
 		"K": return "Hablar con Kira"
+		"T":
+			if portal_open():
+				return "Entrar en el Nivel 1-1 de Kira"
 		"L": return "Leer el registro"
 		"M": return "Entregar fragmentos al anillo"
 		"H": return "Mirar el marcador"
@@ -1057,6 +1091,10 @@ func interact(o: Dictionary) -> void:
 		"K":
 			open_dialog("Kira Volt", Color("ff6fd8"), kira_lines())
 			save()
+		"T":
+			if portal_open():
+				state = "trans"
+				trans = {"t": 0.0, "to": "kira1", "entry": "1", "loaded": false, "carry": Vector2.ZERO}
 		"L":
 			open_dialog("Registro de Zerik", Color("f2c14e"), [o["text"]])
 		"H":
@@ -1263,6 +1301,11 @@ func update(dt: float) -> void:
 			burst(Vector2(o["x"], o["y"] - 30), 50, Color("ffe14d"), 360, 0.0, true)
 			open_dialog("Orbe de Salto Doble", Color("ffe14d"), ["El orbe se rompe y su chispa se queda en las botas del avatar de Álex.",
 				"Pulsa SALTAR en el aire para dar un segundo salto. Este poder no se pierde con el Continue."])
+			return
+	for o in props:
+		if o["type"] == "G" and absf(o["x"] - P.center().x) < 22 and P.y + P.h > o["y"] - 70:
+			props.erase(o)
+			complete_kira_fragment()
 			return
 	var np = near_prop()
 	if np != null and prompt_for(np) != "" and (hit("interact") or hit("up")):

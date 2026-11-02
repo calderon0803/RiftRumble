@@ -182,6 +182,15 @@ func _draw_tiles() -> void:
 				draw_rect(Rect2(p.x, p.y + 3, T, 2), _rim)
 				if (x + y) % 3 == 0:
 					draw_rect(Rect2(p.x + 13, p.y + 13, 5, 8), OUT)
+			elif ch == "p":
+				# Bloque sin colocar: solo su contorno, a trazos, esperando un clic.
+				var a := 0.45 + 0.25 * sin(game.time * 4 + x)
+				var col := Color(Color("ff6fd8"), a)
+				for i in 4:
+					draw_line(p + Vector2(i * 8 + 1, 1), p + Vector2(i * 8 + 5, 1), col, 2)
+					draw_line(p + Vector2(i * 8 + 1, 11), p + Vector2(i * 8 + 5, 11), col, 2)
+				draw_line(p + Vector2(1, 1), p + Vector2(1, 11), col, 2)
+				Paint.text(self, "?", p + Vector2(T / 2.0, 10), 10, col, 1, 0, true)
 			elif ch == "^":
 				for i in 3:
 					var sx := p.x + 2 + i * 10
@@ -200,6 +209,30 @@ func _draw_props() -> void:
 				_draw_nexo(p)
 				if g.new_talk():
 					Paint.text(self, "!", p + Vector2(0, -78 + sin(g.time * 4) * 3), 28, SPARK, 1, 6, true)
+			"T":
+				if g.portal_open():
+					# Entrada al nivel de Kira: un marco de nivel con su número.
+					var c := p + Vector2(0, -30)
+					var pulse := 1.0 + sin(g.time * 3) * 0.05
+					Paint.fill_ellipse(self, c, 18 * pulse, 30 * pulse, OUT)
+					Paint.fill_ellipse(self, c, 14 * pulse, 26 * pulse, Color("3a1030"))
+					draw_arc(c, 16, 0, TAU, 32, MAGENTA, 2)
+					Paint.text(self, "1-1", c + Vector2(0, 5), 13, Color("ffd6f2"), 1, 3, true)
+					glow(c, 70, MAGENTA, 0.45)
+			"S":
+				# Cartel de tutorial a medio hacer, con una nota de Álex.
+				draw_rect(Rect2(p + Vector2(-2, -26), Vector2(4, 26)), Color("4a3a48"))
+				var w := Paint.text_width(o["text"], 12) + 16
+				var box := Rect2(p + Vector2(-w / 2, -48), Vector2(w, 22))
+				draw_rect(box.grow(2), OUT)
+				draw_rect(box, Color("efe2c8"))
+				Paint.text(self, o["text"], p + Vector2(0, -32), 12, Color("3a2030"), 1)
+			"G":
+				# Bandera del final del nivel.
+				draw_rect(Rect2(p + Vector2(-2, -76), Vector2(4, 76)), Color("d8cfe0"))
+				var wave := sin(g.time * 5) * 3
+				Paint.outline_poly(self, PackedVector2Array([p + Vector2(2, -74), p + Vector2(30, -66 + wave), p + Vector2(2, -56)]), MAGENTA, 2.5)
+				glow(p + Vector2(14, -66), 50, MAGENTA, 0.4)
 			"K":
 				_draw_kira_npc(p)
 				if g.new_kira_talk():
@@ -511,10 +544,13 @@ func _draw_kira_npc(p: Vector2) -> void:
 	var tip := hand + Vector2(4, -26)
 	draw_line(hand, tip, OUT, 6)
 	draw_line(hand, tip, Color("fff5fb"), 3)
+	var lit := int(g.meta["kira_frags"])
 	for i in 6:
-		draw_circle(hand.lerp(tip, 0.18 + i * 0.13), 1.6, Color("5a4a5a"))
+		draw_circle(hand.lerp(tip, 0.18 + i * 0.13), 1.6, SPARK if i < lit else Color("5a4a5a"))
 	draw_set_transform(Vector2.ZERO)
 	glow(p + Vector2(0, -24), 40, MAGENTA, 0.25)
+	if lit > 0:
+		glow(p + Vector2(10 * face, -36), 14 + lit * 4, SPARK, 0.45)
 
 
 func _draw_slashes() -> void:

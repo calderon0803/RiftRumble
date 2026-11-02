@@ -42,6 +42,17 @@ func _run(main: Node) -> void:
 	g.cam = g.cam_target()
 	await _frames(40)
 	await _shot("3_inicio")
+	g.meta["kira_talk"] = 1
+	g.load_room("kira1", "1")
+	g.enemies.clear()
+	g.P.x = 12 * 32
+	g.P.y = 16 * 32 - g.P.h
+	g.room.g[16][10] = "="
+	g.room.g[16][11] = "="
+	g.room.g[16][12] = "="
+	g.cam = g.cam_target()
+	await _frames(40)
+	await _shot("3b_nivel_kira")
 	g.load_room("monedas", "1")
 	g.P.x = 22 * 32
 	await _frames(40)

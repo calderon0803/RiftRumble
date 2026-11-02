@@ -12,6 +12,7 @@ const PALETTES := {
 	"monedas": {"top": Color("3a2a10"), "bot": Color("0e0904"), "stone": Color("3a2a1a"), "deep": Color("22180e"), "rim": Color("f2c14e"), "far": Color("2a1e0e"), "near": Color("1a1208")},
 	"bloque": {"top": Color("44180f"), "bot": Color("100504"), "stone": Color("3c1e16"), "deep": Color("24110c"), "rim": Color("ff7a4a"), "far": Color("2e130c"), "near": Color("1c0b07")},
 	"pantalla": {"top": Color("0f2c48"), "bot": Color("040a14"), "stone": Color("1a2c46"), "deep": Color("0f1a2c"), "rim": Color("4fc3f7"), "far": Color("0e2440"), "near": Color("08162a")},
+	"kira": {"top": Color("3a1030"), "bot": Color("0c040c"), "stone": Color("2c1a30"), "deep": Color("180c1c"), "rim": Color("ff6fd8"), "far": Color("2a0e26"), "near": Color("1a0818")},
 	"trono": {"top": Color("4a0c18"), "bot": Color("0b0205"), "stone": Color("2c1018"), "deep": Color("18080c"), "rim": Color("e8384f"), "far": Color("2a0810"), "near": Color("170409")},
 }
 
@@ -73,8 +74,8 @@ static func build_rooms() -> Dictionary:
 			.fill(0, 12, 0, 14, ".").fill(59, 12, 59, 14, ".")
 			.fill(18, 15, 20, 15, "^").fill(45, 15, 47, 15, "^")
 			.fill(15, 10, 19, 10, "=").fill(24, 7, 28, 7, "=").fill(40, 10, 44, 10, "=").fill(30, 13, 34, 14, "#")
-			.e("1", 1, 14).e("2", 58, 14)
-			.o("K", 9, 14)
+			.e("1", 1, 14).e("2", 58, 14).e("K", 4, 14)
+			.o("K", 9, 14).o("T", 4, 14)
 			.o("L", 6, 14, "Registro de Zerik #014: los rastreros dejan un núcleo al caer. Si el núcleo sobrevive, el rastrero vuelve. Recomendación: romper el núcleo. Rápido.")
 			.o("c", 12, 14).o("F", 26, 14).o("c", 32, 12).o("s", 39, 14).o("c", 53, 14)
 			.link("left", "umbral", "1").link("right", "monedas", "1"),
@@ -103,6 +104,19 @@ static func build_rooms() -> Dictionary:
 			.o("L", 18, 37, "Registro de Zerik #041: plataformas a cinco casillas de altura. Con un salto normal, imposible. Con salto doble, probable.")
 			.o("F", 15, 27).o("f", 6, 20).o("f", 16, 11).o("f", 11, 30)
 			.link("left", "bloque", "2").link("up", "trono", "1"),
+		# Primer trozo del juego de Kira: su nivel 1-1, que Álex nunca terminó. "p" = bloque sin colocar
+		# (no se pisa hasta que Álex lo coloca con un clic). Se reconstruye cada vez que se entra.
+		RoomDef.new("kira1", "Nivel 1-1 de Kira", "El tutorial que nunca se probó", 48, 18, "kira").box()
+			.fill(0, 13, 0, 15, ".")
+			.fill(10, 16, 19, 16, ".").fill(10, 17, 19, 17, "^").fill(10, 16, 19, 16, "p")
+			.fill(26, 11, 28, 15, "#").fill(22, 13, 24, 13, "p")
+			.e("1", 1, 15)
+			.o("S", 3, 15, "TUTORIAL 1-1")
+			.o("S", 8, 15, "TODO: colocar el puente")
+			.o("S", 21, 15, "TODO: escalón")
+			.o("S", 39, 15, "TODO: escribir el final del nivel")
+			.o("c", 34, 15).o("f", 31, 6).o("G", 44, 15)
+			.link("left", "inicio", "K"),
 		RoomDef.new("trono", "Trono del Reinicio", "Donde el Rey pulsa CONTINUE", 40, 18, "trono").box()
 			.fill(0, 13, 0, 15, ".").fill(8, 11, 12, 11, "=").fill(27, 11, 31, 11, "=")
 			.e("1", 1, 15).o("B", 28, 15).link("left", "pantalla", "2"),
@@ -187,4 +201,11 @@ const KIRA_SEQ := [
 		"Mira mi espada: seis muescas, todas apagadas. Era tu mecánica estrella y nunca la terminaste.",
 		"No te pido nada. Solo que esta vez no dejes las cosas a medias."],
 ]
-const KIRA_IDLE := ["Sigue. Yo aparezco cuando haga falta.", "Ese Nexo te sonríe mucho, Álex. Demasiado.", "Mi primer nivel anda por aquí, en algún sitio. Nunca lo probaste."]
+## Al terminar un trozo de su juego, Kira habla (uno por cada muesca encendida).
+const KIRA_FRAG := [
+	["...Mi primer nivel. Lo has terminado.",
+		"Has puesto el puente y el escalón que faltaban. Los que me prometiste hace años.",
+		"Mira: una muesca encendida. La primera.",
+		"Hay más trozos míos en tus otros juegos. Cuando llegues, te buscaré."],
+]
+const KIRA_IDLE :=["Sigue. Yo aparezco cuando haga falta.", "Ese Nexo te sonríe mucho, Álex. Demasiado.", "Mi primer nivel anda por aquí, en algún sitio. Nunca lo probaste."]

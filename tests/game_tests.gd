@@ -82,6 +82,32 @@ func _init() -> void:
 		step(4, {}, ["confirm"])
 	check(not g.new_kira_talk(), "tras presentarse, Kira ya no tiene conversación nueva")
 
+	print("Nivel 1-1 de Kira")
+	check(g.portal_open(), "tras hablar con Kira se abre su nivel")
+	var T_: Dictionary = g.props.filter(func(o): return o["type"] == "T")[0]
+	g.P.x = T_["x"] - 9; g.P.y = T_["y"] - g.P.h
+	step(3); step(1, {}, ["interact"]); step(30)
+	check(g.room.id == "kira1" and g.state == "play", "el portal lleva al Nivel 1-1")
+	g.enemies.clear()
+	check(g.room.g[16][12] == "p", "el puente empieza sin colocar")
+	t = 0
+	while g.P.x < 21 * 32 and t < 600 and g.state == "play":
+		step(1, {"right": true}, ["attack"] if t % 10 == 0 else [])
+		t += 1
+	check(g.P.x >= 21 * 32 and g.meta["deaths"] == 0, "clicando hacia delante se coloca el puente y se cruza el foso")
+	g.P.x = 23 * 32; g.P.y = 16 * 32 - g.P.h; g.P.vy = 0; step(5)
+	step(1, {"up": true}, ["attack"]); step(10)
+	check(g.room.g[13][23] == "=", "un clic hacia arriba coloca el escalón")
+	g.P.x = 41 * 32; g.P.y = 16 * 32 - g.P.h; step(5)
+	t = 0
+	while g.state == "play" and t < 200:
+		step(1, {"right": true}); t += 1
+	check(g.meta["kira_frags"] == 1 and g.state == "dialog", "la bandera enciende la primera muesca y Kira habla")
+	for i in 12:
+		step(4, {}, ["confirm"])
+	step(30)
+	check(g.room.id == "inicio" and not g.portal_open(), "se vuelve a la Pantalla de Inicio y el portal se cierra")
+
 	print("Grietas")
 	fresh(); g.load_room("inicio", "1"); g.enemies.clear()
 	var F: Dictionary = g.props.filter(func(o): return o["type"] == "F")[0]
