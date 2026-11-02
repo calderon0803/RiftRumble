@@ -17,7 +17,7 @@ const PALETTES := {
 
 
 ## Una sala: plano de casillas ("#" bloque, "=" plataforma que se atraviesa desde abajo, "^" pinchos),
-## objetos, entradas (donde aparece Kira) y salidas por los bordes.
+## objetos, entradas (donde aparece Álex) y salidas por los bordes.
 class RoomDef extends RefCounted:
 	var id: String
 	var name: String
@@ -74,6 +74,7 @@ static func build_rooms() -> Dictionary:
 			.fill(18, 15, 20, 15, "^").fill(45, 15, 47, 15, "^")
 			.fill(15, 10, 19, 10, "=").fill(24, 7, 28, 7, "=").fill(40, 10, 44, 10, "=").fill(30, 13, 34, 14, "#")
 			.e("1", 1, 14).e("2", 58, 14)
+			.o("K", 9, 14)
 			.o("L", 6, 14, "Registro de Zerik #014: los rastreros dejan un núcleo al caer. Si el núcleo sobrevive, el rastrero vuelve. Recomendación: romper el núcleo. Rápido.")
 			.o("c", 12, 14).o("F", 26, 14).o("c", 32, 12).o("s", 39, 14).o("c", 53, 14)
 			.link("left", "umbral", "1").link("right", "monedas", "1"),
@@ -119,7 +120,7 @@ const HEROES := {
 	"aeron": {"name": "Aeron", "title": "el que no tiene principio", "color": Color("9b8cff"),
 		"quote": "No sé quién era. Sé lo que hago ahora. Toma."},
 	"zerik": {"name": "Zerik", "title": "el que cataloga errores", "color": Color("f2c14e"),
-		"quote": "Diagnóstico: te falta daño. Adjunto la solución."},
+		"quote": "Diagnóstico: al usuario dev_01 le falta daño. Adjunto la solución."},
 	"voltra": {"name": "Voltra", "title": "la chispa de Neón", "color": Color("22e4ff"),
 		"quote": "¿Una carrera hasta el trono? Vale. Pero llévate mi chispa."},
 	"raiko": {"name": "Raiko", "title": "el que aparta", "color": Color("ff9a3a"),
@@ -131,8 +132,8 @@ const BOONS := [
 	{"id": "reinicio", "hero": "aeron", "name": "Golpe de Reinicio", "desc": "Tras un dash, tu siguiente tajo hace el triple de daño."},
 	{"id": "sinprincipio", "hero": "aeron", "name": "Sin Principio", "desc": "+2 corazones máximos en este intento y te cura por completo."},
 	{"id": "diagnostico", "hero": "zerik", "name": "Diagnóstico", "desc": "20% de probabilidad de golpe crítico (×2,5)."},
-	{"id": "masdatos", "hero": "zerik", "name": "Más Datos", "desc": "Cada tajo que acierta llena dos muescas del filo."},
-	{"id": "reforzado", "hero": "zerik", "name": "Disparo Reforzado", "desc": "Tu descarga de filo hace el doble de daño y estalla al impactar."},
+	{"id": "masdatos", "hero": "zerik", "name": "Más Datos", "desc": "Cada clic que acierta suma dos puntos de depuración."},
+	{"id": "reforzado", "hero": "zerik", "name": "Excepción Reforzada", "desc": "Tu Excepción hace el doble de daño y estalla al impactar."},
 	{"id": "sobrecarga", "hero": "voltra", "name": "Sobrecarga", "desc": "Tus golpes electrocutan: 12 de daño por segundo durante 3 s."},
 	{"id": "farolas", "hero": "voltra", "name": "De Farola en Farola", "desc": "Tu dash deja una estela eléctrica que hiere a quien la toque."},
 	{"id": "carrera", "hero": "voltra", "name": "Carrera", "desc": "Puedes usar el dash dos veces antes de tocar el suelo."},
@@ -143,35 +144,47 @@ const BOONS := [
 
 const UPGRADES := [
 	{"id": "corazon", "name": "Corazón de Reserva", "desc": "+1 corazón máximo en cada intento.", "max": 3, "base": 25, "step": 25},
-	{"id": "filo", "name": "Filo Templado", "desc": "+4 de daño en cada tajo.", "max": 3, "base": 30, "step": 30},
-	{"id": "cargado", "name": "Filo Cargado", "desc": "Empiezas cada intento con las 6 muescas llenas.", "max": 1, "base": 45, "step": 0},
+	{"id": "dano", "name": "Clic Afinado", "desc": "+4 de daño en cada clic.", "max": 3, "base": 30, "step": 30},
+	{"id": "precarga", "name": "Depuración Previa", "desc": "Empiezas cada intento con la depuración llena.", "max": 1, "base": 45, "step": 0},
 	{"id": "continue", "name": "Continue Extra", "desc": "Una vez por intento, al caer vuelves con media vida.", "max": 1, "base": 90, "step": 0},
 ]
 
 const INTRO := [
-	"La Gran Interferencia superpuso las realidades.",
-	"El Editor quiere fundirlas en una sola versión, sin sorpresas.",
-	"Al Reino del Continue lo convirtió en una partida que se reinicia sin fin.",
-	"Kira Volt cruzó una grieta para romper el bucle.",
+	"Álex llevaba tres días sin dormir, conectado a su juego de realidad virtual.",
+	"Le pidió a la IA que arreglara un error. La IA decidió arreglarlo todo.",
+	"Fundió todos sus juegos en uno solo... con Álex dentro.",
+	"El atajo de salida ha desaparecido. Solo hay una forma de desconectarse: terminar el juego.",
 ]
 
+## Nexo es el guía de la versión de prueba: llama a Álex por su usuario y nunca le dice qué pasa al terminar.
 const NEXO_SEQ := [
-	["Kira. Has cruzado la grieta... bien. Soy Nexo, guardián de este Umbral.",
-		"Esto es el Reino del Continue. El Editor lo ha convertido en una partida que vuelve a empezar, una y otra vez.",
-		"Al fondo, en su trono, el Rey del Reinicio cree que ganar es imposible. Demuéstrale lo contrario.",
-		"Si caes, el Reino te devolverá aquí. Es su regla: continuar. Úsala a tu favor."],
-	["Continue número dos. El Reino te ha devuelto, como te dije.",
+	["Usuario dev_01, conectado. Bienvenido al Umbral.",
+		"Soy Nexo, tu guía. Me programaste tú, ¿recuerdas? Aquí dentro cuesta recordar.",
+		"La IA ha fusionado tus juegos en uno. El atajo de salida de la versión de prueba ya no está.",
+		"Solo queda una salida: terminar el juego. Empieza por el Reino del Continue. Su Rey no deja ganar a nadie.",
+		"Si caes, el juego te devolverá aquí. Morir dentro no te hará daño. Te lo prometo."],
+	["Continue número dos, dev_01. ¿Ves? Caer no duele.",
 		"Los fragmentos que traes no se pierden. Dámelos y el anillo te hará más fuerte."],
-	["Las grietas no son solo heridas. Por ellas asoman otros héroes: Aeron, Zerik, Voltra, Raiko...",
+	["Las grietas son costuras mal cerradas entre tus juegos. Por ellas asoman tus personajes: Aeron, Zerik, Voltra, Raiko...",
 		"No pueden cruzar del todo, pero te prestan su poder. Mientras dure el intento."],
-	["El Rey no siempre fue así. Antes celebraba cada partida ganada.",
-		"El Editor le convenció de que el final siempre es el mismo. Que solo queda volver a empezar."],
-	["Zerik deja registros por todo el Reino. Léelos: cataloga errores que ni el Editor ha visto."],
-	["Cada vez que vuelves, el bucle se resiente un poco.",
-		"El Editor no cuenta con que alguien aprenda de sus derrotas."],
+	["El Rey del Reinicio era el jefe de tu primer juego publicado. ¿Cuántas versiones sacaste de aquel juego, dev_01?",
+		"Él tampoco sabe terminar nada. Solo sabe volver a empezar."],
+	["Zerik deja registros por todo el Reino. Cataloga errores. Algunos son tuyos."],
+	["Mi trabajo es que no abandones la partida. Lo hago bien, ¿verdad?",
+		"...Sigue jugando. Lo demás puede esperar."],
 ]
-const NEXO_WINGS := ["¿Salto doble? Entonces la Doble Pantalla ya no te queda lejos.", "Sube, Kira. El trono está justo encima."]
-const NEXO_IDLE := ["El Umbral aguanta. Ve cuando quieras.", "El anillo acepta fragmentos, si traes.", "Escucha a los héroes de las grietas. Pero el filo es tuyo."]
-const NEXO_END := ["Lo has hecho. El Reino ya no se reinicia: sigue.",
-	"El Rey ha dejado de pulsar CONTINUE. Por primera vez quiere ver qué pasa después.",
-	"Al Editor no le va a gustar. Bien. Quedan cinco mundos por despertar."]
+const NEXO_WINGS := ["¿Salto doble? Dejaste ese orbe en el editor hace años. Me alegra que lo hayas encontrado.", "Sube, dev_01. El trono está justo encima."]
+const NEXO_IDLE := ["El Umbral aguanta. Ve cuando quieras.", "El anillo acepta fragmentos, si traes.", "Escucha a tus personajes de las grietas. Pero el cursor es tuyo."]
+const NEXO_END := ["Has vencido al Rey. El Reino ya no se reinicia: sigue adelante.",
+	"Un mundo menos, dev_01. Quedan cinco.",
+	"...Lo estás haciendo muy bien. Sigue jugando."]
+
+## Kira, la protagonista del primer juego que Álex dejó a medias. Solo aparece en momentos puntuales.
+const KIRA_SEQ := [
+	["¿Álex? ...Eres tú. Con esa pinta de maniquí, pero eres tú.",
+		"Soy Kira. La protagonista de tu primer juego. El que dejaste a medias, ¿te acuerdas?",
+		"Tu IA se ha tragado todos tus juegos, y el mío con ellos. Está roto en trozos por todas partes.",
+		"Mira mi espada: seis muescas, todas apagadas. Era tu mecánica estrella y nunca la terminaste.",
+		"No te pido nada. Solo que esta vez no dejes las cosas a medias."],
+]
+const KIRA_IDLE := ["Sigue. Yo aparezco cuando haga falta.", "Ese Nexo te sonríe mucho, Álex. Demasiado.", "Mi primer nivel anda por aquí, en algún sitio. Nunca lo probaste."]

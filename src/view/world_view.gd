@@ -1,4 +1,4 @@
-## Dibuja la sala: fondo con paralaje, casillas, objetos, enemigos, Kira y efectos.
+## Dibuja la sala: fondo con paralaje, casillas, objetos, enemigos, Álex y efectos.
 ## Los brillos se apuntan en `glows` y los pinta GlowView con mezcla aditiva.
 class_name WorldView
 extends Node2D
@@ -41,7 +41,7 @@ func _draw() -> void:
 		_draw_enemy(e)
 	_draw_pickups()
 	if g.state != "dead":
-		_draw_kira()
+		_draw_alex()
 	_draw_slashes()
 	_draw_projs()
 	_draw_parts()
@@ -200,6 +200,10 @@ func _draw_props() -> void:
 				_draw_nexo(p)
 				if g.new_talk():
 					Paint.text(self, "!", p + Vector2(0, -78 + sin(g.time * 4) * 3), 28, SPARK, 1, 6, true)
+			"K":
+				_draw_kira_npc(p)
+				if g.new_kira_talk():
+					Paint.text(self, "!", p + Vector2(0, -52 + sin(g.time * 4) * 3), 28, MAGENTA, 1, 6, true)
 			"M":
 				# El anillo de Nexo: recibe fragmentos.
 				Paint.outline_poly(self, PackedVector2Array([p + Vector2(-22, 0), p + Vector2(-14, -16), p + Vector2(14, -16), p + Vector2(22, 0)]), _pal["stone"])
@@ -406,21 +410,32 @@ func _draw_king(b: Game.Ent) -> void:
 	glow(p + Vector2(2.5 * b.face, -87 * sy), 16, eye, 0.8)
 
 
-# --- Kira ---
-func _draw_kira() -> void:
+# --- Álex ---
+const MANNEQUIN := Color("b9bcc6")
+const MANNEQUIN_DARK := Color("7d818e")
+const GRID := Color("8f94a3")
+
+
+func _draw_alex() -> void:
 	var g := game
 	var P := g.P
+	# Arrastrar: copias que se quedan atrás, con el recuadro de selección del editor.
 	for tr in P.trail:
-		_kira_body(s(Vector2(tr["x"] + P.w / 2, tr["y"] + P.h)), tr["face"], tr["a"] * 0.6, true)
+		var tp := s(Vector2(tr["x"], tr["y"]))
+		var a: float = tr["a"] * 0.6
+		draw_rect(Rect2(tp - Vector2(4, 16), Vector2(P.w + 8, P.h + 16)), Color(Game.DEBUG_COL, a * 0.6), false, 1.0)
+		_alex_body(s(Vector2(tr["x"] + P.w / 2, tr["y"] + P.h)), tr["face"], a, true)
 	var blink := P.inv > 0 and P.dash_t <= 0 and int(P.inv * 16) % 2 == 0
-	_kira_body(s(Vector2(P.x + P.w / 2, P.y + P.h)), P.face, 0.35 if blink else 1.0, false)
+	_alex_body(s(Vector2(P.x + P.w / 2, P.y + P.h)), P.face, 0.35 if blink else 1.0, false)
 	if P.crit_next:
 		glow(s(P.center()), 30, Color("9b8cff"), 0.6)
 	if P.heal_t > 0:
-		glow(s(P.center()), 40 + P.heal_t * 30, MAGENTA, 0.45)
+		glow(s(P.center()), 40 + P.heal_t * 30, Game.DEBUG_COL, 0.45)
 
 
-func _kira_body(p: Vector2, face: int, alpha: float, ghost: bool) -> void:
+## Avatar de pruebas: maniquí gris sin texturas, con la cuadrícula a la vista. Al vencer al Rey del Reinicio
+## se queda con un detalle de su mundo (la corona dorada en el pecho).
+func _alex_body(p: Vector2, face: int, alpha: float, ghost: bool) -> void:
 	var g := game
 	var P := g.P
 	var sq := P.squash * 0.18
@@ -429,47 +444,77 @@ func _kira_body(p: Vector2, face: int, alpha: float, ghost: bool) -> void:
 	var lean := 0.28 if P.dash_t > 0 else (0.07 if running else 0.0)
 	draw_set_transform(p, lean * face, Vector2(face * (1 + sq), 1 - sq))
 	if ghost:
-		var sil := PackedVector2Array([Vector2(-8, -24), Vector2(10, -24), Vector2(12, 0), Vector2(-10, 0)])
-		draw_colored_polygon(sil, Color(MAGENTA, alpha))
-		Paint.fill_ellipse(self, Vector2(1, -32), 9, 9, Color(MAGENTA, alpha))
+		draw_colored_polygon(PackedVector2Array([Vector2(-7, -26), Vector2(8, -26), Vector2(10, 0), Vector2(-8, 0)]), Color(MANNEQUIN, alpha))
+		Paint.fill_ellipse(self, Vector2(1, -33), 7, 8, Color(MANNEQUIN, alpha))
 		draw_set_transform(Vector2.ZERO)
 		return
 	var a := alpha
-	# Coleta larga: se queda atrás al correr y sube al caer.
-	var sway := clampf(-P.vx * face / 300.0, -1.2, 1.2)
-	var lift := clampf(P.vy / 600.0, -1.0, 1.0)
-	var hair := PackedVector2Array([Vector2(-6, -36 + bob), Vector2(-14 + sway * 4, -34 - lift * 4 + bob), Vector2(-20 + sway * 6, -26 - lift * 8 + sin(g.time * 8) * 1.5), Vector2(-24 + sway * 8, -16 - lift * 10 + sin(g.time * 8 + 1) * 2.5)])
-	draw_polyline(hair, Color(OUT, a), 8, true)
-	draw_polyline(hair, Color(HAIR, a), 5, true)
+	var body := Color(MANNEQUIN, a)
+	var dark := Color(MANNEQUIN_DARK, a)
 	# Piernas.
-	if running:
-		var st := sin(g.time * 16) * 4
-		Paint.fill_ellipse(self, Vector2(-3 + st, -1), 4, 2.5, Color(OUT, a))
-		Paint.fill_ellipse(self, Vector2(4 - st, -1), 4, 2.5, Color(OUT, a))
-	draw_rect(Rect2(-5, -10, 4, 9), Color(GRAPHITE, a))
-	draw_rect(Rect2(2, -10, 4, 9), Color(GRAPHITE, a))
-	# Torso: triángulo hacia delante (grafito con banda magenta).
-	var torso := PackedVector2Array([Vector2(-8, -26 + bob), Vector2(9, -26 + bob), Vector2(12, -9), Vector2(-7, -9)])
-	Paint.outline_poly(self, torso, Color(GRAPHITE, a))
-	draw_colored_polygon(PackedVector2Array([Vector2(-6, -20 + bob), Vector2(10, -20 + bob), Vector2(11, -15), Vector2(-6, -15)]), Color(MAGENTA, a))
-	draw_polyline(PackedVector2Array([Vector2(-7, -10), Vector2(-8, -25 + bob)]), Color(_rim, a), 1.6, true)
-	# Cabeza con flequillo en punta.
-	Paint.fill_ellipse(self, Vector2(2, -33 + bob), 8, 8.5, Color(SKIN, a), 0, 3)
-	var bangs := PackedVector2Array([Vector2(-7, -36 + bob), Vector2(-4, -43 + bob), Vector2(6, -43 + bob), Vector2(11, -36 + bob), Vector2(7, -38 + bob), Vector2(5, -33 + bob), Vector2(2, -37 + bob), Vector2(-3, -34 + bob)])
-	Paint.outline_poly(self, bangs, Color(HAIR, a), 2.5)
-	Paint.fill_ellipse(self, Vector2(6, -32 + bob), 1.4, 2.2, Color(OUT, a))
-	# Espada de energía con 6 muescas: se encienden con el filo.
+	var st := sin(g.time * 16) * 4 if running else 0.0
+	draw_line(Vector2(-3, -11), Vector2(-3 + st, 0), Color(OUT, a), 6)
+	draw_line(Vector2(-3, -11), Vector2(-3 + st, 0), dark, 3.5)
+	draw_line(Vector2(4, -11), Vector2(4 - st, 0), Color(OUT, a), 6)
+	draw_line(Vector2(4, -11), Vector2(4 - st, 0), body, 3.5)
+	# Torso con la cuadrícula de pruebas.
+	var torso := PackedVector2Array([Vector2(-7, -26 + bob), Vector2(8, -26 + bob), Vector2(7, -10), Vector2(-6, -10)])
+	Paint.outline_poly(self, torso, body)
+	for gy in [-21, -16]:
+		draw_line(Vector2(-6, gy + bob * 0.5), Vector2(7, gy + bob * 0.5), Color(GRID, a), 1)
+	draw_line(Vector2(0.5, -25 + bob), Vector2(0.5, -11), Color(GRID, a), 1)
+	draw_polyline(PackedVector2Array([Vector2(-6, -11), Vector2(-7, -25 + bob)]), Color(_rim, a), 1.6, true)
+	if g.meta["boss"]:
+		# Detalle del Reino del Continue: una pequeña corona dorada en el pecho.
+		draw_colored_polygon(PackedVector2Array([Vector2(-2, -18 + bob), Vector2(-2, -22 + bob), Vector2(0, -20 + bob), Vector2(2, -23 + bob), Vector2(4, -20 + bob), Vector2(5, -22 + bob), Vector2(5, -18 + bob)]), Color(Color("f2c14e"), a))
+	# Cabeza lisa, sin rasgos: solo el corte de la malla.
+	Paint.fill_ellipse(self, Vector2(1, -33 + bob), 7, 8, body, 0, 3)
+	draw_arc(Vector2(1, -33 + bob), 7, -0.6, 0.6, 8, Color(GRID, a), 1)
+	draw_line(Vector2(-6, -33 + bob), Vector2(8, -33 + bob), Color(GRID, a), 1)
+	# Brazo con el cursor.
 	if P.atk_t <= 0:
-		var hand := Vector2(9, -16 + bob)
-		var tip := hand + Vector2(-20, -18)
-		draw_line(hand, tip, Color(OUT, a), 6)
-		draw_line(hand, tip, Color(Color("fff5fb"), a), 3)
-		for i in 6:
-			var q := hand.lerp(tip, 0.18 + i * 0.13)
-			draw_circle(q, 1.6, Color(SPARK if i < P.filo else Color("5a4a5a"), a))
+		var hand := Vector2(8, -17 + bob)
+		draw_line(Vector2(4, -22 + bob), hand, Color(OUT, a), 5)
+		draw_line(Vector2(4, -22 + bob), hand, body, 2.5)
+		_cursor(hand + Vector2(3, -2), 0.6, a, 0.85)
 	draw_set_transform(Vector2.ZERO)
-	if P.filo >= Game.FILO_COST:
-		glow(p + Vector2(-2 * face, -24), 22 + P.filo * 3, MAGENTA, 0.12 + P.filo * 0.03)
+	if P.debug >= Game.DEBUG_COST:
+		glow(p + Vector2(8 * face, -20), 16 + P.debug * 3, Game.DEBUG_COL, 0.1 + P.debug * 0.03)
+
+
+## La flecha del ratón del editor, con la punta en `tip`.
+func _cursor(tip: Vector2, rot: float, a: float, k := 1.0) -> void:
+	var pts := PackedVector2Array([Vector2(0, 0), Vector2(0, 16), Vector2(4, 12), Vector2(7, 18), Vector2(10, 17), Vector2(7, 11), Vector2(12, 11)])
+	var tr := PackedVector2Array()
+	for q in pts:
+		tr.append(tip + (q * k).rotated(rot))
+	Paint.outline_poly(self, tr, Color(Color("ffffff"), a), 2.0)
+
+
+func _draw_kira_npc(p: Vector2) -> void:
+	# Kira de pie, mirando hacia Álex, con su espada de 6 muescas apagadas.
+	var g := game
+	var face := 1 if g.P.center().x >= p.x else -1
+	var bob := sin(g.time * 2) * 1.0
+	draw_set_transform(p, 0, Vector2(face, 1))
+	var hair := PackedVector2Array([Vector2(-6, -36 + bob), Vector2(-13, -33 + bob), Vector2(-17, -25 + sin(g.time * 2) * 1.5), Vector2(-19, -15 + sin(g.time * 2 + 1) * 2)])
+	draw_polyline(hair, OUT, 8, true)
+	draw_polyline(hair, HAIR, 5, true)
+	draw_rect(Rect2(-5, -10, 4, 10), GRAPHITE)
+	draw_rect(Rect2(2, -10, 4, 10), GRAPHITE)
+	Paint.outline_poly(self, PackedVector2Array([Vector2(-8, -26 + bob), Vector2(9, -26 + bob), Vector2(12, -9), Vector2(-7, -9)]), GRAPHITE)
+	draw_colored_polygon(PackedVector2Array([Vector2(-6, -20 + bob), Vector2(10, -20 + bob), Vector2(11, -15), Vector2(-6, -15)]), MAGENTA)
+	Paint.fill_ellipse(self, Vector2(2, -33 + bob), 8, 8.5, SKIN, 0, 3)
+	Paint.outline_poly(self, PackedVector2Array([Vector2(-7, -36 + bob), Vector2(-4, -43 + bob), Vector2(6, -43 + bob), Vector2(11, -36 + bob), Vector2(7, -38 + bob), Vector2(5, -33 + bob), Vector2(2, -37 + bob), Vector2(-3, -34 + bob)]), HAIR, 2.5)
+	Paint.fill_ellipse(self, Vector2(6, -32 + bob), 1.4, 2.2, OUT)
+	var hand := Vector2(9, -16 + bob)
+	var tip := hand + Vector2(4, -26)
+	draw_line(hand, tip, OUT, 6)
+	draw_line(hand, tip, Color("fff5fb"), 3)
+	for i in 6:
+		draw_circle(hand.lerp(tip, 0.18 + i * 0.13), 1.6, Color("5a4a5a"))
+	draw_set_transform(Vector2.ZERO)
+	glow(p + Vector2(0, -24), 40, MAGENTA, 0.25)
 
 
 func _draw_slashes() -> void:
@@ -490,8 +535,14 @@ func _draw_slashes() -> void:
 		for i in range(12, -1, -1):
 			var t := -1.0 + 2.0 * i / 12.0
 			outer.append(c + (Vector2(10, 0) + Vector2(cos(t), sin(t)) * (R - 14)).rotated(rot))
-		draw_colored_polygon(outer, Color(1, 0.96, 0.98, 0.9 * a))
-		glow(c + Vector2(R * 0.7, 0).rotated(rot), R, MAGENTA, 0.6 * a)
+		draw_colored_polygon(outer, Color(0.92, 1, 0.98, 0.75 * a))
+		# Clic: el cursor golpea con la punta y deja dos ondas.
+		var tip := c + Vector2(R - 6, 0).rotated(rot)
+		var k: float = sl["t"] / 0.14
+		draw_arc(tip, 6 + k * 18, 0, TAU, 20, Color(Game.DEBUG_COL, a), 2)
+		draw_arc(tip, 2 + k * 10, 0, TAU, 16, Color(Color.WHITE, a), 1.5)
+		_cursor(tip, rot - PI / 4 + PI / 2 * 0.0, a, 1.1)
+		glow(tip, R * 0.8, Game.DEBUG_COL, 0.6 * a)
 
 
 func _draw_projs() -> void:
@@ -500,9 +551,14 @@ func _draw_projs() -> void:
 		var p := s(Vector2(q.x, q.y))
 		match q.kind:
 			"spark":
-				glow(p, 28, MAGENTA, 0.8)
-				Paint.fill_ellipse(self, p, 9, 4, Color("fff0fa"), 0)
-				draw_line(p - Vector2(signf(q.vx) * 16, 0), p, Color(MAGENTA, 0.8), 3)
+				# Excepción: una ventana de error que vuela.
+				var win := Rect2(p - Vector2(12, 9), Vector2(24, 18))
+				glow(p, 30, Color("e8384f"), 0.6)
+				draw_rect(win.grow(2), OUT)
+				draw_rect(win, Color("f4f1e8"))
+				draw_rect(Rect2(win.position, Vector2(24, 5)), Color("e8384f"))
+				Paint.text(self, "!", p + Vector2(0, 8), 12, Color("e8384f"), 1, 0, true)
+				draw_line(p - Vector2(signf(q.vx) * 26, 0), p - Vector2(signf(q.vx) * 14, 0), Color(Game.DEBUG_COL, 0.8), 2)
 			"glob":
 				Paint.fill_ellipse(self, p, q.r, q.r * 1.1, Color("ff9ab0"), 0, 3)
 				Paint.fill_ellipse(self, p + Vector2(-2, -3), 2.5, 2.5, Color("ffe0ea"))

@@ -42,8 +42,8 @@ func _init() -> void:
 
 	print("Inicio y movimiento")
 	fresh()
-	check(g.state == "play" and g.room.id == "umbral", "tras el título y la intro, Kira está en el Umbral")
-	check(g.P.on_ground, "Kira está en el suelo")
+	check(g.state == "play" and g.room.id == "umbral", "tras el título y la intro, Álex está en el Umbral")
+	check(g.P.on_ground, "Álex está en el suelo")
 	var t := 0
 	while g.room.id == "umbral" and t < 900:
 		step(1, {"right": true}); t += 1
@@ -63,14 +63,24 @@ func _init() -> void:
 	c.hp = 1
 	step(1, {}, ["attack"]); step(2)
 	check(c.dead, "un tajo elimina a un rastrero con 1 de vida")
-	check(g.P.filo == 1, "acertar llena una muesca del filo")
+	check(g.P.debug == 1, "acertar suma un punto de depuración")
 	var cores := g.enemies.filter(func(e): return e.kind == "core")
 	check(cores.size() == 1, "el rastrero deja un núcleo")
 	step(60 * 5)
 	var back := g.enemies.filter(func(e): return e.kind == "c" and e.revived)
 	check(back.size() == 1, "si el núcleo sobrevive 4 s, el rastrero vuelve")
 	step(120)
-	check(g.meta["frags"] >= 3, "los fragmentos vuelan hacia Kira y se suman")
+	check(g.meta["frags"] >= 3, "los fragmentos vuelan hacia Álex y se suman")
+
+	print("Kira")
+	fresh(); g.load_room("inicio", "1"); g.enemies.clear()
+	var K: Dictionary = g.props.filter(func(o): return o["type"] == "K")[0]
+	g.P.x = K["x"] - 9; g.P.y = K["y"] - g.P.h
+	step(3); step(1, {}, ["interact"])
+	check(g.state == "dialog" and g.dialog["speaker"] == "Kira Volt", "Kira aparece en la Pantalla de Inicio y habla")
+	for i in 12:
+		step(4, {}, ["confirm"])
+	check(not g.new_kira_talk(), "tras presentarse, Kira ya no tiene conversación nueva")
 
 	print("Grietas")
 	fresh(); g.load_room("inicio", "1"); g.enemies.clear()
@@ -90,12 +100,12 @@ func _init() -> void:
 	step(3); step(1, {}, ["interact"])
 	check(g.state == "shop", "el anillo abre la tienda")
 	step(1, {}, ["confirm"]); step(1, {}, ["down"]); step(1, {}, ["confirm"]); step(1, {}, ["pause"])
-	check(g.meta["up"]["corazon"] == 1 and g.meta["up"]["filo"] == 1 and g.meta["frags"] == 445, "comprar un corazón y filo templado cuesta 55")
+	check(g.meta["up"]["corazon"] == 1 and g.meta["up"]["dano"] == 1 and g.meta["frags"] == 445, "comprar un corazón y clic afinado cuesta 55")
 	check(g.max_hp() == 6, "el corazón de reserva sube la vida máxima")
 	var O: Dictionary = g.props.filter(func(o): return o["type"] == "O")[0]
 	g.P.x = O["x"] - 9; g.P.y = O["y"] - g.P.h
 	step(3); step(1, {}, ["interact"])
-	check(g.state == "dialog" and g.dialog["lines"][0].begins_with("Kira."), "Nexo da la bienvenida")
+	check(g.state == "dialog" and g.dialog["lines"][0].begins_with("Usuario dev_01"), "Nexo da la bienvenida")
 
 	print("Salto doble")
 	fresh(); g.load_room("pantalla", "1"); g.enemies.clear(); step(20)

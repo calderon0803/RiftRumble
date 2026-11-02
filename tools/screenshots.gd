@@ -38,7 +38,7 @@ func _run(main: Node) -> void:
 	await _frames(10)
 	await _shot("2_umbral")
 	g.load_room("inicio", "1")
-	g.P.x = 9 * 32
+	g.P.x = 13 * 32
 	g.cam = g.cam_target()
 	await _frames(40)
 	await _shot("3_inicio")
@@ -59,7 +59,7 @@ func _run(main: Node) -> void:
 	g.pick_boon(g.choice["opts"][0])
 	g.load_room("trono", "1")
 	g.P.x = 12 * 32
-	g.P.filo = 4
+	g.P.debug = 4
 	await _frames(150)
 	await _shot("6_rey")
 	g.state = "dead"

@@ -6,6 +6,7 @@ const OUT := Paint.OUT
 const W := Game.VW
 const H := Game.VH
 const MAGENTA := Color("ff6fd8")
+const HEART := Color("ff5a7a")
 const SPARK := Color("ffe14d")
 const CYAN := Color("6ff3ff")
 const TEXT := Color("efe8f4")
@@ -68,19 +69,20 @@ func _hud() -> void:
 	for i in mh:
 		var c := o + Vector2(12 + i * 26, 12)
 		var on := i < P.hp
-		_heart(c, 11, MAGENTA if on else Color("3a3044"))
+		_heart(c, 11, HEART if on else Color("3a3044"))
 		if on:
-			glow(c, 16, MAGENTA, 0.35)
-	# Filo: las 6 muescas de la espada.
+			glow(c, 16, HEART, 0.35)
+	# Depuración: se llena con cada clic que acierta y se gasta en Parche y Excepción.
 	var fy := o.y + 40
-	Paint.text(self, "FILO", Vector2(o.x, fy + 11), 12, MUTED, 0, 3, true)
-	for i in Game.FILO_MAX:
-		var r := Rect2(o.x + 42 + i * 18, fy, 13, 13)
-		var lit := i < P.filo
+	Paint.text(self, "DEPURACIÓN", Vector2(o.x, fy + 11), 12, MUTED, 0, 3, true)
+	var dbx := o.x + 104
+	for i in Game.DEBUG_MAX:
+		var r := Rect2(dbx + i * 18, fy, 13, 13)
+		var lit := i < P.debug
 		draw_rect(r.grow(2), OUT)
-		draw_rect(r, SPARK if lit else Color("3a3044"))
+		draw_rect(r, Game.DEBUG_COL if lit else Color("3a3044"))
 		if lit:
-			glow(r.get_center(), 12, SPARK, 0.5)
+			glow(r.get_center(), 12, Game.DEBUG_COL, 0.5)
 	# Fragmentos.
 	var fc := Vector2(o.x + 8, fy + 34)
 	var sc := 1.0 + g.frag_pulse
@@ -134,14 +136,14 @@ func _title() -> void:
 	glow(Vector2(W / 2, 160), 320, MAGENTA, 0.25)
 	Paint.text(self, "RIFT RUMBLE", Vector2(W / 2, 170), 72, TEXT, 1, 10, true)
 	Paint.text(self, "Defiende tu mundo. Rompe las reglas.", Vector2(W / 2, 208), 22, MAGENTA, 1, 4)
-	var rows := [["← →", "moverse"], ["Espacio / Z", "saltar (dos veces con el orbe)"], ["X", "tajo · ↑ / ↓ + X para apuntar"],
-		["Shift / C", "dash: intocable mientras dura"], ["Q", "descarga de filo (2 muescas)"], ["R mantenido", "concentrarse: +1 corazón (2 muescas)"],
+	var rows := [["← →", "moverse"], ["Espacio / Z", "saltar (dos veces con el orbe)"], ["X", "clic con el cursor · ↑ / ↓ + X para apuntar"],
+		["Shift / C", "arrastrar: intocable mientras dura"], ["Q", "Excepción: disparo (2 de depuración)"], ["R mantenido", "Parche: +1 corazón (2 de depuración)"],
 		["E / ↑", "hablar, leer, asomarse a una grieta"]]
 	for i in rows.size():
 		Paint.text(self, rows[i][0], Vector2(W / 2 - 20, 264 + i * 28), 19, SPARK, 2, 3, true)
 		Paint.text(self, rows[i][1], Vector2(W / 2, 264 + i * 28), 18, Color("d8cfe0"), 0, 3)
 	var a := 0.6 + 0.4 * sin(g.time * 3)
-	Paint.text(self, "Pulsa Enter para entrar en el Reino del Continue", Vector2(W / 2, 486), 22, Color(TEXT, a), 1, 4, true)
+	Paint.text(self, "Pulsa Enter para conectarte", Vector2(W / 2, 486), 22, Color(TEXT, a), 1, 4, true)
 	if int(g.meta["deaths"]) > 0 or int(g.meta["frags"]) > 0:
 		var info := "Continues: %d  ·  Fragmentos: %d" % [g.meta["deaths"], g.meta["frags"]]
 		if g.meta["boss"]:
@@ -236,7 +238,7 @@ func _dead() -> void:
 	Paint.text(self, "CONTINUE?", Vector2(W / 2, 220), 64, Color(Color("e8384f"), a), 1, 8, true)
 	var count := maxi(0, 9 - int(g.dead_t * 4))
 	Paint.text(self, str(count), Vector2(W / 2, 290), 48, Color(SPARK, a), 1, 6, true)
-	Paint.text(self, "El Reino te devuelve al Umbral. Es su regla.", Vector2(W / 2, 330), 20, Color(MAGENTA, a), 1, 4)
+	Paint.text(self, "Morir dentro no duele: el juego te devuelve al Umbral.", Vector2(W / 2, 330), 20, Color(MAGENTA, a), 1, 4)
 	Paint.text(self, "Fragmentos de este intento: %d  ·  Los poderes de las grietas se pierden" % g.run["frags"], Vector2(W / 2, 362), 17, Color(MUTED, a), 1, 3)
 	if g.dead_t > 1.6:
 		Paint.text(self, "Pulsa Enter para continuar", Vector2(W / 2, 420), 20, Color(TEXT, a), 1, 4, true)

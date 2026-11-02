@@ -1,4 +1,4 @@
-## Simulación del juego, sin nodos: salas, Kira, enemigos, jefe, dones de las grietas y el bucle
+## Simulación del juego, sin nodos: salas, Álex, enemigos, jefe, dones de las grietas y el bucle
 ## del Continue. Las vistas solo leen este estado; los tests lo manejan directamente.
 class_name Game
 extends RefCounted
@@ -13,11 +13,13 @@ const JUMP := 680.0
 const DJUMP := 600.0
 const DASH := 720.0
 const POGO := 600.0
-const FILO_MAX := 6
-const FILO_COST := 2
+const DEBUG_MAX := 6
+const DEBUG_COST := 2
+## Color de la depuración y de los efectos de Álex.
+const DEBUG_COL := Color("7be3c8")
 
 
-## Cualquier cosa que no es Kira: enemigos, jefe, proyectiles, núcleos y recogibles.
+## Cualquier cosa que no es Álex: enemigos, jefe, proyectiles, núcleos y recogibles.
 class Ent extends RefCounted:
 	var kind := ""
 	var x := 0.0
@@ -90,7 +92,7 @@ class Player extends RefCounted:
 	var pogo_done := false
 	var inv := 0.0
 	var hp := 5
-	var filo := 0
+	var debug := 0
 	var heal_t := 0.0
 	var cast_cd := 0.0
 	var squash := 0.0
@@ -180,7 +182,7 @@ func new_run() -> void:
 		rifts[Data.RIFT_ROOMS[i]] = {"hero": heroes[i], "taken": false}
 	run = {"boons": [], "extra_hp": 0, "revive": int(meta["up"]["continue"]), "frags": 0, "rifts": rifts}
 	P.hp = max_hp()
-	P.filo = FILO_MAX if int(meta["up"]["cargado"]) > 0 else 0
+	P.debug = DEBUG_MAX if int(meta["up"]["precarga"]) > 0 else 0
 	P.inv = 0.0
 	P.crit_next = false
 
@@ -649,7 +651,7 @@ func room_rim() -> Color:
 	return Data.PALETTES[room.pal]["rim"]
 
 
-# --- Kira ---
+# --- Álex ---
 func hurt_player(src_x = null) -> bool:
 	if P.inv > 0 or state != "play":
 		return false
@@ -663,7 +665,7 @@ func hurt_player(src_x = null) -> bool:
 	hitstop = 0.14
 	shake = maxf(shake, 11)
 	flash_a = 0.35; flash_col = Color("ff2a4a")
-	burst(P.center(), 16, Color("ff6fd8"), 260, 900)
+	burst(P.center(), 16, DEBUG_COL, 260, 900)
 	if has("apartar"):
 		for e in enemies:
 			if not e.dead and e.center().distance_to(P.center()) < 120:
@@ -686,7 +688,7 @@ func die() -> void:
 	dead_t = 0.0
 	meta["deaths"] = int(meta["deaths"]) + 1
 	save()
-	burst(P.center(), 60, Color("ff6fd8"), 420, 700)
+	burst(P.center(), 60, DEBUG_COL, 420, 700)
 	burst(Vector2(P.center().x, P.y), 20, Color("ffe14d"), 200, 0.0, true)
 
 
@@ -727,7 +729,7 @@ func resolve_attack() -> void:
 
 
 func hit_enemy_melee(e: Ent, b: Rect2) -> void:
-	var d := 10.0 + 4 * int(meta["up"]["filo"])
+	var d := 10.0 + 4 * int(meta["up"]["dano"])
 	if P.combo == 2:
 		d *= 1.5
 	if has("espadon"):
@@ -751,14 +753,14 @@ func hit_enemy_melee(e: Ent, b: Rect2) -> void:
 		elif e.kind == "c":
 			e.kb = dir * kb
 	if e.kind != "core":
-		P.filo = mini(FILO_MAX, P.filo + (2 if has("masdatos") else 1))
+		P.debug = mini(DEBUG_MAX, P.debug + (2 if has("masdatos") else 1))
 	hitstop = maxf(hitstop, 0.08 if crit else 0.05)
 	shake = maxf(shake, 7.0 if crit else 4.0)
 	if P.atk_dir == "side":
 		P.vx -= P.face * 90
 	var hp := Vector2(clampf(e.center().x, b.position.x, b.end.x), clampf(e.center().y, b.position.y, b.end.y))
 	burst(hp, 10, Color("fff3c4"), 320)
-	burst(hp, 6, Color("ff5a7a") if crit else Color("ff6fd8"), 240, 0.0, true)
+	burst(hp, 6, Color("ff5a7a") if crit else DEBUG_COL, 240, 0.0, true)
 
 
 func update_player(dt: float) -> void:
@@ -771,15 +773,15 @@ func update_player(dt: float) -> void:
 	P.squash = move_toward(P.squash, 0.0, dt * 5)
 	P.cast_cd = maxf(0.0, P.cast_cd - dt)
 	var ix := (1 if held("right") else 0) - (1 if held("left") else 0)
-	# Concentrarse: con 2 muescas, mantener para recuperar un corazón.
-	if held("heal") and P.on_ground and P.filo >= FILO_COST and P.hp < max_hp() and P.dash_t <= 0:
+	# Parche: con 2 puntos de depuración, mantener para recuperar un corazón.
+	if held("heal") and P.on_ground and P.debug >= DEBUG_COST and P.hp < max_hp() and P.dash_t <= 0:
 		P.heal_t += dt
 		if randf() < 0.6:
-			part(P.x + randf_range(-6, P.w + 6), P.y + P.h, randf_range(-10, 10), randf_range(-140, -60), 0.6, Color("ff6fd8"), 2.5, 0.0, true)
+			part(P.x + randf_range(-6, P.w + 6), P.y + P.h, randf_range(-10, 10), randf_range(-140, -60), 0.6, DEBUG_COL, 2.5, 0.0, true)
 		if P.heal_t >= 0.8:
-			P.hp += 1; P.filo -= FILO_COST; P.heal_t = 0.0
-			flash_a = 0.25; flash_col = Color("ff6fd8")
-			num(P.center().x, P.y - 10, "+1 corazón", Color("ff6fd8"))
+			P.hp += 1; P.debug -= DEBUG_COST; P.heal_t = 0.0
+			flash_a = 0.25; flash_col = DEBUG_COL
+			num(P.center().x, P.y - 10, "Parche: +1", DEBUG_COL)
 	else:
 		P.heal_t = 0.0
 	var healing := P.heal_t > 0
@@ -792,7 +794,7 @@ func update_player(dt: float) -> void:
 		P.inv = maxf(P.inv, 0.2); P.vy = 0.0
 		if has("reinicio"):
 			P.crit_next = true
-		burst(P.center(), 10, Color("ff6fd8"), 180, 0.0, true)
+		burst(P.center(), 10, DEBUG_COL, 180, 0.0, true)
 	if P.dash_t > 0:
 		P.dash_t -= dt
 		P.vx = P.face * DASH
@@ -830,9 +832,9 @@ func update_player(dt: float) -> void:
 		P.combo_t = 0.6; P.atk_t = 0.11; P.atk_cd = 0.28
 		P.atk_hits = {}; P.pogo_done = false
 		slashes.append({"dir": P.atk_dir, "face": P.face, "t": 0.0, "combo": P.combo})
-	# Descarga de filo: gasta 2 muescas y lanza un corte de energía.
-	if hit("cast") and not healing and P.filo >= FILO_COST and P.cast_cd <= 0:
-		P.filo -= FILO_COST; P.cast_cd = 0.35
+	# Excepción: gasta 2 puntos de depuración y lanza una ventana de error.
+	if hit("cast") and not healing and P.debug >= DEBUG_COST and P.cast_cd <= 0:
+		P.debug -= DEBUG_COST; P.cast_cd = 0.35
 		var boom := has("reforzado")
 		var q := Ent.new()
 		q.kind = "spark"; q.x = P.center().x + P.face * 14; q.y = P.y + 12; q.vx = P.face * 760; q.r = 8
@@ -890,7 +892,7 @@ func impact(q: Ent) -> void:
 		for e in enemies:
 			if not e.dead and e.center().distance_to(Vector2(q.x, q.y)) < 85:
 				damage_enemy(e, roundi(q.dmg * 0.6), Color("ffe14d"))
-		burst(Vector2(q.x, q.y), 30, Color("ff6fd8"), 380, 0.0, true)
+		burst(Vector2(q.x, q.y), 30, DEBUG_COL, 380, 0.0, true)
 		shake = maxf(shake, 6)
 	else:
 		burst(Vector2(q.x, q.y), 12, Color("ffe14d"), 220, 0.0, true)
@@ -908,7 +910,7 @@ func upd_projs(dt: float) -> void:
 		match q.kind:
 			"spark":
 				q.x += q.vx * dt
-				part(q.x, q.y, randf_range(-30, 30), randf_range(-30, 30), 0.3, Color("ff6fd8"), 2.5, 0.0, true)
+				part(q.x, q.y, randf_range(-30, 30), randf_range(-30, 30), 0.3, DEBUG_COL, 2.5, 0.0, true)
 				if solid_pt(q.x, q.y):
 					impact(q)
 					continue
@@ -1003,6 +1005,19 @@ func nexo_lines() -> Array:
 	return [Data.NEXO_IDLE.pick_random()]
 
 
+## Kira solo aparece en momentos puntuales: primero se presenta y luego repite frases cortas.
+func kira_lines() -> Array:
+	var talk := int(meta["kira_talk"])
+	if talk < Data.KIRA_SEQ.size():
+		meta["kira_talk"] = talk + 1
+		return Data.KIRA_SEQ[talk]
+	return [Data.KIRA_IDLE.pick_random()]
+
+
+func new_kira_talk() -> bool:
+	return int(meta["kira_talk"]) < Data.KIRA_SEQ.size()
+
+
 func open_dialog(speaker: String, col: Color, lines: Array, on_end := Callable()) -> void:
 	dialog = {"speaker": speaker, "col": col, "lines": lines, "i": 0, "t": 0.0, "on_end": on_end}
 	state = "dialog"
@@ -1022,6 +1037,7 @@ func near_prop():
 func prompt_for(o: Dictionary) -> String:
 	match o["type"]:
 		"O": return "Hablar con Nexo"
+		"K": return "Hablar con Kira"
 		"L": return "Leer el registro"
 		"M": return "Entregar fragmentos al anillo"
 		"H": return "Mirar el marcador"
@@ -1038,6 +1054,9 @@ func interact(o: Dictionary) -> void:
 			var l := nexo_lines()
 			save()
 			open_dialog("Nexo, Guardián del Umbral", Color("6ff3ff"), l)
+		"K":
+			open_dialog("Kira Volt", Color("ff6fd8"), kira_lines())
+			save()
 		"L":
 			open_dialog("Registro de Zerik", Color("f2c14e"), [o["text"]])
 		"H":
@@ -1087,7 +1106,7 @@ func buy(u: Dictionary) -> void:
 	match u["id"]:
 		"corazon": P.hp += 1
 		"continue": run["revive"] = int(run["revive"]) + 1
-		"cargado": P.filo = FILO_MAX
+		"precarga": P.debug = DEBUG_MAX
 	shop["msg"] = u["name"] + ": hecho."; shop["msg_t"] = 1.5
 	flash_a = 0.3; flash_col = Color("6ff3ff")
 
@@ -1124,7 +1143,7 @@ func update(dt: float) -> void:
 			if hit("confirm") or hit("jump"):
 				state = "play"
 				if not meta["seen_intro"]:
-					open_dialog("", Color("ff6fd8"), Data.INTRO, func(): meta["seen_intro"] = true; save())
+					open_dialog("", Color("6ff3ff"), Data.INTRO, func(): meta["seen_intro"] = true; save())
 			elif hit("pause"):
 				quit_requested = true
 			return
@@ -1242,7 +1261,7 @@ func update(dt: float) -> void:
 			save()
 			flash_a = 0.6; flash_col = Color("ffe14d")
 			burst(Vector2(o["x"], o["y"] - 30), 50, Color("ffe14d"), 360, 0.0, true)
-			open_dialog("Orbe de Salto Doble", Color("ffe14d"), ["El orbe se rompe y su chispa se queda en las botas de Kira.",
+			open_dialog("Orbe de Salto Doble", Color("ffe14d"), ["El orbe se rompe y su chispa se queda en las botas del avatar de Álex.",
 				"Pulsa SALTAR en el aire para dar un segundo salto. Este poder no se pierde con el Continue."])
 			return
 	var np = near_prop()

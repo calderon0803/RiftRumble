@@ -2,10 +2,11 @@
 
 > *Defiende tu mundo. Rompe las reglas.*
 
-Metroidvania 2D lateral con bucle roguelite. **Kira Volt** entra en el **Reino del Continue**, que el **Editor**
-ha convertido en una partida que se reinicia sin fin, para romper el bucle venciendo al **Rey del Reinicio**.
-Cada vez que cae, el Reino la devuelve al **Umbral de Nexo**: conserva los fragmentos y lo comprado en el anillo,
-pero pierde los poderes que le prestaron los héroes de las grietas.
+Metroidvania 2D lateral con bucle roguelite. **Álex**, un desarrollador, queda atrapado en su juego de realidad
+virtual cuando su IA (el **Editor**) fusiona todos sus juegos en uno. Solo puede salir terminándolo. Empieza por el
+**Reino del Continue**, cuyo jefe es el **Rey del Reinicio**. Morir dentro no duele: el juego le devuelve al
+**Umbral de Nexo**, conservando los fragmentos y lo comprado en el anillo, pero no los poderes de las grietas.
+Argumento completo: [docs/02-argumento.md](docs/02-argumento.md).
 
 El código anterior (metroidvania por fases y, antes, tower defense) sigue en el historial de git y en la rama `main`.
 Diseño de esta versión: [docs/01-roguelite-reino-del-continue.md](docs/01-roguelite-reino-del-continue.md).
@@ -21,7 +22,7 @@ src/view/               Dibujo: sala y personajes (WorldView), marcador y pantal
 src/core/               Controles de teclado y mando
 tests/                  Tests headless de la simulación
 tools/                  Capturas automáticas
-art/                    Arte de Kira de versiones anteriores (no se usa todavía)
+art/                    Arte de Kira de versiones anteriores (no se usa todavía; Kira se dibuja por código)
 ```
 
 ## Comandos
@@ -47,10 +48,10 @@ godot --path . --script res://tools/screenshots.gd -- capturas
 |---|---|---|
 | Moverse | ← → / A D | Stick izquierdo / cruceta |
 | Saltar (mantener = más alto; dos veces con el orbe) | Espacio / Z / K | A |
-| Tajo (↑ arriba, ↓ en el aire abajo) | X / J | X |
-| Dash (intocable mientras dura) | Shift / C / L | RB |
-| Descarga de filo (2 muescas) | Q / I | Y |
-| Concentrarse: +1 corazón (mantener, 2 muescas) | R / U | LB |
+| Clic con el cursor (↑ arriba, ↓ en el aire abajo) | X / J | X |
+| Arrastrar: dash, intocable mientras dura | Shift / C / L | RB |
+| Excepción: disparo (2 de depuración) | Q / I | Y |
+| Parche: +1 corazón (mantener, 2 de depuración) | R / U | LB |
 | Hablar, leer, asomarse a una grieta | E / ↑ | B |
 | Elegir poder | 1 2 3 / ← → + Enter | |
 | Pausa | Esc / P | Start |
