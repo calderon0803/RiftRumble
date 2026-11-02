@@ -98,6 +98,12 @@ func _run(main: Node) -> void:
 	g.P.x = 12 * 32
 	await _frames(200)
 	await _shot("11_alumno")
+	g.load_room("inicio", "1")
+	g.meta["up"]["continue"] = 1
+	g.run["revive"] = 0
+	g.revive_fx = 1.6
+	g.P.hp = 3
+	await _shot("12_continue_extra")
 	g.state = "dead"
 	g.dead_t = 2.0
 	await _shot("7_continue")

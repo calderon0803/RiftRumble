@@ -30,6 +30,8 @@ func _draw() -> void:
 	if g.flash_a > 0:
 		var a := g.flash_a * (1.0 if g.flash_col == Color.BLACK else 0.6)
 		draw_rect(Rect2(0, 0, W, H), Color(g.flash_col, a))
+	if g.revive_fx > 0 and g.state in ["play", "pause"]:
+		_revive_notice()
 	match g.state:
 		"title": _title()
 		"dialog": _dialog()
@@ -90,8 +92,12 @@ func _hud() -> void:
 	Paint.outline_poly(self, gem, Color("e8fbff"), 2.5)
 	glow(fc, 16, CYAN, 0.4)
 	Paint.text(self, str(g.meta["frags"]), fc + Vector2(14, 6), 18, TEXT, 0, 4)
+	# Continue Extra: listo en dorado; si ya se ha usado en este intento, gastado en gris.
+	var cx := fc.x + 14 + Paint.text_width(str(g.meta["frags"]), 18) + 14
 	if int(g.run["revive"]) > 0:
-		Paint.text(self, "Continue extra listo", fc + Vector2(14 + Paint.text_width(str(g.meta["frags"]), 18) + 14, 6), 14, Color("f2c14e"), 0, 3)
+		Paint.text(self, "Continue extra listo", Vector2(cx, fc.y + 6), 14, Color("f2c14e"), 0, 3)
+	elif int(g.meta["up"]["continue"]) > 0:
+		Paint.text(self, "Continue extra gastado", Vector2(cx, fc.y + 6), 14, Color("6a6274"), 0, 3)
 	# Poderes de las grietas.
 	var boons: Array = g.run["boons"]
 	if not boons.is_empty():
@@ -237,6 +243,20 @@ func _shop() -> void:
 	Paint.text(self, "↑ ↓ elegir  ·  E / Enter entregar  ·  Esc salir", Vector2(W / 2, 515), 16, MUTED, 1, 3)
 
 
+## Aviso grande cuando el Continue Extra salva a Álex: entra con fuerza y se desvanece.
+func _revive_notice() -> void:
+	var g := game
+	var t: float = 2.2 - g.revive_fx
+	var a := minf(1.0, g.revive_fx / 0.5)
+	var k := 1.0 + maxf(0.0, 0.25 - t) * 1.6
+	draw_rect(Rect2(0, H / 2 - 70, W, 120), Color(0.04, 0.02, 0.02, 0.7 * a))
+	glow(Vector2(W / 2, H / 2 - 20), 260, Color("f2c14e"), 0.35 * a)
+	Paint.text(self, "CONTINUE EXTRA", Vector2(W / 2, H / 2 - 4), int(56 * k), Color(Color("f2c14e"), a), 1, 8, true)
+	var left := int(g.run["revive"])
+	var sub := "Vuelves con media vida  ·  Te quedan %d en este intento" % left
+	Paint.text(self, sub, Vector2(W / 2, H / 2 + 32), 18, Color(TEXT, a), 1, 4)
+
+
 func _dead() -> void:
 	var g := game
 	var a := minf(1.0, g.dead_t / 0.8)
@@ -246,6 +266,8 @@ func _dead() -> void:
 	Paint.text(self, str(count), Vector2(W / 2, 290), 48, Color(SPARK, a), 1, 6, true)
 	Paint.text(self, "Morir dentro no duele: el juego te devuelve al Umbral.", Vector2(W / 2, 330), 20, Color(MAGENTA, a), 1, 4)
 	Paint.text(self, "Fragmentos de este intento: %d  ·  Los poderes de las grietas se pierden" % g.run["frags"], Vector2(W / 2, 362), 17, Color(MUTED, a), 1, 3)
+	if int(g.meta["up"]["continue"]) > 0:
+		Paint.text(self, "Tu Continue Extra ya se usó en este intento", Vector2(W / 2, 388), 16, Color(Color("f2c14e"), a), 1, 3)
 	if g.dead_t > 1.6:
 		Paint.text(self, "Pulsa Enter para continuar", Vector2(W / 2, 420), 20, Color(TEXT, a), 1, 4, true)
 

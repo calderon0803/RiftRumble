@@ -150,6 +150,7 @@ var dead_t := 0.0
 var end_t := 0.0
 var erase_arm := 0.0
 var frag_pulse := 0.0
+var revive_fx := 0.0       # segundos que queda el aviso de Continue Extra en pantalla
 var save_timer := 0.0
 var dirty := false
 var keys := {}
@@ -919,8 +920,12 @@ func hurt_player(src_x = null) -> bool:
 			run["revive"] = int(run["revive"]) - 1
 			P.hp = ceili(max_hp() / 2.0)
 			P.inv = 2.0
-			banner = {"text": "Continue Extra", "sub": "El Reino te da otra moneda", "t": 0.0}
-			flash_col = Color("f2c14e"); flash_a = 0.6
+			# Que se note: pausa larga, destello dorado y aviso grande en el centro (lo pinta UIView).
+			revive_fx = 2.2
+			hitstop = 0.45
+			shake = maxf(shake, 14)
+			flash_col = Color("f2c14e"); flash_a = 0.9
+			burst(P.center(), 60, Color("f2c14e"), 420, 0.0, true)
 		else:
 			die()
 	return true
@@ -929,6 +934,7 @@ func hurt_player(src_x = null) -> bool:
 func die() -> void:
 	state = "dead"
 	dead_t = 0.0
+	revive_fx = 0.0
 	meta["deaths"] = int(meta["deaths"]) + 1
 	save()
 	burst(P.center(), 60, DEBUG_COL, 420, 700)
@@ -1495,6 +1501,7 @@ func update(dt: float) -> void:
 	flash_a = maxf(0.0, flash_a - dt * 2.2)
 	shake = maxf(0.0, shake - dt * 40)
 	frag_pulse = maxf(0.0, frag_pulse - dt)
+	revive_fx = maxf(0.0, revive_fx - dt)
 	erase_arm = maxf(0.0, erase_arm - dt)
 	save_timer += dt
 	if dirty and save_timer > 2:

@@ -181,6 +181,17 @@ func _init() -> void:
 	step(120); step(1, {}, ["confirm"])
 	check(g.state == "play" and g.room.id == "umbral" and g.run["boons"].is_empty() and g.P.hp == g.max_hp(), "vuelve al Umbral con toda la vida y sin poderes")
 
+	print("Continue Extra")
+	fresh(); g.meta["up"]["continue"] = 1; g.new_run(); g.load_room("inicio", "1"); step(5)
+	g.P.hp = 1; g.P.inv = 0; g.P.x = 19 * 32; g.P.y = 14 * 32
+	t = 0
+	while g.run["revive"] > 0 and t < 60:
+		step(1); t += 1
+	check(g.state == "play" and g.P.hp == 3 and g.run["revive"] == 0, "el Continue Extra salva con media vida")
+	check(g.revive_fx > 1.5 and g.hitstop > 0.3, "y se nota: pausa y aviso grande en pantalla")
+	step(60 * 3)
+	check(g.revive_fx == 0.0, "el aviso desaparece a los pocos segundos")
+
 	print("El Rey del Reinicio")
 	fresh(); g.load_room("trono", "1"); step(5)
 	g.P.hp = 99
