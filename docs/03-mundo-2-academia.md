@@ -8,14 +8,29 @@ Cada intento recorre el Reino del Continue: **el Rey del Reinicio vuelve en cada
 abre la puerta derecha del trono hacia la Academia. La primera vez sale la pantalla de mundo superado (60
 fragmentos); las siguientes, solo un rótulo (30).
 
-## Salas
-| Sala | Qué tiene |
+## El mapa (12 salas + Técnica de Kira)
+Ampliada igual que el Reino ([04-reino-ampliado.md](04-reino-ampliado.md)): mapa fijo, desvíos opcionales,
+arenas y élites, pensada para 10-15 minutos por intento.
+```
+Trono ─ Patio ─ Vestíbulo ─ Biblioteca ─ Pasillo ─ Laboratorio ─ Galería ─ Torre ─ Antesala ─ Claustro ─ Aula Magna
+                   │
+                   ├─ arriba: Observatorio (opcional)
+                   └─ abajo: Archivo Prohibido (opcional)
+```
+| Sala | Qué enseña o exige |
 |---|---|
-| Patio de la Academia | primer cristal de resonancia, una plataforma de cristal, una grieta en alto y un conjurador |
-| Biblioteca Flotante | tres cristales y una subida por plataformas de cristal hasta la salida alta, grieta |
+| Patio de la Academia | primer cristal de resonancia, una plataforma de cristal, grieta en alto, conjurador, muro agrietado |
+| Vestíbulo de los Ecos | sala vertical con cuatro salidas; dos tramos de la subida son de cristal |
+| Observatorio | opcional: subida por cristal hasta fragmentos escondidos, grieta, **conjurador de élite** |
+| Archivo Prohibido | opcional: puentes de cristal sobre pinchos, fragmentos escondidos, escupidor de élite |
+| Biblioteca Flotante | tres cristales y una subida por plataformas de cristal hasta la salida alta, grieta, bloque sorpresa |
 | Pasillo de las Runas | **Kira** y el portal a su técnica; el **orbe de salto en pared** sobre un bloque alto |
-| Torre del Examen | pozo de 4 casillas sin escalones: **solo se sube con salto en pared**; grieta abajo |
-| Aula Magna | arena del **Alumno Eterno** |
+| Laboratorio de Alquimia | **arena** de conjuradores, con un cristal en el centro para pelear resonando |
+| Galería de Retratos | **pide salto en pared**: el muro solo se pasa subiendo por una chimenea; luego cristal sobre pinchos |
+| Torre del Examen | pozo sin escalones, solo con salto en pared |
+| Antesala del Examen | **fuente** y grieta |
+| Claustro de los Repetidores | **arena** de élites |
+| Aula Magna | el **Alumno Eterno** |
 | Técnica de Kira | segundo trozo del juego de Kira |
 
 ## Mecánicas nuevas
@@ -25,8 +40,9 @@ fragmentos); las siguientes, solo un rótulo (30).
   cura 15 a todos los enemigos y les da un **escudo** que absorbe el siguiente golpe.
 - **Salto en pared** (habilidad permanente): en el aire, empujando hacia una pared, Álex se desliza despacio;
   saltar le lanza hacia fuera y hacia arriba. Devuelve el dash y el salto doble.
-- **Grietas**: ahora son 7 por intento (4 en el Reino y 3 en la Academia). Los cuatro héroes se reparten dos veces;
-  en la segunda ofrecen los poderes que no se han cogido.
+- **Conjurador de élite** (con corona): carga en 1,4 s y cura 25.
+- **Grietas**: 9 por intento (5 en el Reino y 4 en la Academia). Los cuatro héroes se reparten varias veces y
+  cada vez ofrecen los poderes que aún no se han cogido.
 
 ## El Alumno Eterno
 600 de vida y tres fases (a 2/3 y 1/3 de vida). Ataques: ráfaga de orbes hacia Álex (más orbes en cada fase),
@@ -44,4 +60,4 @@ Kira se presenta en el Pasillo de las Runas y abre el portal 2-1. Dentro hay tre
 con una combinación de golpes encima (X, ↑X, ↓X). Hay que dar los golpes en ese orden; uno equivocado reinicia la
 combinación. Con los tres aprendidos aparece la bandera, que enciende **la segunda muesca** de la espada de Kira.
 
-Tests: `game_tests.gd` 57/57.
+Tests: `game_tests.gd` 72/72 · `reach_tests.gd` 169/169.
