@@ -418,6 +418,13 @@ func upd_enemy(e: Ent, dt: float) -> void:
 			if move_x(e, vx * dt) and absf(e.kb) < 1:
 				e.face *= -1
 			move_y(e, e.vy * dt)
+			if touching_spikes(e.rect()):
+				# Empujado a los pinchos: muere sin dejar núcleo (dentro del foso no se podría romper).
+				e.revived = true
+				e.flash = 0.09
+				num(e.center().x, e.y - 6, "¡Pinchos!", Color("fff3c4"))
+				kill_enemy(e)
+				return
 			if e.on_ground and absf(e.kb) < 1:
 				var fx := e.x + e.w + 2 if e.face > 0 else e.x - 2
 				var ftx := floori(fx / T)

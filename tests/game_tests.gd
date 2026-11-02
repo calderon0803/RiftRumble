@@ -71,6 +71,12 @@ func _init() -> void:
 	check(back.size() == 1, "si el núcleo sobrevive 4 s, el rastrero vuelve")
 	step(120)
 	check(g.meta["frags"] >= 3, "los fragmentos vuelan hacia Álex y se suman")
+	g.load_room("inicio", "1"); step(2)
+	var sc: Game.Ent = g.mk_enemy("c", 19 * 32 + 16, 15 * 32)
+	g.enemies = [sc]
+	g.P.x = 2 * 32
+	step(30)
+	check(sc.dead and g.enemies.filter(func(e): return e.kind == "core").is_empty(), "un rastrero que cae en los pinchos muere y no deja núcleo")
 
 	print("Kira")
 	fresh(); g.load_room("inicio", "1"); g.enemies.clear()
