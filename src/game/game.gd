@@ -65,6 +65,7 @@ class Ent extends RefCounted:
 	var seq: Array = []        # combinación pendiente de un muñeco de la técnica de Kira
 	var idx := 0
 	var home := Vector2.ZERO
+	var elite := false         # versión de élite: más vida y un ataque extra
 
 	func rect() -> Rect2:
 		return Rect2(x, y, w, h)
@@ -153,6 +154,13 @@ var frag_pulse := 0.0
 var revive_fx := 0.0       # segundos que queda el aviso de Continue Extra en pantalla
 var save_timer := 0.0
 var dirty := false
+## Arena de la sala actual: se cierra al entrar y lanza sus oleadas (Data.RoomDef.waves).
+var arena_active := false
+var arena_wave := 0
+var arena_delay := 0.0
+var arena_trigger := -1.0
+var arena_spawns: Array = []
+var hits := {}               # golpes recibidos por cada bloque rompible (Vector2i -> int)
 var keys := {}
 var pressed := {}
 var quit_requested := false
@@ -197,7 +205,10 @@ func new_run() -> void:
 	for i in Data.RIFT_ROOMS.size():
 		rifts[Data.RIFT_ROOMS[i]] = {"hero": heroes[i], "taken": false}
 	# Los jefes vuelven en cada intento: "beaten" dice a cuáles se ha vencido en este.
-	run = {"boons": [], "extra_hp": 0, "revive": int(meta["up"]["continue"]), "frags": 0, "rifts": rifts, "beaten": {}}
+	# Cada intento empieza con las salas como nuevas: bloques sin romper y arenas por superar.
+	rooms = Data.build_rooms()
+	run = {"boons": [], "extra_hp": 0, "revive": int(meta["up"]["continue"]), "frags": 0, "rifts": rifts, "beaten": {},
+		"arenas": {}, "fountains": {}, "gems": {}}
 	P.hp = max_hp()
 	P.debug = DEBUG_MAX if int(meta["up"]["precarga"]) > 0 else 0
 	P.inv = 0.0
@@ -211,13 +222,18 @@ func tile_at(tx: int, ty: int) -> String:
 	return room.g[ty][tx]
 
 
+## Casillas que no se atraviesan: bloque, bloques rompibles y la puerta de una arena en combate.
+func is_solid(c: String) -> bool:
+	return c == "#" or c == "b" or c == "n" or (c == "d" and arena_active)
+
+
 func solid_pt(px: float, py: float) -> bool:
-	return tile_at(floori(px / T), floori(py / T)) == "#"
+	return is_solid(tile_at(floori(px / T), floori(py / T)))
 
 
 func is_floor(tx: int, ty: int) -> bool:
 	var c := tile_at(tx, ty)
-	return c == "#" or c == "="
+	return is_solid(c) or c == "="
 
 
 ## Una casilla que se pisa desde arriba: plataforma, o plataforma de cristal mientras Álex resuena.
@@ -246,14 +262,14 @@ func move_x(e, dx: float) -> bool:
 	if dx > 0:
 		var tx := floori((e.x + e.w) / T)
 		for ty in range(y0, y1 + 1):
-			if tile_at(tx, ty) == "#":
+			if is_solid(tile_at(tx, ty)):
 				e.x = tx * T - e.w
 				e.vx = 0.0
 				return true
 	elif dx < 0:
 		var tx := floori(e.x / T)
 		for ty in range(y0, y1 + 1):
-			if tile_at(tx, ty) == "#":
+			if is_solid(tile_at(tx, ty)):
 				e.x = (tx + 1) * T
 				e.vx = 0.0
 				return true
@@ -270,7 +286,7 @@ func move_y(e, dy: float) -> bool:
 		var ty := floori((e.y + e.h) / T)
 		for tx in range(x0, x1 + 1):
 			var c := tile_at(tx, ty)
-			if c == "#" or (one_way(c) and e.drop_t <= 0.0 and prev_bot <= ty * T + 0.5):
+			if is_solid(c) or (one_way(c) and e.drop_t <= 0.0 and prev_bot <= ty * T + 0.5):
 				e.y = ty * T - e.h
 				e.vy = 0.0
 				e.on_ground = true
@@ -278,7 +294,7 @@ func move_y(e, dy: float) -> bool:
 	elif dy < 0:
 		var ty := floori(e.y / T)
 		for tx in range(x0, x1 + 1):
-			if tile_at(tx, ty) == "#":
+			if is_solid(tile_at(tx, ty)):
 				e.y = (ty + 1) * T
 				e.vy = 0.0
 				return true
@@ -298,7 +314,7 @@ func wall_at(dir: int) -> bool:
 	var px := P.x + P.w + 1 if dir > 0 else P.x - 1
 	var tx := floori(px / T)
 	for py in [P.y + 4, P.y + P.h - 4]:
-		if tile_at(tx, floori(py / T)) == "#":
+		if is_solid(tile_at(tx, floori(py / T))):
 			return true
 	return false
 
@@ -308,7 +324,7 @@ func standing_on_one_way() -> bool:
 	var one := false
 	for tx in range(floori(P.x / T), floori((P.x + P.w - 0.01) / T) + 1):
 		var c := tile_at(tx, ty)
-		if c == "#":
+		if is_solid(c):
 			return false
 		if c == "=":
 			one = true
@@ -350,13 +366,26 @@ func load_room(id: String, entry: String, carry := Vector2.ZERO) -> void:
 		rooms[id] = Data.build_rooms()[id]
 	room = rooms[id]
 	enemies.clear(); projs.clear(); pickups.clear(); slashes.clear(); props.clear()
+	arena_active = false; arena_wave = 0; arena_delay = 0.0; arena_trigger = -1.0; arena_spawns.clear(); hits.clear()
 	boss = null
 	for o in room.objs:
 		var px: float = o["tx"] * T + 16
 		var py: float = (o["ty"] + 1) * T
 		match o["type"]:
-			"c", "f", "s", "k":
+			"c", "f", "s", "k", "C", "V", "Z":
+				# Una arena ya superada en este intento no vuelve a llenarse.
 				enemies.append(mk_enemy(o["type"], px, py))
+			"x":
+				arena_trigger = px
+			"z":
+				arena_spawns.append(Vector2(px, py))
+			"h":
+				if not run["fountains"].has(room.id):
+					props.append({"type": "h", "x": px, "y": py, "text": ""})
+			"g":
+				var key := "%s:%d:%d" % [room.id, o["tx"], o["ty"]]
+				if not run["gems"].has(key):
+					props.append({"type": "g", "x": px, "y": py, "text": key})
 			"B", "E":
 				if not run["beaten"].has(o["type"]):
 					boss = mk_boss(o["type"], px, py)
@@ -386,12 +415,26 @@ func load_room(id: String, entry: String, carry := Vector2.ZERO) -> void:
 	dirty = true
 
 
+## Sale por el tramo del borde en el que está Álex (una sala puede tener varias salidas por el mismo lado).
 func start_trans(side: String) -> bool:
-	if not room.exits.has(side):
+	var c := P.center()
+	var along := floori(c.y / T) if side in ["left", "right"] else floori(c.x / T)
+	var found = null
+	for ex in room.exits:
+		if ex["side"] != side:
+			continue
+		if ex["a"] < 0 or (along >= ex["a"] - 1 and along <= ex["b"] + 1):
+			found = ex
+			break
+	if found == null:
+		for ex in room.exits:
+			if ex["side"] == side:
+				found = ex
+				break
+	if found == null:
 		return false
-	var ex: Array = room.exits[side]
 	state = "trans"
-	trans = {"t": 0.0, "to": ex[0], "entry": ex[1], "loaded": false,
+	trans = {"t": 0.0, "to": found["to"], "entry": found["entry"], "loaded": false,
 		"carry": Vector2(0.0 if side == "up" else P.vx, -300.0 if side == "up" else 0.0)}
 	return true
 
@@ -415,12 +458,22 @@ func num(px: float, py: float, txt: String, col: Color, big := false) -> void:
 
 
 # --- enemigos ---
+## Élites: "C" rastrero, "V" revoloteador, "Z" escupidor.
+const ELITES := {"C": "c", "V": "f", "Z": "s"}
+
+
 func mk_enemy(kind: String, px: float, py: float) -> Ent:
+	var elite := ELITES.has(kind)
+	if elite:
+		kind = ELITES[kind]
 	# ancho, alto, vida, fragmentos
 	var d: Array = {"c": [26, 22, 30, 3], "f": [24, 20, 22, 2], "s": [30, 30, 45, 5], "k": [24, 32, 35, 4]}[kind]
 	var e := Ent.new()
 	e.kind = kind
+	e.elite = elite
 	e.w = d[0]; e.h = d[1]; e.hp = d[2]; e.max_hp = d[2]; e.frags = d[3]
+	if elite:
+		e.hp *= 2.2; e.max_hp = e.hp; e.frags *= 2
 	e.x = px - e.w / 2; e.y = py - e.h
 	e.home = Vector2(e.x, e.y)
 	e.face = -1 if randf() < 0.5 else 1
@@ -479,7 +532,7 @@ func upd_enemy(e: Ent, dt: float) -> void:
 	match e.kind:
 		"c":
 			e.vy = minf(e.vy + GRAV * dt, MAXFALL)
-			var vx := e.face * 55.0 + e.kb
+			var vx := e.face * (85.0 if e.elite else 55.0) + e.kb
 			e.kb = move_toward(e.kb, 0.0, 900 * dt)
 			if move_x(e, vx * dt) and absf(e.kb) < 1:
 				e.face *= -1
@@ -510,6 +563,15 @@ func upd_enemy(e: Ent, dt: float) -> void:
 			e.y = clampf(e.y + e.vy * dt, T, room.h * T - 2 * T - e.h)
 			if absf(d.x) > 4:
 				e.face = signi(int(d.x))
+			if e.elite and e.aggro:
+				# El revoloteador de élite dispara un orbe hacia Álex cada 2,5 s.
+				e.cd -= dt
+				if e.cd <= 0:
+					e.cd = 2.5
+					var q := Ent.new()
+					q.kind = "orb"; q.hostile = true; q.x = ec.x; q.y = ec.y
+					q.vx = d.x / dist * 260; q.vy = d.y / dist * 260; q.r = 7; q.life = 3
+					projs.append(q)
 		"s":
 			var dx := pc.x - ec.x
 			var dy := pc.y - e.y
@@ -520,11 +582,13 @@ func upd_enemy(e: Ent, dt: float) -> void:
 			if e.cd <= 0:
 				if e.charging:
 					var tt := 0.85
-					var q := Ent.new()
-					q.kind = "glob"; q.hostile = true; q.x = ec.x; q.y = e.y + 6
-					q.vx = clampf(dx / tt, -520, 520); q.vy = (dy - 0.5 * 1200 * tt * tt) / tt
-					q.g = 1200; q.r = 7; q.life = 4
-					projs.append(q)
+					# El escupidor de élite lanza tres a la vez, abiertos en abanico.
+					for spread in ([-90.0, 0.0, 90.0] if e.elite else [0.0]):
+						var q := Ent.new()
+						q.kind = "glob"; q.hostile = true; q.x = ec.x; q.y = e.y + 6
+						q.vx = clampf((dx + spread) / tt, -520, 520); q.vy = (dy - 0.5 * 1200 * tt * tt) / tt
+						q.g = 1200; q.r = 7; q.life = 4
+						projs.append(q)
 					burst(Vector2(ec.x, e.y + 6), 8, Color("ff9ab0"), 160, 600)
 				e.cd = 2.2
 				e.charging = false
@@ -982,12 +1046,88 @@ func resolve_attack() -> void:
 	if P.atk_dir == "down" and not pogo and touching_spikes(b):
 		pogo = true
 	place_blocks(b)
+	if break_blocks(b) and P.atk_dir == "down":
+		pogo = true
 	if pogo and not P.pogo_done:
 		P.pogo_done = true
 		P.vy = -POGO
 		P.air_jumps = 1
 		if has("disciplina"):
 			P.dash_charges = 2 if has("carrera") else 1
+
+
+## Bloques rompibles ("b", "n"): dos clics los rompen. Los "n" sueltan fragmentos.
+## Devuelve si el clic ha dado en alguno (para rebotar con el clic hacia abajo).
+func break_blocks(b: Rect2) -> bool:
+	var any := false
+	for ty in range(floori(b.position.y / T), floori(b.end.y / T) + 1):
+		for tx in range(floori(b.position.x / T), floori(b.end.x / T) + 1):
+			var c := tile_at(tx, ty)
+			if (c != "b" and c != "n") or not b.intersects(Rect2(tx * T, ty * T, T, T)):
+				continue
+			var key := Vector2i(tx, ty)
+			if P.atk_hits.has(key):
+				continue
+			P.atk_hits[key] = true
+			any = true
+			hits[key] = hits.get(key, 0) + 1
+			var center := Vector2(tx * T + 16, ty * T + 16)
+			burst(center, 8, Data.PALETTES[room.pal]["stone"].lightened(0.4), 200, 900)
+			if hits[key] >= 2:
+				room.g[ty][tx] = "."
+				hits.erase(key)
+				burst(center, 16, room_rim(), 260, 900)
+				shake = maxf(shake, 4)
+				if c == "n":
+					num(center.x, center.y - 10, "¡Sorpresa!", Color("f2c14e"))
+					for i in 4:
+						var k := Ent.new()
+						k.kind = "frag"; k.x = center.x; k.y = center.y; k.vx = randf_range(-160, 160); k.vy = randf_range(-380, -160); k.amt = 1
+						pickups.append(k)
+	return any
+
+
+## Arena: al entrar se cierran las puertas ("d") y salen las oleadas por los puntos "z". Al vaciar
+## la última se abren, cura 2 corazones y suelta 10 fragmentos. Solo una vez por intento.
+func upd_arena(dt: float) -> void:
+	if room.waves.is_empty() or run["arenas"].has(room.id):
+		return
+	if not arena_active:
+		var cx := P.center().x
+		if arena_trigger >= 0 and cx > 4 * T and cx < (room.w - 4) * T:
+			arena_active = true
+			arena_wave = 0
+			arena_delay = 0.8
+			shake = maxf(shake, 8)
+			banner = {"text": "¡Arena!", "sub": "Sobrevive a %d oleadas" % room.waves.size(), "t": 0.0}
+		return
+	if not enemies.is_empty():
+		return
+	arena_delay -= dt
+	if arena_delay > 0:
+		return
+	if arena_wave < room.waves.size():
+		var wave: Array = room.waves[arena_wave]
+		for i in wave.size():
+			var sp: Vector2 = arena_spawns[(i + arena_wave) % arena_spawns.size()] if not arena_spawns.is_empty() else Vector2(room.w * T / 2.0, 3 * T)
+			var e := mk_enemy(wave[i], sp.x, sp.y)
+			e.aggro = true
+			enemies.append(e)
+			burst(e.center(), 14, Color("e8384f"), 200, 0.0, true)
+		arena_wave += 1
+		arena_delay = 1.0
+		num(room.w * T / 2.0, 4 * T, "Oleada %d/%d" % [arena_wave, room.waves.size()], Color("fff3c4"), true)
+		return
+	# Arena superada.
+	arena_active = false
+	run["arenas"][room.id] = true
+	P.hp = mini(max_hp(), P.hp + 2)
+	flash_a = 0.4; flash_col = Color("f2c14e")
+	banner = {"text": "Arena superada", "sub": "+2 corazones · +10 fragmentos", "t": 0.0}
+	for i in 10:
+		var k := Ent.new()
+		k.kind = "frag"; k.x = P.center().x; k.y = P.y - 20; k.vx = randf_range(-200, 200); k.vy = randf_range(-420, -200); k.amt = 1
+		pickups.append(k)
 
 
 ## Un clic sobre un bloque sin colocar ("p") lo coloca: pasa a ser una plataforma que se pisa.
@@ -1252,7 +1392,7 @@ func upd_projs(dt: float) -> void:
 			"shock":
 				q.x += q.vx * dt
 				var tx := floori((q.x + q.w if q.vx > 0 else q.x) / T)
-				if tile_at(tx, floori((q.y + q.h / 2) / T)) == "#":
+				if is_solid(tile_at(tx, floori((q.y + q.h / 2) / T))):
 					q.dead = true
 					continue
 				if randf() < 0.7:
@@ -1399,6 +1539,7 @@ func prompt_for(o: Dictionary) -> String:
 			if portal_open(n):
 				return "Entrar en: " + Data.KIRA_FRAG_INFO[n - 1]["name"]
 		"L": return "Leer el registro"
+		"h": return "Beber de la fuente"
 		"M": return "Entregar fragmentos al anillo"
 		"H": return "Mirar el marcador"
 		"F":
@@ -1424,6 +1565,15 @@ func interact(o: Dictionary) -> void:
 				trans = {"t": 0.0, "to": Data.KIRA_FRAG_INFO[n - 1]["room"], "entry": "1", "loaded": false, "carry": Vector2.ZERO}
 		"L":
 			open_dialog("Registro de Zerik", Color("f2c14e"), [o["text"]])
+		"h":
+			# La fuente cura por completo, una vez por intento.
+			props.erase(o)
+			run["fountains"][room.id] = true
+			P.hp = max_hp()
+			P.debug = DEBUG_MAX
+			flash_a = 0.5; flash_col = Color("6ff3ff")
+			burst(Vector2(o["x"], o["y"] - 20), 40, Color("6ff3ff"), 300, 0.0, true)
+			banner = {"text": "Vida y depuración al máximo", "sub": "La fuente se seca hasta el próximo intento", "t": 0.0}
 		"H":
 			open_dialog("Marcador del Reino", Color("ffe14d"), ["GAME CLEAR. El marcador ya no cuenta hacia atrás." if meta["boss"] else "CONTINUE? 9... 8... 7... La cuenta atrás nunca llega a cero. Siempre vuelve a empezar."])
 		"M":
@@ -1628,8 +1778,21 @@ func update(dt: float) -> void:
 			if e.kind == "B" and e.state == "sweep" and P.rect().intersects(lantern_box(e)):
 				hurt_player(e.center().x)
 	enemies = enemies.filter(func(e): return not e.dead)
+	upd_arena(dt)
 	upd_projs(dt)
 	upd_pickups(dt)
+	for o in props:
+		if o["type"] == "g" and absf(o["x"] - P.center().x) < 22 and absf(o["y"] - 12 - P.center().y) < 30:
+			# Fragmentos escondidos: 8 de golpe, una vez por intento.
+			props.erase(o)
+			run["gems"][o["text"]] = true
+			burst(Vector2(o["x"], o["y"] - 12), 24, Color("6ff3ff"), 260, 0.0, true)
+			num(o["x"], o["y"] - 30, "+8 fragmentos", Color("6ff3ff"), true)
+			meta["frags"] = int(meta["frags"]) + 8
+			run["frags"] = int(run["frags"]) + 8
+			frag_pulse = 0.3
+			dirty = true
+			break
 	for o in props:
 		if o["type"] == "A" and absf(o["x"] - P.center().x) < 26 and absf(o["y"] - 30 - P.center().y) < 40:
 			props.erase(o)

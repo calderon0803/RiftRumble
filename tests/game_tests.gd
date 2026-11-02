@@ -181,6 +181,56 @@ func _init() -> void:
 	step(120); step(1, {}, ["confirm"])
 	check(g.state == "play" and g.room.id == "umbral" and g.run["boons"].is_empty() and g.P.hp == g.max_hp(), "vuelve al Umbral con toda la vida y sin poderes")
 
+	print("Reino: bloques, arena, fuente y atajos")
+	fresh(); g.load_room("inicio", "1"); g.enemies.clear(); step(3)
+	check(g.tile_at(57, 13) == "b", "hay un muro agrietado antes de salir de la Pantalla de Inicio")
+	g.P.x = 55 * 32; g.P.y = 15 * 32 - g.P.h; g.P.face = 1; step(3)
+	for i in 4:
+		step(1, {}, ["attack"]); step(20)
+	check(g.tile_at(57, 13) == "." and g.tile_at(57, 14) == ".", "dos clics por bloque rompen el muro")
+	g.P.x = 50 * 32; g.P.y = 15 * 32 - g.P.h; step(3)
+	var f0: int = g.meta["frags"]
+	for i in 2:
+		step(1, {"up": true}, ["attack"]); step(20)
+	step(90)
+	check(g.tile_at(50, 12) == "." and g.meta["frags"] >= f0 + 4, "el bloque sorpresa suelta 4 fragmentos")
+	g.load_room("arena1", "1"); step(3)
+	check(g.enemies.is_empty() and not g.arena_active, "la arena empieza vacía y abierta")
+	g.P.x = 18 * 32; step(3)
+	check(g.arena_active and g.is_solid("d"), "al entrar se cierran las puertas")
+	var waves_seen := 0
+	t = 0
+	while g.arena_active and t < 60 * 30:
+		if not g.enemies.is_empty():
+			waves_seen = g.arena_wave
+			for e in g.enemies:
+				e.hp = 1
+				g.damage_enemy(e, 5)
+		g.P.inv = 1.0
+		step(1); t += 1
+	check(waves_seen == 3 and g.run["arenas"].has("arena1") and not g.is_solid("d"), "tras tres oleadas la arena se abre")
+	g.load_room("arena1", "1"); g.P.x = 18 * 32; step(10)
+	check(not g.arena_active, "una arena superada no se repite en el mismo intento")
+	g.load_room("fuente", "1"); step(3)
+	g.P.hp = 1
+	var H_: Dictionary = g.props.filter(func(o): return o["type"] == "h")[0]
+	g.P.x = H_["x"] - 9; g.P.y = H_["y"] - g.P.h; step(3); step(1, {}, ["interact"])
+	check(g.P.hp == g.max_hp() and g.run["fountains"].has("fuente"), "la fuente cura por completo")
+	g.load_room("fuente", "1"); step(3)
+	check(g.props.filter(func(o): return o["type"] == "h").is_empty(), "y no vuelve a salir en el mismo intento")
+	g.load_room("pasarela", "1"); step(3)
+	var gem: Dictionary = g.props.filter(func(o): return o["type"] == "g")[0]
+	f0 = g.meta["frags"]
+	g.P.x = gem["x"] - 9; g.P.y = gem["y"] - g.P.h; step(3)
+	check(g.meta["frags"] == f0 + 8, "los fragmentos escondidos dan 8")
+	g.load_room("bloque", "3"); g.enemies.clear(); step(3)
+	g.P.x = 2; step(30, {"left": true})
+	check(g.room.id == "azotea", "la salida alta del Bloque lleva a la Azotea y la baja a la arena")
+	var el := g.mk_enemy("C", 100, 100)
+	check(el.elite and el.kind == "c" and el.max_hp > 60, "los élites tienen más vida")
+	g.new_run()
+	check(g.rooms["inicio"].g[13][57] == "b", "en un intento nuevo los bloques vuelven a estar")
+
 	print("Continue Extra")
 	fresh(); g.meta["up"]["continue"] = 1; g.new_run(); g.load_room("inicio", "1"); step(5)
 	g.P.hp = 1; g.P.inv = 0; g.P.x = 19 * 32; g.P.y = 14 * 32

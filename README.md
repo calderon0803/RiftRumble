@@ -9,7 +9,7 @@ virtual cuando su IA (el **Editor**) fusiona todos sus juegos en uno. Solo puede
 Argumento completo: [docs/02-argumento.md](docs/02-argumento.md).
 
 El código anterior (metroidvania por fases y, antes, tower defense) sigue en el historial de git y en la rama `main`.
-Diseño: [mundo 1](docs/01-roguelite-reino-del-continue.md) · [argumento](docs/02-argumento.md) · [mundo 2](docs/03-mundo-2-academia.md).
+Diseño: [mundo 1](docs/01-roguelite-reino-del-continue.md) · [argumento](docs/02-argumento.md) · [mundo 2](docs/03-mundo-2-academia.md) · [Reino ampliado](docs/04-reino-ampliado.md).
 
 ## Requisitos
 - Godot **4.7.x** estable, versión estándar con GDScript (no la .NET).

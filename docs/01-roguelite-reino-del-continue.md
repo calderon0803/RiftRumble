@@ -4,6 +4,9 @@
 > pruebas con el cursor como arma) y el recurso de combate es la **depuración** (Parche y Excepción). Kira Volt aparece
 > en la Pantalla de Inicio como personaje, con las 6 muescas de su espada apagadas. Donde abajo dice «Kira», «tajo»,
 > «filo» o «muescas» como jugador, léase Álex, clic y depuración.
+>
+> **El mapa del Reino ha crecido a 12 salas:** la tabla de salas de abajo está superada; el mapa actual está en
+> [04-reino-ampliado.md](04-reino-ampliado.md).
 
 Se rehace RIFT RUMBLE a partir de un prototipo web (metroidvania con dones al estilo roguelite) y se
 le pone la historia y el mundo que ya tenía el proyecto: la Gran Interferencia, Nexo, el Editor, Kira Volt

@@ -139,7 +139,7 @@ func _solid(x: int, y: int) -> bool:
 	var r := game.room
 	if x < 0 or y < 0 or x >= r.w or y >= r.h:
 		return true
-	return r.g[y][x] == "#"
+	return r.g[y][x] == "#" or (r.g[y][x] == "d" and game.arena_active)
 
 
 func _draw_tiles() -> void:
@@ -182,6 +182,26 @@ func _draw_tiles() -> void:
 				draw_rect(Rect2(p.x, p.y + 3, T, 2), _rim)
 				if (x + y) % 3 == 0:
 					draw_rect(Rect2(p.x + 13, p.y + 13, 5, 8), OUT)
+			elif ch == "b" or ch == "n":
+				# Bloque rompible: ladrillo agrietado; el que guarda fragmentos brilla por las grietas.
+				var cracked := game.hits.has(Vector2i(x, y))
+				draw_rect(Rect2(p, Vector2(T, T)), stone.lightened(0.08))
+				draw_rect(Rect2(p, Vector2(T, T)), OUT, false, 3)
+				var crack := Color("f2c14e") if ch == "n" else deep
+				draw_polyline(PackedVector2Array([p + Vector2(8, 4), p + Vector2(14, 13), p + Vector2(10, 20), p + Vector2(18, 28)]), crack, 2)
+				draw_polyline(PackedVector2Array([p + Vector2(24, 6), p + Vector2(20, 15), p + Vector2(26, 22)]), crack, 2)
+				if cracked:
+					draw_polyline(PackedVector2Array([p + Vector2(3, 16), p + Vector2(16, 17), p + Vector2(29, 12)]), crack, 2.5)
+				if ch == "n":
+					glow(p + Vector2(16, 16), 22, Color("f2c14e"), 0.25 + 0.1 * sin(game.time * 3 + x))
+			elif ch == "d":
+				# Puerta de arena: abierta no se ve; cerrada son barrotes.
+				if game.arena_active:
+					draw_rect(Rect2(p, Vector2(T, T)), Color(0, 0, 0, 0.35))
+					for i in 3:
+						draw_rect(Rect2(p + Vector2(4 + i * 10, 0), Vector2(5, T)), OUT)
+						draw_rect(Rect2(p + Vector2(5 + i * 10, 0), Vector2(3, T)), Color("e8384f"))
+					glow(p + Vector2(16, 16), 26, Color("e8384f"), 0.3)
 			elif ch == "y":
 				# Plataforma de cristal: sólida y brillante mientras Álex resuena; si no, apenas un reflejo.
 				if game.P.resonance > 0:
@@ -244,6 +264,23 @@ func _draw_props() -> void:
 				glow(c, 60, Color("7be36b"), 0.5)
 				Paint.fill_ellipse(self, c, 13, 13, Color("e0ffd8"), 0, 3)
 				Paint.fill_ellipse(self, c, 6, 6, Color("7be36b"))
+			"h":
+				# Fuente: pila de piedra con agua del color del Umbral.
+				Paint.outline_poly(self, PackedVector2Array([p + Vector2(-26, 0), p + Vector2(-22, -18), p + Vector2(22, -18), p + Vector2(26, 0)]), _pal["stone"])
+				draw_rect(Rect2(p + Vector2(-4, -40), Vector2(8, 22)), _pal["stone"])
+				draw_rect(Rect2(p + Vector2(-4, -40), Vector2(8, 22)), OUT, false, 2)
+				draw_rect(Rect2(p + Vector2(-20, -20), Vector2(40, 5)), Color("6ff3ff"))
+				for i in 3:
+					var dy := fposmod(game.time * 40 + i * 12, 34)
+					draw_rect(Rect2(p + Vector2(-1.5, -42 + dy * 0.6), Vector2(3, 5)), Color("b8faff"))
+				glow(p + Vector2(0, -26), 60, Color("6ff3ff"), 0.4)
+			"g":
+				# Fragmentos escondidos: un montón brillante.
+				var c := p + Vector2(0, -12 + sin(g.time * 3) * 2)
+				for q in [Vector2(-6, 2), Vector2(6, 2), Vector2(0, -6)]:
+					var gem := PackedVector2Array([c + q + Vector2(0, -6), c + q + Vector2(5, 0), c + q + Vector2(0, 6), c + q + Vector2(-5, 0)])
+					Paint.outline_poly(self, gem, Color("e8fbff"), 2)
+				glow(c, 34, Color("6ff3ff"), 0.6)
 			"S":
 				# Cartel de tutorial a medio hacer, con una nota de Álex.
 				draw_rect(Rect2(p + Vector2(-2, -26), Vector2(4, 26)), Color("4a3a48"))
@@ -451,6 +488,11 @@ func _draw_enemy(e: Game.Ent) -> void:
 				Paint.text(self, icons[e.seq[i]], Vector2(x0 + i * 30, p.y - 56), 13, col, 1, 4, true)
 			if done:
 				glow(p + Vector2(0, -26), 50, MAGENTA, 0.5)
+	if e.elite:
+		# Élite: corona dorada encima y un halo.
+		var top := s(Vector2(e.x + e.w / 2, e.y - 4))
+		Paint.outline_poly(self, PackedVector2Array([top + Vector2(-7, 0), top + Vector2(-7, -7), top + Vector2(-3, -3), top + Vector2(0, -9), top + Vector2(3, -3), top + Vector2(7, -7), top + Vector2(7, 0)]), Color("f2c14e"), 2)
+		glow(s(e.center()), maxf(e.w, e.h) * 1.2, Color("f2c14e"), 0.25)
 	if e.shield > 0:
 		draw_arc(s(e.center()), maxf(e.w, e.h) * 0.7, 0, TAU, 32, Color(Color("7be36b"), 0.8), 2)
 		glow(s(e.center()), maxf(e.w, e.h), Color("7be36b"), 0.2)

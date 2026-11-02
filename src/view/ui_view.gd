@@ -129,6 +129,9 @@ func _hud() -> void:
 		var marks := [0.5] if g.boss.kind == "B" else [0.33, 0.66]
 		for m in marks:
 			draw_rect(Rect2(bx + bw * m - 1, by - 3, 2, 16), OUT)
+	# Arena en curso: qué oleada va.
+	if g.arena_active and g.arena_wave > 0:
+		Paint.text(self, "Oleada %d de %d" % [g.arena_wave, g.room.waves.size()], Vector2(W / 2, 176), 20, Color("e8384f"), 1, 5, true)
 	# Rótulo de sala o de poder.
 	if not g.banner.is_empty():
 		var t: float = g.banner["t"]

@@ -53,10 +53,27 @@ func _run(main: Node) -> void:
 	g.cam = g.cam_target()
 	await _frames(40)
 	await _shot("3b_nivel_kira")
-	g.load_room("monedas", "1")
-	g.P.x = 22 * 32
+	g.load_room("pasarela", "1")
+	g.P.x = 28 * 32
+	g.P.y = 15 * 32 - g.P.h
+	g.cam = g.cam_target()
 	await _frames(40)
-	await _shot("4_monedas")
+	await _shot("4a_pasarela")
+	g.load_room("cruce", "1")
+	g.P.x = 20 * 32
+	g.P.y = 17 * 32 - g.P.h
+	g.cam = g.cam_target()
+	await _frames(40)
+	await _shot("4b_cruce")
+	g.load_room("bloque", "1")
+	g.P.x = 16 * 32
+	g.cam = g.cam_target()
+	await _frames(40)
+	await _shot("4c_bloque")
+	g.load_room("arena2", "1")
+	g.P.x = 20 * 32
+	await _frames(150)
+	await _shot("4d_arena")
 	g.load_room("inicio", "1")
 	g.enemies.clear()
 	var F: Dictionary = g.props.filter(func(o): return o["type"] == "F")[0]

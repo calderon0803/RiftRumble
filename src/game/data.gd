@@ -18,8 +18,10 @@ const PALETTES := {
 }
 
 
-## Una sala: plano de casillas ("#" bloque, "=" plataforma que se atraviesa desde abajo, "^" pinchos),
-## objetos, entradas (donde aparece Álex) y salidas por los bordes.
+## Una sala: plano de casillas, objetos, entradas (donde aparece Álex) y salidas por los bordes.
+## Casillas: "#" bloque · "=" plataforma que se atraviesa desde abajo · "^" pinchos · "b" bloque que se
+## rompe con dos clics · "n" bloque que se rompe y suelta fragmentos · "d" puerta de arena (abierta salvo
+## durante el combate) · "p" bloque sin colocar · "y" plataforma de cristal.
 class RoomDef extends RefCounted:
 	var id: String
 	var name: String
@@ -30,7 +32,12 @@ class RoomDef extends RefCounted:
 	var g: Array = []
 	var objs: Array = []
 	var entries := {}
-	var exits := {}
+	## Salidas: {side, to, entry, a, b}. a..b es el tramo del borde (filas o columnas); -1 = todo el borde.
+	var exits: Array = []
+	## Oleadas de la arena (listas de tipos de enemigo); vacío si la sala no es una arena.
+	var waves: Array = []
+	## Habilidades que hacen falta para recorrer la sala (para el test de alcance).
+	var needs: Array = []
 
 	func _init(rid: String, rname: String, rsub: String, rw: int, rh: int, rpal: String) -> void:
 		id = rid; name = rname; sub = rsub; w = rw; h = rh; pal = rpal
@@ -58,53 +65,141 @@ class RoomDef extends RefCounted:
 		entries[entry] = Vector2i(x, y)
 		return self
 
-	func link(side: String, to: String, entry: String) -> RoomDef:
-		exits[side] = [to, entry]
+	func link(side: String, to: String, entry: String, a := -1, b := -1) -> RoomDef:
+		exits.append({"side": side, "to": to, "entry": entry, "a": a, "b": b})
 		return self
+
+	func arena(wave_list: Array) -> RoomDef:
+		waves = wave_list
+		return self
+
+	func need(ability: String) -> RoomDef:
+		needs.append(ability)
+		return self
+
+	## Abre un hueco en el borde y lo enlaza: left/right usan filas a..b, up/down columnas a..b.
+	func door(side: String, a: int, b: int, to: String, entry: String) -> RoomDef:
+		match side:
+			"left": fill(0, a, 0, b, ".")
+			"right": fill(w - 1, a, w - 1, b, ".")
+			"up": fill(a, 0, b, 0, ".")
+			"down": fill(a, h - 2, b, h - 1, ".")
+		return link(side, to, entry, a, b)
 
 
 ## Crea las salas (cada partida tiene su copia, porque la arena del jefe cambia el plano).
 static func build_rooms() -> Dictionary:
 	var list := [
+		# --- Mundo 1: Reino del Continue ---
+		# Recorrido principal: Inicio → Pasarela → Cruce → Arena de los Rastreros → Bloque Sorpresa →
+		# Doble Pantalla (pide salto doble) → Fuente → Arena de Élites → Trono.
+		# Desvíos: Torre de las Monedas (orbe de salto doble) → Azotea Dorada (atajo hasta el Bloque), y el Sótano.
 		RoomDef.new("umbral", "Umbral de Nexo", "Donde se cruzan las grietas", 34, 17, "umbral").box()
-			.fill(33, 12, 33, 14, ".").fill(9, 7, 14, 7, "=")
+			.door("right", 12, 14, "inicio", "1").fill(9, 7, 14, 7, "=")
 			.o("M", 3, 14).o("H", 9, 14).o("O", 21, 14)
 			.o("L", 27, 14, "Registro de Zerik #001: el Umbral no aparece en ningún mapa del Reino. Conclusión: lo trajo Nexo consigo.")
-			.e("P", 15, 14).e("1", 32, 14).link("right", "inicio", "1"),
-		RoomDef.new("inicio", "Pantalla de Inicio", "Pulsa START. Otra vez.", 60, 17, "inicio").box()
-			.fill(0, 12, 0, 14, ".").fill(59, 12, 59, 14, ".")
+			.e("P", 15, 14).e("1", 32, 14),
+		# Tutorial: saltar fosos, rastreros con núcleo, un escupidor, la primera grieta y el primer muro rompible.
+		RoomDef.new("inicio", "Pantalla de Inicio", "Pulsa START. Otra vez.", 64, 17, "inicio").box()
+			.door("left", 12, 14, "umbral", "1").door("right", 12, 14, "pasarela", "1")
 			.fill(18, 15, 20, 15, "^").fill(45, 15, 47, 15, "^")
-			.fill(15, 10, 19, 10, "=").fill(24, 7, 28, 7, "=").fill(40, 10, 44, 10, "=").fill(30, 13, 34, 14, "#")
-			.e("1", 1, 14).e("2", 58, 14).e("K", 4, 14)
+			.fill(30, 13, 34, 14, "#").fill(36, 11, 40, 11, "=")
+			.fill(50, 12, 50, 12, "n").fill(57, 12, 57, 14, "b")
+			.e("1", 1, 14).e("2", 62, 14).e("K", 4, 14)
 			.o("K", 9, 14, "1").o("T", 4, 14, "1")
 			.o("L", 6, 14, "Registro de Zerik #014: los rastreros dejan un núcleo al caer. Si el núcleo sobrevive, el rastrero vuelve. Recomendación: romper el núcleo. Rápido.")
-			.o("c", 12, 14).o("F", 26, 14).o("c", 32, 12).o("s", 39, 14).o("c", 53, 14)
-			.link("left", "umbral", "1").link("right", "monedas", "1"),
-		RoomDef.new("monedas", "Monedas Sueltas", "Lo que cae, se recoge", 50, 26, "monedas").box()
-			.fill(0, 21, 0, 23, ".").fill(49, 8, 49, 10, ".")
-			.fill(6, 21, 11, 21, "=").fill(13, 18, 18, 18, "=").fill(6, 15, 11, 15, "=").fill(1, 12, 5, 12, "=")
-			.fill(20, 15, 25, 15, "=").fill(28, 12, 33, 12, "=").fill(37, 11, 48, 12, "#")
-			.fill(26, 23, 29, 23, "^")
-			.e("1", 1, 23).e("2", 47, 10)
-			.o("A", 3, 11).o("F", 30, 11)
-			.o("L", 44, 10, "Registro de Zerik #027: hay un orbe en lo más alto de esta sala. Demasiado alto para llegar sin querer. ¿Error de diseño o premio?")
-			.o("c", 20, 23).o("c", 36, 23).o("f", 25, 8).o("f", 40, 18).o("f", 12, 6)
-			.link("left", "inicio", "2").link("right", "bloque", "1"),
-		RoomDef.new("bloque", "Bloque Sorpresa", "Todo vuelve a su sitio", 56, 17, "bloque").box()
-			.fill(0, 8, 0, 10, ".").fill(1, 11, 8, 11, "#").fill(55, 12, 55, 14, ".")
-			.fill(9, 13, 12, 13, "=").fill(20, 15, 23, 15, "^").fill(14, 10, 17, 10, "=").fill(24, 10, 28, 10, "=").fill(36, 8, 41, 8, "=")
-			.e("1", 1, 10).e("2", 54, 14)
-			.o("s", 13, 14).o("c", 30, 14).o("s", 38, 7).o("c", 46, 14).o("f", 33, 4).o("F", 26, 9)
-			.o("L", 50, 14, "Registro de Zerik #033: aquí todo se rompe y luego vuelve. Todo. He tenido que crear una categoría nueva en el manual: «todo».")
-			.link("left", "monedas", "2").link("right", "pantalla", "1"),
+			.o("L", 55, 14, "Registro de Zerik #015: este muro está agrietado. Diagnóstico: dos clics. Algunos bloques guardan fragmentos dentro.")
+			.o("c", 12, 14).o("F", 38, 10).o("c", 32, 12).o("s", 42, 14).o("c", 53, 14),
+		# Plataformas sobre un suelo de pinchos, con dos escupidores en alto y revoloteadores.
+		RoomDef.new("pasarela", "Pasarela de los Escupidores", "No mires abajo", 72, 20, "inicio").box()
+			.door("left", 15, 17, "inicio", "2").door("right", 15, 17, "cruce", "1")
+			.fill(9, 18, 63, 18, "^")
+			.fill(11, 15, 14, 15, "=").fill(19, 15, 22, 15, "=").fill(27, 15, 30, 15, "=").fill(35, 15, 38, 15, "=")
+			.fill(43, 15, 46, 15, "=").fill(51, 15, 54, 15, "=").fill(59, 15, 62, 15, "=")
+			.fill(31, 7, 33, 8, "#").fill(47, 7, 49, 8, "#")
+			.fill(2, 12, 7, 12, "=").fill(21, 11, 21, 11, "n")
+			.e("1", 1, 17).e("2", 70, 17)
+			.o("s", 32, 6).o("s", 48, 6).o("f", 40, 5).o("f", 56, 6).o("c", 5, 17).o("g", 4, 11)
+			.o("L", 66, 17, "Registro de Zerik #016: los escupidores apuntan a donde estás, no a donde vas. Diagnóstico: no te quedes quieto."),
+		# Cruce vertical con cuatro salidas: la arena (derecha), la torre (arriba) y el sótano (abajo).
+		RoomDef.new("cruce", "Cruce del Reino", "Cuatro caminos, una partida", 40, 34, "monedas").box()
+			.door("left", 29, 31, "pasarela", "2").door("right", 29, 31, "arena1", "1")
+			.door("up", 17, 22, "monedas", "1").door("down", 30, 33, "sotano", "1")
+			.fill(3, 29, 8, 29, "=").fill(11, 26, 16, 26, "=").fill(3, 23, 8, 23, "=").fill(11, 20, 16, 20, "=")
+			.fill(19, 17, 24, 17, "=").fill(27, 14, 32, 14, "=").fill(19, 11, 24, 11, "=").fill(11, 8, 16, 8, "=")
+			.fill(18, 5, 23, 5, "=").fill(17, 2, 22, 2, "=")
+			.e("1", 1, 31).e("2", 38, 31).e("3", 19, 1).e("4", 28, 31)
+			.o("c", 10, 31).o("f", 8, 15).o("f", 30, 8).o("s", 29, 13)
+			.o("L", 36, 31, "Registro de Zerik #019: este cruce tiene cuatro salidas. Arriba, a la derecha, abajo... y por donde has venido. Todas llevan a algún sitio. Casi seguro."),
+		# Torre con el orbe de salto doble arriba del todo. Arriba a la derecha sigue la Azotea.
+		RoomDef.new("monedas", "Torre de las Monedas", "Lo que cae, se recoge", 30, 40, "monedas").box()
+			.door("down", 13, 16, "cruce", "3").door("right", 2, 4, "azotea", "1")
+			.fill(3, 35, 8, 35, "=").fill(11, 32, 16, 32, "=").fill(19, 29, 24, 29, "=").fill(11, 26, 16, 26, "=")
+			.fill(3, 23, 8, 23, "=").fill(11, 20, 16, 20, "=").fill(19, 17, 24, 17, "=").fill(25, 14, 28, 14, "=")
+			.fill(17, 11, 22, 11, "=").fill(9, 8, 14, 8, "=").fill(16, 6, 19, 6, "=").fill(20, 5, 28, 5, "#")
+			.fill(2, 5, 7, 5, "=").fill(26, 30, 26, 30, "n")
+			.e("1", 11, 37).e("2", 27, 4)
+			.o("A", 4, 4).o("c", 22, 37).o("f", 20, 34).o("f", 6, 15).o("f", 22, 8).o("s", 21, 16)
+			.o("L", 26, 37, "Registro de Zerik #027: hay un orbe en lo más alto de esta torre. Demasiado alto para llegar sin querer. ¿Error de diseño o premio?"),
+		# Camino alternativo por encima: fragmentos escondidos, el primer rastrero de élite y bajada al Bloque.
+		RoomDef.new("azotea", "Azotea Dorada", "Por encima del Reino", 44, 17, "monedas").box()
+			.door("left", 12, 14, "monedas", "2").door("right", 12, 14, "bloque", "3")
+			.fill(10, 15, 13, 15, "^").fill(26, 15, 29, 15, "^")
+			.fill(16, 9, 21, 9, "=").fill(33, 12, 33, 12, "n")
+			.e("1", 1, 14).e("2", 42, 14)
+			.o("g", 18, 8).o("C", 22, 14).o("f", 34, 6).o("F", 37, 14)
+			.o("L", 4, 14, "Registro de Zerik #022: desde aquí arriba se ve el Bloque Sorpresa. Atajo detectado. No se lo digas al Rey."),
+		# Primera arena: tres oleadas de rastreros y revoloteadores.
+		RoomDef.new("arena1", "Arena de los Rastreros", "Nadie sale hasta que acabe", 36, 17, "inicio").box()
+			.door("left", 12, 14, "cruce", "2").door("right", 12, 14, "bloque", "1")
+			.fill(1, 12, 1, 14, "d").fill(34, 12, 34, 14, "d")
+			.fill(8, 11, 12, 11, "=").fill(23, 11, 27, 11, "=")
+			.e("1", 2, 14).e("2", 33, 14)
+			.o("x", 18, 14).o("z", 6, 13).o("z", 18, 9).o("z", 30, 13).o("z", 10, 10).o("z", 25, 10)
+			.arena([["c", "c", "c"], ["c", "f", "f", "s"], ["C", "c", "f", "f"]]),
+		# Muros rompibles, bloques con fragmentos y núcleos. Arriba a la izquierda llega el atajo de la Azotea.
+		RoomDef.new("bloque", "Bloque Sorpresa", "Todo vuelve a su sitio", 64, 20, "bloque").box()
+			.door("left", 15, 17, "arena1", "2").door("left", 6, 8, "azotea", "2").door("right", 15, 17, "pantalla", "1")
+			.fill(1, 9, 10, 9, "#").fill(11, 12, 14, 12, "=")
+			.fill(20, 15, 20, 17, "b").fill(26, 18, 29, 18, "^")
+			.fill(33, 14, 37, 14, "=").fill(41, 11, 46, 11, "=").fill(36, 10, 36, 10, "n")
+			.fill(52, 10, 52, 14, "#").fill(52, 15, 52, 17, "b")
+			.e("1", 1, 17).e("2", 62, 17).e("3", 2, 8)
+			.o("c", 15, 17).o("c", 24, 17).o("c", 34, 17).o("s", 43, 10).o("f", 30, 8).o("f", 57, 6).o("F", 46, 17)
+			.o("L", 58, 17, "Registro de Zerik #033: aquí todo se rompe y luego vuelve. Todo. He tenido que crear una categoría nueva en el manual: «todo»."),
 		RoomDef.new("pantalla", "Doble Pantalla", "Arriba hay más partida", 24, 40, "pantalla").box()
-			.fill(0, 35, 0, 37, ".").fill(10, 0, 13, 0, ".")
+			.door("left", 35, 37, "bloque", "2").door("up", 10, 13, "fuente", "1")
 			.fill(3, 33, 8, 33, "=").fill(12, 28, 17, 28, "=").fill(4, 23, 9, 23, "=").fill(13, 18, 18, 18, "=")
-			.fill(5, 13, 10, 13, "=").fill(12, 8, 17, 8, "=").fill(9, 3, 14, 3, "=")
+			.fill(5, 13, 10, 13, "=").fill(12, 8, 17, 8, "=").fill(9, 3, 14, 3, "=").fill(20, 24, 20, 24, "n")
 			.e("1", 1, 37).e("2", 11, 2)
 			.o("L", 18, 37, "Registro de Zerik #041: plataformas a cinco casillas de altura. Con un salto normal, imposible. Con salto doble, probable.")
-			.o("F", 15, 27).o("f", 6, 20).o("f", 16, 11).o("f", 11, 30)
-			.link("left", "bloque", "2").link("up", "trono", "1"),
+			.o("f", 6, 20).o("f", 16, 11).o("f", 11, 30).o("s", 15, 17).o("V", 7, 6)
+			.need("wings"),
+		# Descanso antes del final: la fuente cura una vez por intento.
+		RoomDef.new("fuente", "Fuente del Guardado", "Un respiro antes del final", 32, 17, "monedas").box()
+			.door("left", 12, 14, "pantalla", "2").door("right", 12, 14, "arena2", "1")
+			.e("1", 3, 14).e("2", 30, 14)
+			.o("h", 16, 14).o("F", 9, 14)
+			.o("L", 24, 14, "Registro de Zerik #045: una fuente que restaura. No sé quién la programó. Diagnóstico: alguien quería que llegaras al final."),
+		# Última arena antes del trono: élites.
+		RoomDef.new("arena2", "Arena de Élites", "Los mejores del Reino", 40, 17, "trono").box()
+			.door("left", 12, 14, "fuente", "2").door("right", 12, 14, "trono", "1")
+			.fill(1, 12, 1, 14, "d").fill(38, 12, 38, 14, "d")
+			.fill(6, 11, 10, 11, "=").fill(16, 8, 23, 8, "=").fill(29, 11, 33, 11, "=")
+			.e("1", 2, 14).e("2", 37, 14)
+			.o("x", 20, 14).o("z", 8, 10).o("z", 20, 7).o("z", 31, 10).o("z", 5, 13).o("z", 34, 13)
+			.arena([["C", "f", "s"], ["V", "c", "c", "Z"], ["C", "C", "V", "f"]]),
+		# Opcional: cuevas bajo el Cruce con fragmentos escondidos, una grieta y un élite.
+		RoomDef.new("sotano", "Sótano de las Partidas", "Donde se guardan las que nadie terminó", 56, 20, "bloque").box()
+			.door("up", 2, 5, "cruce", "4")
+			.fill(2, 3, 6, 3, "=").fill(1, 6, 5, 6, "=").fill(7, 9, 11, 9, "=").fill(1, 12, 5, 12, "=").fill(7, 15, 11, 15, "=")
+			.fill(16, 18, 19, 18, "^").fill(34, 18, 37, 18, "^")
+			.fill(24, 15, 28, 15, "=").fill(40, 13, 44, 13, "=").fill(46, 9, 52, 9, "=")
+			.fill(30, 12, 30, 12, "n").fill(51, 15, 51, 17, "b")
+			.e("1", 3, 2)
+			.o("F", 26, 14).o("g", 49, 8).o("g", 53, 17)
+			.o("C", 22, 17).o("c", 40, 17).o("f", 30, 6).o("f", 45, 4).o("s", 42, 12)
+			.o("L", 13, 17, "Registro de Zerik #037: partidas guardadas a medias. Cientos. Todas con el mismo nombre de usuario: dev_01."),
 		# Primer trozo del juego de Kira: su nivel 1-1, que Álex nunca terminó. "p" = bloque sin colocar
 		# (no se pisa hasta que Álex lo coloca con un clic). Se reconstruye cada vez que se entra.
 		RoomDef.new("kira1", "Nivel 1-1 de Kira", "El tutorial que nunca se probó", 48, 18, "kira").box()
@@ -122,7 +217,7 @@ static func build_rooms() -> Dictionary:
 		RoomDef.new("trono", "Trono del Reinicio", "Donde el Rey pulsa CONTINUE", 40, 18, "trono").box()
 			.fill(0, 13, 0, 15, ".").fill(8, 11, 12, 11, "=").fill(27, 11, 31, 11, "=")
 			.e("1", 1, 15).e("2", 38, 15).o("B", 28, 15)
-			.link("left", "pantalla", "2").link("right", "patio", "1"),
+			.link("left", "arena2", "2").link("right", "patio", "1"),
 
 		# --- Mundo 2: Academia del Último Hechizo ---
 		# "R" cristal que resuena al golpearlo; "y" plataforma de cristal: solo se pisa mientras Álex resuena.
@@ -158,7 +253,7 @@ static func build_rooms() -> Dictionary:
 			.e("1", 1, 41).e("2", 7, 2)
 			.o("L", 11, 41, "Registro de Zerik #070: la Torre del Examen no tiene escaleras. Diagnóstico: el examen es subir.")
 			.o("F", 3, 37).o("f", 10, 36).o("f", 6, 15)
-			.link("left", "pasillo", "2").link("up", "aula", "1"),
+			.link("left", "pasillo", "2").link("up", "aula", "1").need("walljump"),
 		RoomDef.new("aula", "Aula Magna", "El examen final", 40, 18, "academia").box()
 			.fill(0, 13, 0, 15, ".").fill(8, 11, 12, 11, "=").fill(27, 11, 31, 11, "=")
 			.e("1", 2, 15).o("E", 28, 15).link("left", "torre", "2"),
@@ -178,7 +273,7 @@ static func build_rooms() -> Dictionary:
 
 ## Salas con una grieta. En cada intento los cuatro héroes se reparten por ellas al azar
 ## (en la Academia repiten y ofrecen los poderes que aún no se han cogido).
-const RIFT_ROOMS := ["inicio", "monedas", "bloque", "pantalla", "patio", "biblioteca", "torre"]
+const RIFT_ROOMS := ["inicio", "azotea", "bloque", "sotano", "fuente", "patio", "biblioteca", "torre"]
 
 ## Arenas de jefe: la columna de la puerta izquierda que se cierra durante el combate.
 const ARENAS := {"trono": "B", "aula": "E"}
