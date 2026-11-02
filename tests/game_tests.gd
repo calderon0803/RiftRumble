@@ -36,6 +36,21 @@ func fresh() -> void:
 		step(4, {}, ["confirm"])
 
 
+## Bot de escalada: empuja hacia una pared y, al deslizarse, salta hacia la otra.
+func climb() -> void:
+	var dir := -1
+	for i in 420:
+		var hold := {"jump": true}
+		var tap := []
+		hold["left" if dir < 0 else "right"] = true
+		if g.P.wall_dir != 0 and g.P.vy >= 0:
+			tap = ["jump"]
+			dir = -g.P.wall_dir
+		step(1, hold, tap)
+		if g.room.id != "torre":
+			return
+
+
 func _init() -> void:
 	SaveData.path = "user://test_partida.json"
 	SaveData.erase()
@@ -86,10 +101,10 @@ func _init() -> void:
 	check(g.state == "dialog" and g.dialog["speaker"] == "Kira Volt", "Kira aparece en la Pantalla de Inicio y habla")
 	for i in 12:
 		step(4, {}, ["confirm"])
-	check(not g.new_kira_talk(), "tras presentarse, Kira ya no tiene conversación nueva")
+	check(not g.new_kira_talk(1), "tras presentarse, Kira ya no tiene conversación nueva")
 
 	print("Nivel 1-1 de Kira")
-	check(g.portal_open(), "tras hablar con Kira se abre su nivel")
+	check(g.portal_open(1), "tras hablar con Kira se abre su nivel")
 	var T_: Dictionary = g.props.filter(func(o): return o["type"] == "T")[0]
 	g.P.x = T_["x"] - 9; g.P.y = T_["y"] - g.P.h
 	step(3); step(1, {}, ["interact"]); step(30)
@@ -112,7 +127,7 @@ func _init() -> void:
 	for i in 12:
 		step(4, {}, ["confirm"])
 	step(30)
-	check(g.room.id == "inicio" and not g.portal_open(), "se vuelve a la Pantalla de Inicio y el portal se cierra")
+	check(g.room.id == "inicio" and not g.portal_open(1), "se vuelve a la Pantalla de Inicio y el portal se cierra")
 
 	print("Grietas")
 	fresh(); g.load_room("inicio", "1"); g.enemies.clear()
@@ -188,8 +203,113 @@ func _init() -> void:
 	check(saw_roar, "al entrar, el Rey se presenta y cierra la puerta")
 	check(g.state == "end" and g.meta["boss"], "vencer al Rey rompe el bucle (%.0f s)" % (t / 60.0))
 	step(150); step(1, {}, ["confirm"])
-	check(g.state == "play" and g.room.id == "umbral", "tras el final se vuelve al Umbral")
-	check(g.rooms["trono"].g[14][0] == ".", "la puerta del trono queda abierta")
+	check(g.state == "play" and g.room.id == "trono", "tras la pantalla de mundo superado se sigue en el trono")
+	check(g.rooms["trono"].g[14][0] == "." and g.rooms["trono"].g[14][39] == ".", "se abren la puerta de entrada y la de la Academia")
+	g.P.x = 37 * 32; g.P.y = 16 * 32 - g.P.h
+	t = 0
+	while g.room.id == "trono" and t < 300:
+		step(1, {"right": true}); t += 1
+	step(30)
+	check(g.room.id == "patio", "por la puerta del trono se llega al Patio de la Academia")
+	g.new_run(); g.load_room("trono", "1"); step(5)
+	check(g.boss != null and g.rooms["trono"].g[14][39] == "#", "en el intento siguiente el Rey vuelve y la puerta está cerrada")
+
+	print("Academia: resonancia y conjurador")
+	fresh(); g.load_room("patio", "1"); g.enemies.clear(); step(5)
+	check(g.tile_at(17, 12) == "y" and not g.one_way("y"), "sin resonancia, la plataforma de cristal no se pisa")
+	var R: Dictionary = g.props.filter(func(o): return o["type"] == "R")[0]
+	g.P.x = R["x"] - 50; g.P.y = R["y"] - g.P.h; g.P.face = 1; step(3)
+	step(1, {}, ["attack"]); step(3)
+	check(g.P.resonance > 0 and g.one_way("y"), "un clic al cristal hace resonar a Álex y la plataforma se puede pisar")
+	g.P.x = 17 * 32; g.P.y = 12 * 32 - g.P.h - 2; g.P.vy = 0; step(10)
+	check(g.P.on_ground and g.P.y < 12 * 32, "Álex se sostiene sobre la plataforma de cristal")
+	step(60 * 7)
+	check(not g.P.on_ground or g.P.y > 12 * 32, "al acabar la resonancia la plataforma desaparece")
+	g.load_room("patio", "1"); step(2)
+	var k: Game.Ent = g.mk_enemy("k", 10 * 32, 13 * 32)
+	var c2: Game.Ent = g.mk_enemy("c", 20 * 32, 15 * 32)
+	c2.hp = 10
+	g.enemies = [k, c2]
+	g.P.x = 2 * 32; k.cd = 0.0
+	step(130)
+	check(c2.hp == 25 and c2.shield == 1, "si el conjurador termina el hechizo, cura y da escudo")
+	g.P.x = k.x - 40; g.P.y = k.y; g.P.face = 1
+	k.charging = true; k.cd = 0.5
+	step(1, {}, ["attack"]); step(3)
+	check(not k.charging, "un clic interrumpe al conjurador")
+
+	print("Academia: salto en pared")
+	fresh(); g.meta["wings"] = true
+	g.load_room("torre", "1"); g.enemies.clear()
+	g.P.x = 6 * 32; g.P.y = 32 * 32 - g.P.h; step(5)
+	climb()
+	check(g.room.id != "aula", "sin el orbe no se sube la Torre del Examen (%s)" % g.room.id)
+	fresh(); g.meta["wings"] = true; g.meta["walljump"] = true
+	g.load_room("torre", "1"); g.enemies.clear()
+	g.P.x = 6 * 32; g.P.y = 32 * 32 - g.P.h; step(5)
+	step(1, {"jump": true}, ["jump"]); step(6, {"jump": true})
+	climb()
+	step(30)
+	check(g.room.id == "aula", "con salto en pared se sube la torre hasta el Aula Magna")
+
+	print("Técnica de Kira")
+	fresh(); g.meta["kira_talk"] = 1; g.meta["kira_frags"] = 1
+	g.load_room("pasillo", "1"); g.enemies.clear()
+	var K2: Dictionary = g.props.filter(func(o): return o["type"] == "K")[0]
+	g.P.x = K2["x"] - 9; g.P.y = K2["y"] - g.P.h
+	step(3); step(1, {}, ["interact"])
+	check(g.state == "dialog" and g.dialog["lines"][0].begins_with("Álex. Esta es tu Academia"), "Kira aparece en la Academia")
+	for i in 12:
+		step(4, {}, ["confirm"])
+	check(g.portal_open(2), "se abre la sala de su técnica")
+	g.load_room("kira2", "1"); step(5)
+	var dummies := g.enemies.filter(func(e): return e.kind == "dummy")
+	check(dummies.size() == 3, "hay tres muñecos de entrenamiento")
+	var d1: Game.Ent = dummies[0]
+	g.P.x = d1.x - 30; g.P.y = d1.y + d1.h - g.P.h; g.P.face = 1; step(3)
+	step(1, {}, ["attack"]); step(20)
+	step(1, {"down": true}, ["attack"]); step(20)
+	check(d1.idx == 0, "un golpe en el orden equivocado reinicia la combinación")
+	for e in dummies:
+		e.idx = e.seq.size()
+	var d3: Game.Ent = dummies[2]
+	d3.idx = d3.seq.size() - 1
+	g.P.x = d3.x - 30; g.P.y = d3.y + d3.h - g.P.h; g.P.face = 1; step(20)
+	step(1, {}, ["attack"]); step(5)
+	check(g.props.any(func(o): return o["type"] == "G"), "con la técnica completa aparece la bandera")
+	var G2: Dictionary = g.props.filter(func(o): return o["type"] == "G")[0]
+	g.P.x = G2["x"] - 9; g.P.y = G2["y"] - g.P.h; step(3)
+	check(g.meta["kira_frags"] == 2 and g.state == "dialog", "la bandera enciende la segunda muesca")
+
+	print("El Alumno Eterno")
+	fresh(); g.load_room("aula", "1"); step(5)
+	g.P.hp = 99
+	t = 0
+	var saw_resist := ""
+	while g.state != "end" and t < 60 * 120:
+		var b := g.boss
+		var hold := {}
+		if b != null:
+			var dx := b.center().x - g.P.center().x
+			if absf(dx) > 50:
+				hold["right" if dx > 0 else "left"] = true
+			if b.resist != "":
+				saw_resist = b.resist
+		g.P.inv = 0.5
+		var tap := []
+		if t % 12 == 0:
+			tap = ["attack"]
+		if t % 40 == 0:
+			tap.append("cast")
+			g.P.debug = 6
+		step(1, hold, tap)
+		t += 1
+		if g.state == "dialog":
+			step(1, {}, ["confirm"])
+	check(saw_resist != "", "el Alumno Eterno se vuelve resistente a lo más usado (%s)" % saw_resist)
+	check(g.state == "end" and g.meta["boss2"], "vencer al Alumno Eterno supera el mundo 2 (%.0f s)" % (t / 60.0))
+	step(150); step(1, {}, ["confirm"])
+	check(g.room.id == "umbral", "tras el mundo 2 se vuelve al Umbral")
 
 	SaveData.erase()
 	print("\n%d ok, %d fallos" % [passed, failed])

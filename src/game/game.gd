@@ -58,6 +58,13 @@ class Ent extends RefCounted:
 	var tick := 0.0
 	var revived := false
 	var amt := 0
+	var name := ""
+	var shield := 0            # golpes que absorbe (lo da el conjurador)
+	var resist := ""           # tipo de ataque que el Alumno Eterno resiste
+	var dmg_by := {}           # daño recibido por tipo de ataque (para adaptarse)
+	var seq: Array = []        # combinación pendiente de un muñeco de la técnica de Kira
+	var idx := 0
+	var home := Vector2.ZERO
 
 	func rect() -> Rect2:
 		return Rect2(x, y, w, h)
@@ -100,6 +107,11 @@ class Player extends RefCounted:
 	var safe := Vector2.ZERO
 	var trail: Array = []
 	var fire_t := 0.0
+	var resonance := 0.0       # segundos de resonancia tras golpear un cristal
+	var wall_dir := 0          # pared contra la que se desliza (-1 izquierda, 1 derecha)
+	var wall_coyote := 0.0
+	var last_wall := 0
+	var ctrl_lock := 0.0       # sin control horizontal justo después de saltar desde la pared
 
 	func rect() -> Rect2:
 		return Rect2(x, y, w, h)
@@ -175,12 +187,16 @@ func save() -> void:
 
 
 func new_run() -> void:
-	var heroes := ["aeron", "zerik", "voltra", "raiko"]
-	heroes.shuffle()
+	var heroes := []
+	for k in 2:
+		var round_ := ["aeron", "zerik", "voltra", "raiko"]
+		round_.shuffle()
+		heroes.append_array(round_)
 	var rifts := {}
 	for i in Data.RIFT_ROOMS.size():
 		rifts[Data.RIFT_ROOMS[i]] = {"hero": heroes[i], "taken": false}
-	run = {"boons": [], "extra_hp": 0, "revive": int(meta["up"]["continue"]), "frags": 0, "rifts": rifts}
+	# Los jefes vuelven en cada intento: "beaten" dice a cuáles se ha vencido en este.
+	run = {"boons": [], "extra_hp": 0, "revive": int(meta["up"]["continue"]), "frags": 0, "rifts": rifts, "beaten": {}}
 	P.hp = max_hp()
 	P.debug = DEBUG_MAX if int(meta["up"]["precarga"]) > 0 else 0
 	P.inv = 0.0
@@ -203,10 +219,23 @@ func is_floor(tx: int, ty: int) -> bool:
 	return c == "#" or c == "="
 
 
-func set_arena(locked: bool) -> void:
-	var r: Data.RoomDef = rooms["trono"]
+## Una casilla que se pisa desde arriba: plataforma, o plataforma de cristal mientras Álex resuena.
+func one_way(c: String) -> bool:
+	return c == "=" or (c == "y" and P.resonance > 0)
+
+
+## Cierra o abre la puerta izquierda de una arena de jefe.
+func set_arena(rid: String, locked: bool) -> void:
+	var r: Data.RoomDef = rooms[rid]
 	for y in range(13, 16):
 		r.g[y][0] = "#" if locked else "."
+
+
+## La puerta derecha del trono lleva a la Academia y solo se abre tras vencer al Rey en el intento.
+func set_trono_exit(open: bool) -> void:
+	var r: Data.RoomDef = rooms["trono"]
+	for y in range(13, 16):
+		r.g[y][r.w - 1] = "." if open else "#"
 
 
 func move_x(e, dx: float) -> bool:
@@ -240,7 +269,7 @@ func move_y(e, dy: float) -> bool:
 		var ty := floori((e.y + e.h) / T)
 		for tx in range(x0, x1 + 1):
 			var c := tile_at(tx, ty)
-			if c == "#" or (c == "=" and e.drop_t <= 0.0 and prev_bot <= ty * T + 0.5):
+			if c == "#" or (one_way(c) and e.drop_t <= 0.0 and prev_bot <= ty * T + 0.5):
 				e.y = ty * T - e.h
 				e.vy = 0.0
 				e.on_ground = true
@@ -260,6 +289,16 @@ func touching_spikes(b: Rect2) -> bool:
 		for tx in range(floori(b.position.x / T), floori(b.end.x / T) + 1):
 			if tile_at(tx, ty) == "^" and b.intersects(Rect2(tx * T + 3, ty * T + T * 0.45, T - 6, T * 0.55)):
 				return true
+	return false
+
+
+## ¿Hay un bloque justo al lado de Álex, hacia `dir`, a la altura de su cuerpo?
+func wall_at(dir: int) -> bool:
+	var px := P.x + P.w + 1 if dir > 0 else P.x - 1
+	var tx := floori(px / T)
+	for py in [P.y + 4, P.y + P.h - 4]:
+		if tile_at(tx, floori(py / T)) == "#":
+			return true
 	return false
 
 
@@ -301,10 +340,12 @@ func cam_target() -> Vector2:
 # --- salas ---
 func load_room(id: String, entry: String, carry := Vector2.ZERO) -> void:
 	var prev := room
+	if Data.ARENAS.has(id):
+		set_arena(id, false)
 	if id == "trono":
-		set_arena(false)
-	if id == "kira1":
-		# Los bloques colocados no se guardan: cada visita el nivel vuelve a estar a medias.
+		set_trono_exit(run["beaten"].has("B"))
+	if id == "kira1" or id == "kira2":
+		# Los trozos de Kira no guardan lo hecho: cada visita vuelven a estar a medias.
 		rooms[id] = Data.build_rooms()[id]
 	room = rooms[id]
 	enemies.clear(); projs.clear(); pickups.clear(); slashes.clear(); props.clear()
@@ -313,15 +354,20 @@ func load_room(id: String, entry: String, carry := Vector2.ZERO) -> void:
 		var px: float = o["tx"] * T + 16
 		var py: float = (o["ty"] + 1) * T
 		match o["type"]:
-			"c", "f", "s":
+			"c", "f", "s", "k":
 				enemies.append(mk_enemy(o["type"], px, py))
-			"B":
-				if not meta["boss"]:
-					boss = mk_boss(px, py)
+			"B", "E":
+				if not run["beaten"].has(o["type"]):
+					boss = mk_boss(o["type"], px, py)
 					enemies.append(boss)
+			"D":
+				enemies.append(mk_dummy(px, py, o["text"]))
 			"A":
 				if not meta["wings"]:
 					props.append({"type": "A", "x": px, "y": py, "text": ""})
+			"W":
+				if not meta["walljump"]:
+					props.append({"type": "W", "x": px, "y": py, "text": ""})
 			_:
 				props.append({"type": o["type"], "x": px, "y": py, "text": o["text"]})
 	var en: Vector2i = room.entries[entry]
@@ -369,29 +415,48 @@ func num(px: float, py: float, txt: String, col: Color, big := false) -> void:
 
 # --- enemigos ---
 func mk_enemy(kind: String, px: float, py: float) -> Ent:
-	var d: Array = {"c": [26, 22, 30, 3], "f": [24, 20, 22, 2], "s": [30, 30, 45, 5]}[kind]
+	# ancho, alto, vida, fragmentos
+	var d: Array = {"c": [26, 22, 30, 3], "f": [24, 20, 22, 2], "s": [30, 30, 45, 5], "k": [24, 32, 35, 4]}[kind]
 	var e := Ent.new()
 	e.kind = kind
 	e.w = d[0]; e.h = d[1]; e.hp = d[2]; e.max_hp = d[2]; e.frags = d[3]
 	e.x = px - e.w / 2; e.y = py - e.h
+	e.home = Vector2(e.x, e.y)
 	e.face = -1 if randf() < 0.5 else 1
 	e.t = randf() * 3.0
 	e.cd = 1.0 + randf()
+	if kind == "k":
+		e.cd = 2.0 + randf()
 	return e
 
 
-func mk_boss(px: float, py: float) -> Ent:
+func mk_boss(kind: String, px: float, py: float) -> Ent:
 	var b := Ent.new()
-	b.kind = "B"
-	b.w = 56; b.h = 96; b.hp = 500; b.max_hp = 500
-	b.x = px - 28; b.y = py - 96
+	b.kind = kind
+	if kind == "B":
+		b.w = 56; b.h = 96; b.hp = 500
+	else:
+		b.w = 40; b.h = 72; b.hp = 600
+	b.max_hp = b.hp
+	b.x = px - b.w / 2; b.y = py - b.h
 	b.face = -1
 	b.state = "sleep"
+	b.name = Data.BOSS_NAMES[kind]
 	return b
 
 
+## Muñeco de entrenamiento de la técnica de Kira: no muere; pide una combinación de golpes.
+func mk_dummy(px: float, py: float, combo: String) -> Ent:
+	var e := Ent.new()
+	e.kind = "dummy"
+	e.w = 24; e.h = 40; e.hp = 1; e.max_hp = 1
+	e.x = px - 12; e.y = py - 40
+	e.seq = Array(combo.split(","))
+	return e
+
+
 func common_enemy(e: Ent, dt: float) -> void:
-	if e.kind != "B" and e.kind != "core":
+	if e.kind != "B" and e.kind != "E" and e.kind != "core":
 		e.t += dt
 	e.flash = maxf(0.0, e.flash - dt)
 	if e.burn > 0:
@@ -474,10 +539,149 @@ func upd_enemy(e: Ent, dt: float) -> void:
 				enemies.append(c)
 				burst(ec, 20, Color("e8384f"), 260, 0.0, true)
 				num(ec.x, e.y - 10, "CONTINUE", Color("e8384f"))
+		"k":
+			# Conjurador: flota en su sitio y carga un hechizo (2 s, barra visible). Un golpe lo
+			# interrumpe; si lo termina, cura 15 a todos los enemigos y les da un escudo.
+			e.y = e.home.y + sin(e.t * 2) * 6
+			e.face = 1 if pc.x >= ec.x else -1
+			if e.charging:
+				e.cd += dt
+				if randf() < 0.5:
+					part(ec.x + randf_range(-14, 14), ec.y + randf_range(-16, 16), 0, -40, 0.5, Color("7be36b"), 2.5, 0.0, true)
+				if e.cd >= 2.0:
+					e.charging = false
+					e.cd = 3.0
+					for o in enemies:
+						if not o.dead and o.kind in ["c", "f", "s", "k", "B", "E"]:
+							o.hp = minf(o.max_hp, o.hp + 15)
+							o.shield = 1
+					burst(ec, 30, Color("7be36b"), 300, 0.0, true)
+					num(ec.x, e.y - 10, "¡Hechizo!", Color("7be36b"))
+			else:
+				e.cd -= dt
+				if e.cd <= 0 and ec.distance_to(pc) < 600:
+					e.charging = true
+					e.cd = 0.0
+
+
+## El golpe interrumpe al conjurador si estaba cargando.
+func interrupt(e: Ent) -> void:
+	if e.kind == "k" and e.charging:
+		e.charging = false
+		e.cd = 2.5
+		num(e.center().x, e.y - 10, "Interrumpido", Color("fff3c4"))
 
 
 func lantern_box(b: Ent) -> Rect2:
 	return Rect2(b.x + b.w - 4 if b.face > 0 else b.x - 44, b.y + 30, 48, 44)
+
+
+## El Alumno Eterno: aparece y desaparece, lanza orbes y runas, y en cada fase se vuelve
+## resistente al ataque con el que más daño le han hecho (el miedo a equivocarse dos veces).
+func upd_student(b: Ent, dt: float) -> void:
+	common_enemy(b, dt)
+	var pc := P.center()
+	var bc := b.center()
+	b.vy = minf(b.vy + GRAV * dt, MAXFALL)
+	b.summon_cd -= dt
+	var ratio := b.hp / b.max_hp
+	var want_phase := 1 if ratio > 0.66 else (2 if ratio > 0.33 else 3)
+	if want_phase > b.phase and b.state != "dying":
+		b.phase = want_phase
+		var best := ""
+		for k in b.dmg_by:
+			if best == "" or b.dmg_by[k] > b.dmg_by[best]:
+				best = k
+		b.resist = best
+		b.dmg_by = {}
+		shake = 12; flash_a = 0.4; flash_col = Color("e0b84a")
+		if best != "":
+			banner = {"text": "Ha estudiado tu ataque", "sub": "Ahora resiste " + Data.ATTACK_NAMES.get(best, best), "t": 0.0}
+	match b.state:
+		"sleep":
+			if pc.x > 7 * T:
+				b.state = "roar"; b.t = 1.4
+				set_arena(room.id, true)
+				shake = 10
+				banner = {"text": b.name, "sub": Data.BOSS_SUBS[b.kind], "t": 0.0}
+		"roar":
+			b.t -= dt
+			if randf() < 0.6:
+				part(bc.x + randf_range(-30, 30), b.y + 10, randf_range(-40, 40), randf_range(-160, -60), 0.8, Color("e0b84a"), 3, 0.0, true)
+			if b.t <= 0:
+				b.state = "idle"; b.t = 0.6
+		"idle":
+			b.face = 1 if pc.x >= bc.x else -1
+			b.t -= dt
+			if b.t <= 0:
+				var opts: Array = ["volley", "volley", "blink", "runes"]
+				if b.phase >= 2 and b.summon_cd <= 0:
+					opts.append("summon")
+				match opts.pick_random():
+					"volley":
+						b.state = "volley_wind"; b.t = 0.5
+					"blink":
+						b.state = "blink_out"; b.t = 0.35
+					"runes":
+						b.state = "runes"; b.t = 1.2; b.rained = false
+					"summon":
+						b.state = "summon"; b.t = 0.8; b.summon_cd = 14
+		"volley_wind":
+			b.t -= dt
+			if b.t <= 0:
+				var n := 3 + b.phase
+				var base := (pc - bc).angle()
+				for i in n:
+					var a := base + (i - (n - 1) / 2.0) * 0.22
+					var q := Ent.new()
+					q.kind = "orb"; q.hostile = true; q.x = bc.x; q.y = bc.y - 10
+					q.vx = cos(a) * 330; q.vy = sin(a) * 330; q.r = 8; q.life = 3
+					projs.append(q)
+				b.state = "idle"; b.t = 0.9 if b.phase == 1 else 0.6
+		"blink_out":
+			b.t -= dt
+			if b.t <= 0:
+				# Reaparece lejos de Álex, en el suelo del aula.
+				var nx := pc.x + (260.0 if randf() < 0.5 else -260.0)
+				if nx < 3 * T or nx > (room.w - 3) * T:
+					nx = pc.x - (nx - pc.x)
+				b.x = clampf(nx, 2 * T, (room.w - 2) * T - b.w) - b.w / 2
+				burst(b.center(), 24, Color("e0b84a"), 260, 0.0, true)
+				b.state = "blink_in"; b.t = 0.25
+		"blink_in":
+			b.t -= dt
+			if b.t <= 0:
+				b.state = "idle"; b.t = 0.4
+		"runes":
+			b.t -= dt
+			if not b.rained and b.t < 0.9:
+				b.rained = true
+				for i in 2 + b.phase * 2:
+					var q := Ent.new()
+					q.kind = "rune"; q.hostile = true
+					q.x = clampf(pc.x + randf_range(-300, 300), 2 * T, (room.w - 2) * T)
+					q.t = 0.8; q.life = 1.6
+					projs.append(q)
+			if b.t <= 0:
+				b.state = "idle"; b.t = 0.5
+		"summon":
+			b.t -= dt
+			if b.t <= 0:
+				var k := mk_enemy("k", bc.x + randf_range(-120, 120), b.y - 40)
+				k.cd = 1.0
+				enemies.append(k)
+				burst(k.center(), 20, Color("7be36b"), 240, 0.0, true)
+				b.state = "idle"; b.t = 0.6
+		"dying":
+			b.t -= dt
+			if randf() < 0.9:
+				burst(bc + Vector2(randf_range(-20, 20), randf_range(-30, 30)), 3, Color("e0b84a"), 260, 0.0, true)
+			shake = maxf(shake, 5)
+			if b.t <= 0:
+				b.dead = true
+				burst(bc, 80, Color("e0b84a"), 520, 0.0, true)
+				boss_defeated(b)
+	move_y(b, b.vy * dt)
 
 
 func upd_boss(b: Ent, dt: float) -> void:
@@ -495,9 +699,9 @@ func upd_boss(b: Ent, dt: float) -> void:
 			b.vx = 0
 			if pcx > 7 * T:
 				b.state = "roar"; b.t = 1.4
-				set_arena(true)
+				set_arena(room.id, true)
 				shake = 12
-				banner = {"text": "El Rey del Reinicio", "sub": "Señor del Reino del Continue", "t": 0.0}
+				banner = {"text": b.name, "sub": Data.BOSS_SUBS[b.kind], "t": 0.0}
 		"roar":
 			b.t -= dt
 			if randf() < 0.6:
@@ -583,7 +787,7 @@ func upd_boss(b: Ent, dt: float) -> void:
 			if b.t <= 0:
 				b.dead = true
 				burst(b.center(), 80, Color("f2c14e"), 520, 0.0, true)
-				boss_defeated()
+				boss_defeated(b)
 	b.hit_wall = move_x(b, b.vx * dt)
 	move_y(b, b.vy * dt)
 
@@ -607,9 +811,21 @@ func choose_boss_move(b: Ent) -> void:
 			b.state = "summon"; b.t = 0.8; b.summon_cd = 12
 
 
-func damage_enemy(e: Ent, d: int, col := Color("fff3c4"), crit := false) -> void:
-	if e.dead or e.state == "dying" or (e.kind == "B" and e.state == "sleep"):
+## `how`: con qué se ha hecho el daño ("side", "up", "down", "cast" u "other"), para el Alumno Eterno.
+func damage_enemy(e: Ent, d: int, col := Color("fff3c4"), crit := false, how := "other") -> void:
+	if e.dead or e.state == "dying" or e.kind == "dummy" or (e.kind in ["B", "E"] and e.state == "sleep"):
 		return
+	interrupt(e)
+	if e.shield > 0:
+		e.shield -= 1
+		e.flash = 0.09
+		num(e.center().x, e.y - 6, "Escudo", Color("7be36b"))
+		return
+	if e.kind == "E" and how != "other":
+		if how == e.resist:
+			d = maxi(1, roundi(d * 0.25))
+			col = Color("8a8698")
+		e.dmg_by[how] = e.dmg_by.get(how, 0) + d
 	e.hp -= d
 	e.flash = 0.09
 	num(e.center().x + randf_range(-8, 8), e.y - 6, str(d), Color("ff5a7a") if crit else col, crit)
@@ -618,7 +834,7 @@ func damage_enemy(e: Ent, d: int, col := Color("fff3c4"), crit := false) -> void
 
 
 func kill_enemy(e: Ent) -> void:
-	if e.kind == "B":
+	if e.kind == "B" or e.kind == "E":
 		if e.state != "dying":
 			e.state = "dying"; e.t = 1.8; e.hp = 0; e.vx = 0
 			for o in enemies:
@@ -647,14 +863,31 @@ func kill_enemy(e: Ent) -> void:
 		P.atk_hits[core] = true  # el tajo que lo derriba no rompe también su núcleo
 
 
-func boss_defeated() -> void:
-	meta["boss"] = true
-	meta["frags"] = int(meta["frags"]) + 60
-	save()
-	set_arena(false)
+## Vencer a un jefe vale para este intento (en el siguiente vuelve). La primera vez sale la
+## pantalla de mundo superado; las siguientes, solo un rótulo.
+var end_world := 1
+
+
+func boss_defeated(b: Ent) -> void:
+	run["beaten"][b.kind] = true
 	boss = null
+	set_arena(room.id, false)
 	flash_a = 1.0; flash_col = Color("fff4d0")
-	state = "end"; end_t = 0.0
+	var key := "boss" if b.kind == "B" else "boss2"
+	var first: bool = not meta[key]
+	meta[key] = true
+	var reward := 60 if b.kind == "B" else 80
+	if not first:
+		reward /= 2
+	meta["frags"] = int(meta["frags"]) + reward
+	save()
+	if b.kind == "B":
+		set_trono_exit(true)
+	end_world = 1 if b.kind == "B" else 2
+	if first:
+		state = "end"; end_t = 0.0
+	else:
+		banner = {"text": b.name + " vencido", "sub": "+%d fragmentos" % reward, "t": 0.0}
 
 
 func room_rim() -> Color:
@@ -704,12 +937,13 @@ func die() -> void:
 
 func atk_box() -> Rect2:
 	var cx := P.center().x
+	var r := 16.0 if P.resonance > 0 else 0.0  # la resonancia alarga el alcance del clic
 	match P.atk_dir:
 		"up":
-			return Rect2(cx - 26, P.y - 50, 52, 52)
+			return Rect2(cx - 26, P.y - 50 - r, 52, 52 + r)
 		"down":
-			return Rect2(cx - 26, P.y + P.h - 6, 52, 52)
-	return Rect2(P.x + P.w - 2 if P.face > 0 else P.x - 50, P.y - 10, 52, 46)
+			return Rect2(cx - 26, P.y + P.h - 6, 52, 52 + r)
+	return Rect2(P.x + P.w - 2 if P.face > 0 else P.x - 50 - r, P.y - 10, 52 + r, 46)
 
 
 func resolve_attack() -> void:
@@ -720,9 +954,20 @@ func resolve_attack() -> void:
 			continue
 		if b.intersects(e.rect()):
 			P.atk_hits[e] = true
-			hit_enemy_melee(e, b)
 			if P.atk_dir == "down":
 				pogo = true
+			if e.kind == "dummy":
+				dummy_hit(e)
+				continue
+			hit_enemy_melee(e, b)
+	# Cristales de la Academia: un clic los hace resonar.
+	for o in props:
+		if o["type"] == "R" and not P.atk_hits.has(o) and b.intersects(Rect2(o["x"] - 12, o["y"] - 40, 24, 40)):
+			P.atk_hits[o] = true
+			P.resonance = 6.0
+			flash_a = 0.25; flash_col = Color("e0b84a")
+			burst(Vector2(o["x"], o["y"] - 20), 24, Color("e0b84a"), 280, 0.0, true)
+			num(o["x"], o["y"] - 48, "Resonancia", Color("e0b84a"))
 	# El tajo corta los proyectiles del escupidor.
 	for q in projs:
 		if q.kind == "glob" and not q.dead and b.has_point(Vector2(q.x, q.y)):
@@ -749,10 +994,32 @@ func place_blocks(b: Rect2) -> void:
 				num(tx * T + 16, ty * T - 4, "Colocado", Color("ff6fd8"))
 
 
+## Golpe a un muñeco de la técnica de Kira: tiene que llegar en el orden que pide.
+func dummy_hit(e: Ent) -> void:
+	if e.idx >= e.seq.size():
+		return
+	if P.atk_dir == e.seq[e.idx]:
+		e.idx += 1
+		e.flash = 0.09
+		burst(e.center(), 10, Color("ff6fd8"), 200, 0.0, true)
+		if e.idx >= e.seq.size():
+			num(e.center().x, e.y - 12, "¡Aprendido!", Color("ff6fd8"), true)
+			if enemies.all(func(o): return o.kind != "dummy" or o.idx >= o.seq.size()):
+				# Toda la técnica aprendida: aparece la bandera.
+				props.append({"type": "G", "x": (room.w - 4) * T + 16.0, "y": (room.h - 2) * T + 0.0, "text": ""})
+				banner = {"text": "Técnica completa", "sub": "Ve a la bandera", "t": 0.0}
+	else:
+		e.idx = 0
+		e.flash = 0.09
+		num(e.center().x, e.y - 12, "Otra vez", Color("ff5a7a"))
+
+
 func hit_enemy_melee(e: Ent, b: Rect2) -> void:
 	var d := 10.0 + 4 * int(meta["up"]["dano"])
 	if P.combo == 2:
 		d *= 1.5
+	if P.resonance > 0:
+		d *= 1.4
 	if has("espadon"):
 		d *= 1.3
 	if P.atk_dir == "down" and has("disciplina"):
@@ -762,10 +1029,10 @@ func hit_enemy_melee(e: Ent, b: Rect2) -> void:
 		d *= 3; P.crit_next = false; crit = true
 	elif has("diagnostico") and randf() < 0.2:
 		d *= 2.5; crit = true
-	damage_enemy(e, roundi(d), Color("fff3c4"), crit)
+	damage_enemy(e, roundi(d), Color("fff3c4"), crit, P.atk_dir)
 	if has("sobrecarga"):
 		e.burn = 3.0
-	if e.kind != "B" and e.kind != "core":
+	if not e.kind in ["B", "E", "core"]:
 		var kb := 400.0 if has("espadon") else 220.0
 		var dir := P.face if P.atk_dir == "side" else (1 if e.x >= P.x else -1)
 		if e.kind == "f":
@@ -793,7 +1060,21 @@ func update_player(dt: float) -> void:
 	P.drop_t = maxf(0.0, P.drop_t - dt)
 	P.squash = move_toward(P.squash, 0.0, dt * 5)
 	P.cast_cd = maxf(0.0, P.cast_cd - dt)
+	P.resonance = maxf(0.0, P.resonance - dt)
+	P.ctrl_lock = maxf(0.0, P.ctrl_lock - dt)
+	P.wall_coyote = maxf(0.0, P.wall_coyote - dt)
 	var ix := (1 if held("right") else 0) - (1 if held("left") else 0)
+	# Salto en pared: en el aire, empujando hacia una pared mientras cae, se desliza despacio.
+	P.wall_dir = 0
+	if meta["walljump"] and not P.on_ground and ix != 0 and wall_at(ix):
+		P.wall_dir = ix
+		P.last_wall = ix
+		P.wall_coyote = 0.1
+		P.dash_charges = 2 if has("carrera") else 1
+		if P.vy > 140:
+			P.vy = 140
+			if randf() < 0.4:
+				part(P.center().x + ix * 10, P.y + P.h - 4, -ix * 30, -20, 0.3, Color("c9c2d6"), 2)
 	# Parche: con 2 puntos de depuración, mantener para recuperar un corazón.
 	if held("heal") and P.on_ground and P.debug >= DEBUG_COST and P.hp < max_hp() and P.dash_t <= 0:
 		P.heal_t += dt
@@ -830,19 +1111,29 @@ func update_player(dt: float) -> void:
 				projs.append(q)
 	else:
 		var sp := RUN * (1.15 if has("combatejusto") else 1.0) * (0.0 if healing else 1.0)
-		P.vx = move_toward(P.vx, ix * sp, (2600.0 if P.on_ground else 1800.0) * dt)
-		if ix != 0 and not healing:
-			P.face = ix
+		if P.ctrl_lock <= 0:
+			P.vx = move_toward(P.vx, ix * sp, (2600.0 if P.on_ground else 1800.0) * dt)
+			if ix != 0 and not healing:
+				P.face = ix
+		if P.wall_dir != 0:
+			P.face = -P.wall_dir
 		var g := GRAV
 		if P.vy < 0 and not held("jump"):
 			g *= 2.2
 		P.vy = minf(P.vy + g * dt, MAXFALL)
+		if P.wall_dir != 0:
+			P.vy = minf(P.vy, 140)
 	if P.jump_buf > 0 and not healing:
 		if held("down") and P.on_ground and standing_on_one_way():
 			P.drop_t = 0.22; P.jump_buf = 0.0; P.on_ground = false
 		elif P.coyote > 0:
 			P.vy = -JUMP; P.coyote = 0.0; P.jump_buf = 0.0; P.on_ground = false; P.dash_t = 0.0
 			burst(Vector2(P.center().x, P.y + P.h), 6, Color("c9c2d6"), 120)
+		elif P.wall_coyote > 0 and P.last_wall != 0:
+			# Saltar desde la pared: hacia fuera y hacia arriba, con un instante sin control.
+			P.vy = -JUMP * 0.95; P.vx = -P.last_wall * 260.0; P.face = -P.last_wall
+			P.ctrl_lock = 0.12; P.wall_coyote = 0.0; P.jump_buf = 0.0; P.dash_t = 0.0; P.air_jumps = 1
+			burst(Vector2(P.center().x + P.last_wall * 10, P.center().y), 8, Color("c9c2d6"), 140)
 		elif meta["wings"] and P.air_jumps > 0:
 			P.vy = -DJUMP; P.air_jumps -= 1; P.jump_buf = 0.0; P.dash_t = 0.0
 			for i in 14:
@@ -937,7 +1228,7 @@ func upd_projs(dt: float) -> void:
 					continue
 				for e in enemies:
 					if not e.dead and e.state != "dying" and circle_rect(q, e.rect()):
-						damage_enemy(e, roundi(q.dmg), Color("ffe14d"))
+						damage_enemy(e, roundi(q.dmg), Color("ffe14d"), false, "cast")
 						if has("sobrecarga"):
 							e.burn = 3.0
 						impact(q)
@@ -962,6 +1253,25 @@ func upd_projs(dt: float) -> void:
 					part(q.x + q.w / 2, q.y + q.h, randf_range(-30, 30), randf_range(-220, -80), 0.4, Color("f2c14e"), 3, 0.0, true)
 				if q.rect().intersects(P.rect()):
 					hurt_player(q.x + q.w / 2)
+			"orb":
+				q.x += q.vx * dt
+				q.y += q.vy * dt
+				if randf() < 0.5:
+					part(q.x, q.y, 0, 0, 0.3, Color("e0b84a"), 2.5, 0.0, true)
+				if solid_pt(q.x, q.y):
+					q.dead = true
+					burst(Vector2(q.x, q.y), 8, Color("e0b84a"), 160, 0.0, true)
+				elif state == "play" and circle_rect(q, P.rect()):
+					if hurt_player(q.x):
+						q.dead = true
+			"rune":
+				# Runa en el suelo: avisa 0,8 s y luego levanta una columna de luz.
+				q.t -= dt
+				if q.t <= 0 and q.t > -dt * 1.5:
+					shake = maxf(shake, 4)
+					burst(Vector2(q.x, (room.h - 2) * T), 14, Color("e0b84a"), 260, 0.0, true)
+				if q.t <= 0 and P.rect().intersects(Rect2(q.x - 14, 0, 28, (room.h - 2) * T)):
+					hurt_player(q.x)
 			"warn":
 				q.t -= dt
 				if q.t <= 0:
@@ -1026,34 +1336,36 @@ func nexo_lines() -> Array:
 	return [Data.NEXO_IDLE.pick_random()]
 
 
-## Kira solo aparece en momentos puntuales: primero se presenta y luego repite frases cortas.
-func kira_lines() -> Array:
-	var talk := int(meta["kira_talk"])
-	if talk < Data.KIRA_SEQ.size():
-		meta["kira_talk"] = talk + 1
-		return Data.KIRA_SEQ[talk]
+## Kira solo aparece en momentos puntuales. `n` es su aparición (1 en el Reino, 2 en la Academia):
+## la primera vez que se la encuentra ahí se presenta; después repite frases cortas.
+func kira_lines(n: int) -> Array:
+	if new_kira_talk(n):
+		meta["kira_talk"] = n
+		return Data.KIRA_SEQ[n - 1]
 	return [Data.KIRA_IDLE.pick_random()]
 
 
-func new_kira_talk() -> bool:
-	return int(meta["kira_talk"]) < Data.KIRA_SEQ.size()
+func new_kira_talk(n: int) -> bool:
+	return int(meta["kira_talk"]) == n - 1 and n - 1 < Data.KIRA_SEQ.size()
 
 
-## El nivel de Kira se abre cuando ella se ha presentado, y se cierra al terminarlo.
-func portal_open() -> bool:
-	return int(meta["kira_talk"]) >= 1 and int(meta["kira_frags"]) < 1
+## El trozo `n` de Kira se abre cuando ella se ha presentado ahí y el anterior está terminado.
+func portal_open(n: int) -> bool:
+	return int(meta["kira_talk"]) >= n and int(meta["kira_frags"]) == n - 1
 
 
-## Tocar la bandera del nivel de Kira enciende una muesca de su espada.
+## Tocar la bandera de un trozo de Kira enciende una muesca de su espada.
 func complete_kira_fragment() -> void:
 	var n := int(meta["kira_frags"])
 	meta["kira_frags"] = n + 1
 	save()
+	var info: Dictionary = Data.KIRA_FRAG_INFO[mini(n, Data.KIRA_FRAG_INFO.size() - 1)]
 	flash_a = 0.7; flash_col = Color("ff6fd8")
 	burst(P.center(), 60, Color("ff6fd8"), 420, 0.0, true)
-	banner = {"text": "Nivel 1-1 de Kira", "sub": "Primera muesca encendida", "t": 0.0}
+	banner = {"text": info["name"], "sub": info["sub"], "t": 0.0}
+	var back: Array = info["back"]
 	open_dialog("Kira Volt", Color("ff6fd8"), Data.KIRA_FRAG[mini(n, Data.KIRA_FRAG.size() - 1)],
-		func(): state = "trans"; trans = {"t": 0.0, "to": "inicio", "entry": "K", "loaded": false, "carry": Vector2.ZERO})
+		func(): state = "trans"; trans = {"t": 0.0, "to": back[0], "entry": back[1], "loaded": false, "carry": Vector2.ZERO})
 
 
 func open_dialog(speaker: String, col: Color, lines: Array, on_end := Callable()) -> void:
@@ -1077,8 +1389,9 @@ func prompt_for(o: Dictionary) -> String:
 		"O": return "Hablar con Nexo"
 		"K": return "Hablar con Kira"
 		"T":
-			if portal_open():
-				return "Entrar en el Nivel 1-1 de Kira"
+			var n := int(o["text"])
+			if portal_open(n):
+				return "Entrar en: " + Data.KIRA_FRAG_INFO[n - 1]["name"]
 		"L": return "Leer el registro"
 		"M": return "Entregar fragmentos al anillo"
 		"H": return "Mirar el marcador"
@@ -1096,12 +1409,13 @@ func interact(o: Dictionary) -> void:
 			save()
 			open_dialog("Nexo, Guardián del Umbral", Color("6ff3ff"), l)
 		"K":
-			open_dialog("Kira Volt", Color("ff6fd8"), kira_lines())
+			open_dialog("Kira Volt", Color("ff6fd8"), kira_lines(int(o["text"])))
 			save()
 		"T":
-			if portal_open():
+			var n := int(o["text"])
+			if portal_open(n):
 				state = "trans"
-				trans = {"t": 0.0, "to": "kira1", "entry": "1", "loaded": false, "carry": Vector2.ZERO}
+				trans = {"t": 0.0, "to": Data.KIRA_FRAG_INFO[n - 1]["room"], "entry": "1", "loaded": false, "carry": Vector2.ZERO}
 		"L":
 			open_dialog("Registro de Zerik", Color("f2c14e"), [o["text"]])
 		"H":
@@ -1114,6 +1428,9 @@ func interact(o: Dictionary) -> void:
 			if rf == null or rf["taken"]:
 				return
 			var opts: Array = Data.BOONS.filter(func(b): return b["hero"] == rf["hero"] and not has(b["id"]))
+			if opts.is_empty():
+				rf["taken"] = true
+				return
 			choice = {"hero": rf["hero"], "opts": opts.slice(0, 3), "sel": 0, "t": 0.0}
 			state = "choice"
 
@@ -1266,9 +1583,13 @@ func update(dt: float) -> void:
 		"end":
 			end_t += dt
 			if end_t > 2 and (hit("confirm") or hit("jump")):
-				load_room("umbral", "P")
 				P.hp = max_hp()
 				state = "play"
+				if end_world == 1:
+					# Tras el Rey se sigue: la puerta del trono ya lleva a la Academia.
+					banner = {"text": "La puerta se abre", "sub": "Al otro lado, la Academia del Último Hechizo", "t": 0.0}
+				else:
+					load_room("umbral", "P")
 			return
 
 	# --- jugando ---
@@ -1287,11 +1608,14 @@ func update(dt: float) -> void:
 		i += 1
 		if e.kind == "B":
 			upd_boss(e, dt)
-		else:
+		elif e.kind == "E":
+			upd_student(e, dt)
+		elif e.kind != "dummy":
 			upd_enemy(e, dt)
 		if state != "play":
 			return
-		if not e.dead and e.kind != "core" and not (e.kind == "B" and (e.state == "sleep" or e.state == "dying")):
+		var harmless := e.kind in ["core", "dummy"] or (e.kind in ["B", "E"] and e.state in ["sleep", "dying", "blink_out"])
+		if not e.dead and not harmless:
 			if P.rect().intersects(e.rect()):
 				hurt_player(e.center().x)
 			if e.kind == "B" and e.state == "sweep" and P.rect().intersects(lantern_box(e)):
@@ -1308,6 +1632,15 @@ func update(dt: float) -> void:
 			burst(Vector2(o["x"], o["y"] - 30), 50, Color("ffe14d"), 360, 0.0, true)
 			open_dialog("Orbe de Salto Doble", Color("ffe14d"), ["El orbe se rompe y su chispa se queda en las botas del avatar de Álex.",
 				"Pulsa SALTAR en el aire para dar un segundo salto. Este poder no se pierde con el Continue."])
+			return
+		if o["type"] == "W" and absf(o["x"] - P.center().x) < 26 and absf(o["y"] - 30 - P.center().y) < 40:
+			props.erase(o)
+			meta["walljump"] = true
+			save()
+			flash_a = 0.6; flash_col = Color("7be36b")
+			burst(Vector2(o["x"], o["y"] - 30), 50, Color("7be36b"), 360, 0.0, true)
+			open_dialog("Orbe de Salto en Pared", Color("7be36b"), ["Era un apunte de clase: «el personaje debería poder agarrarse a las paredes». Nunca lo programaste.",
+				"Empuja hacia una pared en el aire para deslizarte, y salta para rebotar. Este poder no se pierde con el Continue."])
 			return
 	for o in props:
 		if o["type"] == "G" and absf(o["x"] - P.center().x) < 22 and P.y + P.h > o["y"] - 70:

@@ -13,6 +13,7 @@ const PALETTES := {
 	"bloque": {"top": Color("44180f"), "bot": Color("100504"), "stone": Color("3c1e16"), "deep": Color("24110c"), "rim": Color("ff7a4a"), "far": Color("2e130c"), "near": Color("1c0b07")},
 	"pantalla": {"top": Color("0f2c48"), "bot": Color("040a14"), "stone": Color("1a2c46"), "deep": Color("0f1a2c"), "rim": Color("4fc3f7"), "far": Color("0e2440"), "near": Color("08162a")},
 	"kira": {"top": Color("3a1030"), "bot": Color("0c040c"), "stone": Color("2c1a30"), "deep": Color("180c1c"), "rim": Color("ff6fd8"), "far": Color("2a0e26"), "near": Color("1a0818")},
+	"academia": {"top": Color("241a44"), "bot": Color("070512"), "stone": Color("2a2450"), "deep": Color("16122c"), "rim": Color("e0b84a"), "far": Color("1c1638"), "near": Color("110d24")},
 	"trono": {"top": Color("4a0c18"), "bot": Color("0b0205"), "stone": Color("2c1018"), "deep": Color("18080c"), "rim": Color("e8384f"), "far": Color("2a0810"), "near": Color("170409")},
 }
 
@@ -75,7 +76,7 @@ static func build_rooms() -> Dictionary:
 			.fill(18, 15, 20, 15, "^").fill(45, 15, 47, 15, "^")
 			.fill(15, 10, 19, 10, "=").fill(24, 7, 28, 7, "=").fill(40, 10, 44, 10, "=").fill(30, 13, 34, 14, "#")
 			.e("1", 1, 14).e("2", 58, 14).e("K", 4, 14)
-			.o("K", 9, 14).o("T", 4, 14)
+			.o("K", 9, 14, "1").o("T", 4, 14, "1")
 			.o("L", 6, 14, "Registro de Zerik #014: los rastreros dejan un núcleo al caer. Si el núcleo sobrevive, el rastrero vuelve. Recomendación: romper el núcleo. Rápido.")
 			.o("c", 12, 14).o("F", 26, 14).o("c", 32, 12).o("s", 39, 14).o("c", 53, 14)
 			.link("left", "umbral", "1").link("right", "monedas", "1"),
@@ -117,9 +118,57 @@ static func build_rooms() -> Dictionary:
 			.o("S", 39, 15, "TODO: escribir el final del nivel")
 			.o("c", 34, 15).o("f", 31, 6).o("G", 44, 15)
 			.link("left", "inicio", "K"),
+		# La puerta derecha (columna 39, filas 13-15) se abre al vencer al Rey en el intento.
 		RoomDef.new("trono", "Trono del Reinicio", "Donde el Rey pulsa CONTINUE", 40, 18, "trono").box()
 			.fill(0, 13, 0, 15, ".").fill(8, 11, 12, 11, "=").fill(27, 11, 31, 11, "=")
-			.e("1", 1, 15).o("B", 28, 15).link("left", "pantalla", "2"),
+			.e("1", 1, 15).e("2", 38, 15).o("B", 28, 15)
+			.link("left", "pantalla", "2").link("right", "patio", "1"),
+
+		# --- Mundo 2: Academia del Último Hechizo ---
+		# "R" cristal que resuena al golpearlo; "y" plataforma de cristal: solo se pisa mientras Álex resuena.
+		RoomDef.new("patio", "Patio de la Academia", "Donde nadie se gradúa", 50, 17, "academia").box()
+			.fill(0, 12, 0, 14, ".").fill(49, 12, 49, 14, ".")
+			.fill(16, 12, 18, 12, "y").fill(20, 9, 26, 9, "#")
+			.e("1", 1, 14).e("2", 48, 14)
+			.o("L", 6, 14, "Registro de Zerik #052: los cristales vibran al golpearlos. Mientras vibran, algunas plataformas existen. Mi manual no tiene una categoría para «existir a ratos».")
+			.o("R", 13, 14).o("F", 23, 8).o("c", 30, 14).o("k", 36, 11).o("c", 42, 14)
+			.link("left", "trono", "2").link("right", "biblioteca", "1"),
+		RoomDef.new("biblioteca", "Biblioteca Flotante", "Libros que nadie terminó de leer", 56, 24, "academia").box()
+			.fill(0, 19, 0, 21, ".").fill(55, 4, 55, 6, ".")
+			.fill(11, 19, 14, 19, "y").fill(17, 16, 21, 16, "=").fill(24, 13, 27, 13, "y")
+			.fill(30, 10, 34, 10, "=").fill(38, 10, 41, 10, "y").fill(43, 7, 54, 7, "#")
+			.e("1", 1, 21).e("2", 53, 6)
+			.o("L", 4, 21, "Registro de Zerik #058: la Biblioteca flota porque nadie terminó de diseñar el suelo. Hipótesis: aquí estudiaba dev_01.")
+			.o("R", 8, 21).o("R", 19, 15).o("R", 34, 9).o("F", 31, 9)
+			.o("k", 21, 12).o("f", 28, 5).o("s", 47, 6).o("c", 30, 21).o("c", 44, 21)
+			.link("left", "patio", "2").link("right", "pasillo", "1"),
+		RoomDef.new("pasillo", "Pasillo de las Runas", "Aquí se suspendía", 60, 17, "academia").box()
+			.fill(0, 4, 0, 6, ".").fill(1, 7, 8, 7, "#").fill(4, 11, 7, 11, "=").fill(59, 12, 59, 14, ".")
+			.fill(46, 11, 52, 14, "#")
+			.e("1", 1, 6).e("2", 58, 14).e("K", 11, 14)
+			.o("K", 14, 14, "2").o("T", 11, 14, "2").o("W", 49, 10)
+			.o("L", 56, 14, "Registro de Zerik #063: hay marcas en las paredes de la torre. Alguien subía rebotando de pared en pared.")
+			.o("c", 24, 14).o("k", 30, 11).o("s", 38, 14).o("f", 44, 5)
+			.link("left", "biblioteca", "2").link("right", "torre", "1"),
+		# Torre: un pozo de 4 casillas sin escalones. Solo se sube con salto en pared.
+		RoomDef.new("torre", "Torre del Examen", "Arriba está la nota", 14, 44, "academia").box()
+			.fill(0, 39, 0, 41, ".").fill(6, 0, 8, 0, ".")
+			.fill(1, 3, 4, 30, "#").fill(9, 3, 12, 30, "#")
+			.fill(2, 38, 5, 38, "=").fill(8, 35, 11, 35, "=").fill(4, 32, 9, 32, "=")
+			.e("1", 1, 41).e("2", 7, 2)
+			.o("L", 11, 41, "Registro de Zerik #070: la Torre del Examen no tiene escaleras. Diagnóstico: el examen es subir.")
+			.o("F", 3, 37).o("f", 10, 36).o("f", 6, 15)
+			.link("left", "pasillo", "2").link("up", "aula", "1"),
+		RoomDef.new("aula", "Aula Magna", "El examen final", 40, 18, "academia").box()
+			.fill(0, 13, 0, 15, ".").fill(8, 11, 12, 11, "=").fill(27, 11, 31, 11, "=")
+			.e("1", 2, 15).o("E", 28, 15).link("left", "torre", "2"),
+		# Segundo trozo del juego de Kira: su técnica de espada, a medio enseñar.
+		RoomDef.new("kira2", "Técnica de Kira", "La combinación sin pulir", 32, 17, "kira").box()
+			.fill(0, 12, 0, 14, ".")
+			.e("1", 1, 14)
+			.o("S", 4, 14, "TÉCNICA DE KIRA")
+			.o("D", 11, 14, "side,up,side").o("D", 17, 14, "up,side,down").o("D", 23, 14, "down,up,side")
+			.link("left", "pasillo", "K"),
 	]
 	var rooms := {}
 	for r in list:
@@ -127,8 +176,18 @@ static func build_rooms() -> Dictionary:
 	return rooms
 
 
-## Salas con una grieta: en cada intento asoma un héroe distinto en cada una.
-const RIFT_ROOMS := ["inicio", "monedas", "bloque", "pantalla"]
+## Salas con una grieta. En cada intento los cuatro héroes se reparten por ellas al azar
+## (en la Academia repiten y ofrecen los poderes que aún no se han cogido).
+const RIFT_ROOMS := ["inicio", "monedas", "bloque", "pantalla", "patio", "biblioteca", "torre"]
+
+## Arenas de jefe: la columna de la puerta izquierda que se cierra durante el combate.
+const ARENAS := {"trono": "B", "aula": "E"}
+
+const BOSS_NAMES := {"B": "El Rey del Reinicio", "E": "El Alumno Eterno"}
+const BOSS_SUBS := {"B": "Señor del Reino del Continue", "E": "Repetidor de la Academia"}
+
+## Cómo se ve en el marcador cada tipo de ataque al que se adapta el Alumno Eterno.
+const ATTACK_NAMES := {"side": "el clic de frente", "up": "el clic hacia arriba", "down": "el clic hacia abajo", "cast": "la Excepción"}
 
 const HEROES := {
 	"aeron": {"name": "Aeron", "title": "el que no tiene principio", "color": Color("9b8cff"),
@@ -200,6 +259,9 @@ const KIRA_SEQ := [
 		"Tu IA se ha tragado todos tus juegos, y el mío con ellos. Está roto en trozos por todas partes.",
 		"Mira mi espada: seis muescas, todas apagadas. Era tu mecánica estrella y nunca la terminaste.",
 		"No te pido nada. Solo que esta vez no dejes las cosas a medias."],
+	["Álex. Esta es tu Academia... la recuerdo. Aquí me diste la espada.",
+		"Mi técnica: una combinación de golpes por cada muesca. Solo escribiste la primera.",
+		"Hay una sala de entrenamiento a medias aquí al lado. Si la terminas, quizá recuerde el resto."],
 ]
 ## Al terminar un trozo de su juego, Kira habla (uno por cada muesca encendida).
 const KIRA_FRAG := [
@@ -207,5 +269,13 @@ const KIRA_FRAG := [
 		"Has puesto el puente y el escalón que faltaban. Los que me prometiste hace años.",
 		"Mira: una muesca encendida. La primera.",
 		"Hay más trozos míos en tus otros juegos. Cuando llegues, te buscaré."],
+	["De frente, arriba, abajo... así era. Ya me acuerdo.",
+		"Segunda muesca. Mi espada empieza a parecerse a lo que prometiste.",
+		"El Alumno Eterno te espera arriba, en el aula. No dejes que te convenza de que no estás listo."],
+]
+## Rótulo, subtítulo y sala de vuelta de cada trozo de Kira.
+const KIRA_FRAG_INFO := [
+	{"name": "Nivel 1-1 de Kira", "sub": "Primera muesca encendida", "back": ["inicio", "K"], "room": "kira1"},
+	{"name": "Técnica de Kira", "sub": "Segunda muesca encendida", "back": ["pasillo", "K"], "room": "kira2"},
 ]
 const KIRA_IDLE :=["Sigue. Yo aparezco cuando haga falta.", "Ese Nexo te sonríe mucho, Álex. Demasiado.", "Mi primer nivel anda por aquí, en algún sitio. Nunca lo probaste."]

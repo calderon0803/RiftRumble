@@ -73,6 +73,31 @@ func _run(main: Node) -> void:
 	g.P.debug = 4
 	await _frames(150)
 	await _shot("6_rey")
+	g.meta["boss"] = true
+	g.load_room("patio", "1")
+	g.P.x = 15 * 32
+	g.P.resonance = 5.0
+	g.cam = g.cam_target()
+	await _frames(40)
+	await _shot("8_patio")
+	g.load_room("biblioteca", "1")
+	g.P.x = 18 * 32
+	g.P.y = 16 * 32 - g.P.h
+	g.cam = g.cam_target()
+	await _frames(60)
+	await _shot("9_biblioteca")
+	g.meta["kira_talk"] = 2
+	g.meta["kira_frags"] = 1
+	g.load_room("kira2", "1")
+	g.P.x = 8 * 32
+	g.enemies[0].idx = 1
+	g.cam = g.cam_target()
+	await _frames(30)
+	await _shot("10_tecnica_kira")
+	g.load_room("aula", "1")
+	g.P.x = 12 * 32
+	await _frames(200)
+	await _shot("11_alumno")
 	g.state = "dead"
 	g.dead_t = 2.0
 	await _shot("7_continue")

@@ -129,7 +129,7 @@ Cada trozo terminado enciende una muesca de su espada (§3.1).
 ## 7. Pendiente de decidir
 El argumento principal está cerrado. Queda:
 1. El usuario de pruebas de Álex (propuesta: `dev_01`).
-2. Trozos del juego de Kira en los mundos 2 a 6 (el del mundo 1 ya está en el código, ver §8).
+2. Trozos del juego de Kira en los mundos 3 a 6 (los de los mundos 1 y 2 ya están en el código, ver §8).
 
 ## 8. En el código
 - Se juega con Álex (maniquí de pruebas, cursor y depuración). Kira aparece en la Pantalla de Inicio.
@@ -138,3 +138,5 @@ El argumento principal está cerrado. Queda:
   coloca con clics, y hay carteles con sus notas «TODO». La bandera del final enciende la primera muesca de la
   espada de Kira, ella habla y el portal se cierra. Los bloques colocados no se guardan: si muere dentro, al volver
   el nivel vuelve a estar a medias.
+- **Segundo trozo: la técnica de Kira** (mundo 2), con muñecos que piden su combinación de golpes. Detalle en
+  [03-mundo-2-academia.md](03-mundo-2-academia.md).

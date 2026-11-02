@@ -182,6 +182,16 @@ func _draw_tiles() -> void:
 				draw_rect(Rect2(p.x, p.y + 3, T, 2), _rim)
 				if (x + y) % 3 == 0:
 					draw_rect(Rect2(p.x + 13, p.y + 13, 5, 8), OUT)
+			elif ch == "y":
+				# Plataforma de cristal: sólida y brillante mientras Álex resuena; si no, apenas un reflejo.
+				if game.P.resonance > 0:
+					var fade := clampf(game.P.resonance / 1.5, 0.35, 1.0)
+					draw_rect(Rect2(p, Vector2(T, 10)), Color(Color("ffe9a8"), fade))
+					draw_rect(Rect2(p, Vector2(T, 3)), Color(OUT, fade))
+					draw_rect(Rect2(p.x, p.y + 10, T, 2), Color(OUT, fade))
+					glow(p + Vector2(T / 2.0, 5), 26, Color("e0b84a"), 0.35 * fade)
+				else:
+					draw_rect(Rect2(p, Vector2(T, 10)), Color(Color("e0b84a"), 0.12), false, 1.0)
 			elif ch == "p":
 				# Bloque sin colocar: solo su contorno, a trazos, esperando un clic.
 				var a := 0.45 + 0.25 * sin(game.time * 4 + x)
@@ -210,15 +220,30 @@ func _draw_props() -> void:
 				if g.new_talk():
 					Paint.text(self, "!", p + Vector2(0, -78 + sin(g.time * 4) * 3), 28, SPARK, 1, 6, true)
 			"T":
-				if g.portal_open():
-					# Entrada al nivel de Kira: un marco de nivel con su número.
+				var n := int(o["text"])
+				if g.portal_open(n):
+					# Entrada a un trozo del juego de Kira: un marco de nivel con su número.
 					var c := p + Vector2(0, -30)
 					var pulse := 1.0 + sin(g.time * 3) * 0.05
 					Paint.fill_ellipse(self, c, 18 * pulse, 30 * pulse, OUT)
 					Paint.fill_ellipse(self, c, 14 * pulse, 26 * pulse, Color("3a1030"))
 					draw_arc(c, 16, 0, TAU, 32, MAGENTA, 2)
-					Paint.text(self, "1-1", c + Vector2(0, 5), 13, Color("ffd6f2"), 1, 3, true)
+					Paint.text(self, "%d-1" % n, c + Vector2(0, 5), 13, Color("ffd6f2"), 1, 3, true)
 					glow(c, 70, MAGENTA, 0.45)
+			"R":
+				# Cristal de resonancia sobre su peana; vibra mientras Álex resuena.
+				var on := g.P.resonance > 0
+				var jit := Vector2(randf_range(-1, 1), 0) if on else Vector2.ZERO
+				Paint.outline_poly(self, PackedVector2Array([p + Vector2(-12, 0), p + Vector2(-8, -8), p + Vector2(8, -8), p + Vector2(12, 0)]), _pal["stone"])
+				var crystal := PackedVector2Array([p + jit + Vector2(0, -44), p + jit + Vector2(9, -26), p + jit + Vector2(0, -8), p + jit + Vector2(-9, -26)])
+				Paint.outline_poly(self, crystal, Color("ffe9a8") if on else Color("c9a24a"), 2.5)
+				draw_line(p + jit + Vector2(0, -42), p + jit + Vector2(0, -10), Color(1, 1, 1, 0.5), 1.5)
+				glow(p + Vector2(0, -26), 70 if on else 34, Color("e0b84a"), 0.6 if on else 0.3)
+			"W":
+				var c := p + Vector2(0, -30 + sin(g.time * 2) * 5)
+				glow(c, 60, Color("7be36b"), 0.5)
+				Paint.fill_ellipse(self, c, 13, 13, Color("e0ffd8"), 0, 3)
+				Paint.fill_ellipse(self, c, 6, 6, Color("7be36b"))
 			"S":
 				# Cartel de tutorial a medio hacer, con una nota de Álex.
 				draw_rect(Rect2(p + Vector2(-2, -26), Vector2(4, 26)), Color("4a3a48"))
@@ -235,7 +260,7 @@ func _draw_props() -> void:
 				glow(p + Vector2(14, -66), 50, MAGENTA, 0.4)
 			"K":
 				_draw_kira_npc(p)
-				if g.new_kira_talk():
+				if g.new_kira_talk(int(o["text"])):
 					Paint.text(self, "!", p + Vector2(0, -52 + sin(g.time * 4) * 3), 28, MAGENTA, 1, 6, true)
 			"M":
 				# El anillo de Nexo: recibe fragmentos.
@@ -394,11 +419,85 @@ func _draw_enemy(e: Game.Ent) -> void:
 			glow(p, 26, cherry, 0.4 + blink * 0.4)
 		"B":
 			_draw_king(e)
-	if e.kind in ["c", "f", "s"] and e.hp < e.max_hp:
+		"E":
+			_draw_student(e)
+		"k":
+			# Conjurador: túnica de la Academia, libro abierto y barra del hechizo que carga.
+			var p := s(Vector2(e.x + e.w / 2, e.y + e.h))
+			draw_set_transform(p, 0, Vector2(e.face, 1))
+			var robe := PackedVector2Array([Vector2(-12, 0), Vector2(-7, -24), Vector2(7, -24), Vector2(12, 0), Vector2(5, -4), Vector2(0, 0), Vector2(-5, -4)])
+			Paint.outline_poly(self, robe, Color.WHITE if fl else Color("3a2a6a"))
+			Paint.outline_poly(self, PackedVector2Array([Vector2(-9, -22), Vector2(0, -38), Vector2(9, -22)]), Color.WHITE if fl else Color("2a1f50"))
+			Paint.fill_ellipse(self, Vector2(2, -26), 2, 2, Color("7be36b"))
+			Paint.outline_poly(self, PackedVector2Array([Vector2(6, -16), Vector2(16, -18), Vector2(16, -10), Vector2(6, -8)]), Color("efe2c8"), 2)
+			draw_set_transform(Vector2.ZERO)
+			if e.charging:
+				var bw := 30.0
+				var bp := s(Vector2(e.x + e.w / 2 - bw / 2, e.y - 14))
+				draw_rect(Rect2(bp - Vector2(1, 1), Vector2(bw + 2, 6)), OUT)
+				draw_rect(Rect2(bp, Vector2(bw * clampf(e.cd / 2.0, 0, 1), 4)), Color("7be36b"))
+				glow(p + Vector2(0, -20), 40, Color("7be36b"), 0.5)
+		"dummy":
+			# Muñeco de entrenamiento con la combinación que pide encima.
+			var p := s(Vector2(e.x + e.w / 2, e.y + e.h))
+			var done := e.idx >= e.seq.size()
+			draw_rect(Rect2(p + Vector2(-2, -14), Vector2(4, 14)), Color("6a4a3a"))
+			Paint.outline_poly(self, PackedVector2Array([p + Vector2(-11, -14), p + Vector2(-9, -34), p + Vector2(9, -34), p + Vector2(11, -14)]), Color.WHITE if fl else Color("c9a77a"))
+			Paint.fill_ellipse(self, p + Vector2(0, -40), 7, 7, Color("c9a77a"), 0, 3)
+			var icons := {"side": "X", "up": "↑X", "down": "↓X"}
+			var x0 := p.x - (e.seq.size() - 1) * 15
+			for i in e.seq.size():
+				var col := MAGENTA if i < e.idx else Color("efe2c8")
+				Paint.text(self, icons[e.seq[i]], Vector2(x0 + i * 30, p.y - 56), 13, col, 1, 4, true)
+			if done:
+				glow(p + Vector2(0, -26), 50, MAGENTA, 0.5)
+	if e.shield > 0:
+		draw_arc(s(e.center()), maxf(e.w, e.h) * 0.7, 0, TAU, 32, Color(Color("7be36b"), 0.8), 2)
+		glow(s(e.center()), maxf(e.w, e.h), Color("7be36b"), 0.2)
+	if e.kind in ["c", "f", "s", "k"] and e.hp < e.max_hp:
 		var w := 28.0
 		var bp := s(Vector2(e.x + e.w / 2 - w / 2, e.y - 10))
 		draw_rect(Rect2(bp - Vector2(1, 1), Vector2(w + 2, 5)), OUT)
 		draw_rect(Rect2(bp, Vector2(w * maxf(0, e.hp) / e.max_hp, 3)), cherry)
+
+
+## El Alumno Eterno: un estudiante con toga y birrete, rodeado de hojas de examen.
+## Su escudo muestra el ataque que ha estudiado (el que resiste).
+func _draw_student(b: Game.Ent) -> void:
+	var g := game
+	var p := s(Vector2(b.x + b.w / 2, b.y + b.h))
+	var fl := b.flash > 0
+	var gold := Color("e0b84a")
+	var alpha := 1.0
+	if b.state == "blink_out":
+		alpha = clampf(b.t / 0.35, 0.0, 1.0)
+	elif b.state == "blink_in":
+		alpha = 1.0 - clampf(b.t / 0.25, 0.0, 1.0)
+	elif b.state == "dying":
+		alpha = clampf(b.t / 1.8, 0.2, 1.0)
+	var bob := sin(g.time * 2) * 2
+	draw_set_transform(p + Vector2(0, bob), 0, Vector2(b.face, 1))
+	var robe := PackedVector2Array([Vector2(-20, 0), Vector2(-13, -50), Vector2(13, -50), Vector2(20, 0), Vector2(10, -6), Vector2(0, 0), Vector2(-10, -6)])
+	Paint.outline_poly(self, robe, Color(Color.WHITE if fl else Color("231a44"), alpha), 3.5)
+	draw_polyline(PackedVector2Array([Vector2(-18, -4), Vector2(-12, -48)]), Color(_rim, alpha), 2, true)
+	Paint.fill_ellipse(self, Vector2(2, -58), 10, 11, Color(Color("d9cfe8"), alpha), 0, 3)
+	Paint.fill_ellipse(self, Vector2(6, -58), 2, 3, Color(OUT, alpha))
+	# Birrete.
+	Paint.outline_poly(self, PackedVector2Array([Vector2(-14, -68), Vector2(2, -74), Vector2(18, -68), Vector2(2, -63)]), Color(Color("16122c"), alpha), 2.5)
+	draw_line(Vector2(16, -68), Vector2(18, -56), Color(gold, alpha), 2)
+	draw_set_transform(Vector2.ZERO)
+	# Hojas de examen orbitando.
+	for i in 3:
+		var a := g.time * 1.5 + i * TAU / 3
+		var q := p + Vector2(cos(a) * 34, -40 + sin(a) * 14)
+		draw_rect(Rect2(q - Vector2(5, 7), Vector2(10, 14)), Color(Color("efe2c8"), alpha))
+		draw_rect(Rect2(q - Vector2(5, 7), Vector2(10, 14)), Color(OUT, alpha), false, 1.5)
+	if b.state in ["volley_wind", "runes"]:
+		glow(p + Vector2(0, -40), 60, gold, 0.6)
+	if b.resist != "":
+		var icons := {"side": "X", "up": "↑X", "down": "↓X", "cast": "Q"}
+		draw_arc(p + Vector2(0, -36), 46, 0, TAU, 40, Color(Color("8a8698"), 0.7 * alpha), 3)
+		Paint.text(self, icons.get(b.resist, "?"), p + Vector2(0, -96), 14, Color("c9c2d6"), 1, 4, true)
 
 
 func _draw_king(b: Game.Ent) -> void:
@@ -464,6 +563,8 @@ func _draw_alex() -> void:
 		glow(s(P.center()), 30, Color("9b8cff"), 0.6)
 	if P.heal_t > 0:
 		glow(s(P.center()), 40 + P.heal_t * 30, Game.DEBUG_COL, 0.45)
+	if P.resonance > 0:
+		glow(s(P.center()), 34, Color("e0b84a"), 0.25 + 0.15 * sin(g.time * 12))
 
 
 ## Avatar de pruebas: maniquí gris sin texturas, con la cuadrícula a la vista. Al vencer al Rey del Reinicio
@@ -500,6 +601,11 @@ func _alex_body(p: Vector2, face: int, alpha: float, ghost: bool) -> void:
 	if g.meta["boss"]:
 		# Detalle del Reino del Continue: una pequeña corona dorada en el pecho.
 		draw_colored_polygon(PackedVector2Array([Vector2(-2, -18 + bob), Vector2(-2, -22 + bob), Vector2(0, -20 + bob), Vector2(2, -23 + bob), Vector2(4, -20 + bob), Vector2(5, -22 + bob), Vector2(5, -18 + bob)]), Color(Color("f2c14e"), a))
+	if g.meta["boss2"]:
+		# Detalle de la Academia: una bufanda violeta que ondea hacia atrás.
+		var wave := sin(g.time * 6) * 2
+		draw_polyline(PackedVector2Array([Vector2(-5, -25 + bob), Vector2(-12, -24 + wave), Vector2(-18, -21 + wave * 1.5)]), Color(OUT, a), 6, true)
+		draw_polyline(PackedVector2Array([Vector2(-5, -25 + bob), Vector2(-12, -24 + wave), Vector2(-18, -21 + wave * 1.5)]), Color(Color("7a5ad6"), a), 3.5, true)
 	# Cabeza lisa, sin rasgos: solo el corte de la malla.
 	Paint.fill_ellipse(self, Vector2(1, -33 + bob), 7, 8, body, 0, 3)
 	draw_arc(Vector2(1, -33 + bob), 7, -0.6, 0.6, 8, Color(GRID, a), 1)
@@ -604,6 +710,19 @@ func _draw_projs() -> void:
 				arc.append_array(Paint.bezier(base, base + Vector2(q.w * 0.3, -q.h - 8), base + Vector2(q.w * 0.7, -q.h - 8), base + Vector2(q.w, 0)))
 				draw_colored_polygon(arc, Color("ffd27a"))
 				glow(base + Vector2(q.w / 2, -8), 36, Color("f2c14e"), 0.6)
+			"orb":
+				glow(p, 22, Color("e0b84a"), 0.8)
+				Paint.fill_ellipse(self, p, q.r, q.r, Color("fff1c0"), 0, 2.5)
+			"rune":
+				var fy := (g.room.h - 2) * T - _cam.y
+				if q.t > 0:
+					var a := 0.4 + 0.4 * sin(g.time * 18)
+					draw_arc(Vector2(p.x, fy - 4), 14, PI, TAU, 16, Color(Color("e0b84a"), a), 3)
+					glow(Vector2(p.x, fy), 26, Color("e0b84a"), a * 0.5)
+				else:
+					var k := clampf(q.life / 0.8, 0.0, 1.0)
+					draw_rect(Rect2(p.x - 12, 0, 24, fy), Color(Color("fff1c0"), 0.75 * k))
+					glow(Vector2(p.x, fy - 60), 60, Color("e0b84a"), 0.6 * k)
 			"warn":
 				var a := 0.4 + 0.4 * sin(g.time * 20)
 				var fy := (g.room.h - 2) * T - _cam.y

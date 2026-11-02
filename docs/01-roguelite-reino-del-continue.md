@@ -1,4 +1,4 @@
-﻿# Roguelite en el Reino del Continue
+# Roguelite en el Reino del Continue
 
 > **Actualizado con el argumento de [02-argumento.md](02-argumento.md):** el personaje jugable es **ÃƒÂlex** (avatar de
 > pruebas con el cursor como arma) y el recurso de combate es la **depuraciÃƒÂ³n** (Parche y ExcepciÃƒÂ³n). Kira Volt aparece
@@ -57,4 +57,4 @@ abre la puerta y cambia el marcador del Umbral a GAME CLEAR.
 - Arte final: todo se dibuja por cÃƒÂ³digo; el arte de Kira de `art/` no estÃƒÂ¡ conectado todavÃƒÂ­a.
 - MÃƒÂ¡s mundos de la Trama (Academia, ÃƒÅ¡ltima SesiÃƒÂ³n, NeÃƒÂ³n, Vertedero, Frontera).
 
-Tests: `game_tests.gd` 35/35.
+Tests: `game_tests.gd` 54/54 (con el mundo 2).

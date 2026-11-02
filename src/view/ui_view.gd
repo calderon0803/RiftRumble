@@ -112,11 +112,17 @@ func _hud() -> void:
 		var bw := 520.0
 		var bx := W / 2 - bw / 2
 		var by := H - 40
-		Paint.text(self, "El Rey del Reinicio", Vector2(W / 2, by - 10), 22, TEXT, 1, 5, true)
+		var bar_col := Color("e8384f") if g.boss.kind == "B" else Color("e0b84a")
+		var label: String = g.boss.name
+		if g.boss.resist != "":
+			label += "  ·  resiste " + Data.ATTACK_NAMES.get(g.boss.resist, g.boss.resist)
+		Paint.text(self, label, Vector2(W / 2, by - 10), 22, TEXT, 1, 5, true)
 		draw_rect(Rect2(bx - 3, by - 3, bw + 6, 16), OUT)
 		draw_rect(Rect2(bx, by, bw, 10), Color("3a1018"))
-		draw_rect(Rect2(bx, by, bw * maxf(0, g.boss.hp) / g.boss.max_hp, 10), Color("e8384f"))
-		draw_rect(Rect2(bx + bw / 2 - 1, by - 3, 2, 16), OUT)
+		draw_rect(Rect2(bx, by, bw * maxf(0, g.boss.hp) / g.boss.max_hp, 10), bar_col)
+		var marks := [0.5] if g.boss.kind == "B" else [0.33, 0.66]
+		for m in marks:
+			draw_rect(Rect2(bx + bw * m - 1, by - 3, 2, 16), OUT)
 	# Rótulo de sala o de poder.
 	if not g.banner.is_empty():
 		var t: float = g.banner["t"]
@@ -249,12 +255,20 @@ func _end() -> void:
 	var a := minf(1.0, g.end_t / 1.2)
 	draw_rect(Rect2(0, 0, W, H), Color(0.06, 0.03, 0.02, 0.82 * a))
 	glow(Vector2(W / 2, 200), 320, Color("f2c14e"), 0.35 * a)
-	Paint.text(self, "GAME CLEAR", Vector2(W / 2, 200), 64, Color(Color("f2c14e"), a), 1, 8, true)
-	Paint.text(self, "Bucle roto", Vector2(W / 2, 256), 40, Color(TEXT, a), 1, 6, true)
-	Paint.text(self, "El Rey del Reinicio deja de pulsar CONTINUE. El Reino sigue adelante, por fin.", Vector2(W / 2, 296), 19, Color(MAGENTA, a), 1, 4)
-	Paint.text(self, "+60 fragmentos  ·  Fin del prototipo. Gracias por jugar.", Vector2(W / 2, 334), 17, Color(Color("d8cfe0"), a), 1, 3)
-	if g.end_t > 2:
-		Paint.text(self, "Pulsa Enter para volver al Umbral", Vector2(W / 2, 394), 20, Color(TEXT, a), 1, 4, true)
+	if g.end_world == 1:
+		Paint.text(self, "GAME CLEAR", Vector2(W / 2, 200), 64, Color(Color("f2c14e"), a), 1, 8, true)
+		Paint.text(self, "Mundo 1: bucle roto", Vector2(W / 2, 256), 40, Color(TEXT, a), 1, 6, true)
+		Paint.text(self, "El Rey del Reinicio deja de pulsar CONTINUE. Detrás del trono se abre una puerta.", Vector2(W / 2, 296), 19, Color(MAGENTA, a), 1, 4)
+		Paint.text(self, "+60 fragmentos  ·  Siguiente: la Academia del Último Hechizo", Vector2(W / 2, 334), 17, Color(Color("d8cfe0"), a), 1, 3)
+		if g.end_t > 2:
+			Paint.text(self, "Pulsa Enter para seguir", Vector2(W / 2, 394), 20, Color(TEXT, a), 1, 4, true)
+	else:
+		Paint.text(self, "EXAMEN APROBADO", Vector2(W / 2, 200), 60, Color(Color("e0b84a"), a), 1, 8, true)
+		Paint.text(self, "Mundo 2 superado", Vector2(W / 2, 256), 40, Color(TEXT, a), 1, 6, true)
+		Paint.text(self, "El Alumno Eterno deja el birrete sobre la mesa. Por fin entrega el examen.", Vector2(W / 2, 296), 19, Color(MAGENTA, a), 1, 4)
+		Paint.text(self, "+80 fragmentos  ·  Fin del prototipo. Gracias por jugar.", Vector2(W / 2, 334), 17, Color(Color("d8cfe0"), a), 1, 3)
+		if g.end_t > 2:
+			Paint.text(self, "Pulsa Enter para volver al Umbral", Vector2(W / 2, 394), 20, Color(TEXT, a), 1, 4, true)
 
 
 func _pause() -> void:

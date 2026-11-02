@@ -9,7 +9,7 @@ virtual cuando su IA (el **Editor**) fusiona todos sus juegos en uno. Solo puede
 Argumento completo: [docs/02-argumento.md](docs/02-argumento.md).
 
 El código anterior (metroidvania por fases y, antes, tower defense) sigue en el historial de git y en la rama `main`.
-Diseño de esta versión: [docs/01-roguelite-reino-del-continue.md](docs/01-roguelite-reino-del-continue.md).
+Diseño: [mundo 1](docs/01-roguelite-reino-del-continue.md) · [argumento](docs/02-argumento.md) · [mundo 2](docs/03-mundo-2-academia.md).
 
 ## Requisitos
 - Godot **4.7.x** estable, versión estándar con GDScript (no la .NET).
@@ -50,6 +50,7 @@ godot --path . --script res://tools/screenshots.gd -- capturas
 | Saltar (mantener = más alto; dos veces con el orbe) | Espacio / Z / K | A |
 | Clic con el cursor (↑ arriba, ↓ en el aire abajo) | X / J | X |
 | Arrastrar: dash, intocable mientras dura | Shift / C / L | RB |
+| Salto en pared (con el orbe de la Academia) | empujar hacia la pared en el aire + saltar | |
 | Excepción: disparo (2 de depuración) | Q / I | Y |
 | Parche: +1 corazón (mantener, 2 de depuración) | R / U | LB |
 | Hablar, leer, asomarse a una grieta | E / ↑ | B |
