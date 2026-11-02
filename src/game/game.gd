@@ -197,7 +197,7 @@ func save() -> void:
 
 func new_run() -> void:
 	var heroes := []
-	for k in 2:
+	for k in 3:
 		var round_ := ["aeron", "zerik", "voltra", "raiko"]
 		round_.shuffle()
 		heroes.append_array(round_)
@@ -372,7 +372,7 @@ func load_room(id: String, entry: String, carry := Vector2.ZERO) -> void:
 		var px: float = o["tx"] * T + 16
 		var py: float = (o["ty"] + 1) * T
 		match o["type"]:
-			"c", "f", "s", "k", "C", "V", "Z":
+			"c", "f", "s", "k", "C", "V", "Z", "Q":
 				# Una arena ya superada en este intento no vuelve a llenarse.
 				enemies.append(mk_enemy(o["type"], px, py))
 			"x":
@@ -458,8 +458,8 @@ func num(px: float, py: float, txt: String, col: Color, big := false) -> void:
 
 
 # --- enemigos ---
-## Élites: "C" rastrero, "V" revoloteador, "Z" escupidor.
-const ELITES := {"C": "c", "V": "f", "Z": "s"}
+## Élites: "C" rastrero, "V" revoloteador, "Z" escupidor, "Q" conjurador.
+const ELITES := {"C": "c", "V": "f", "Z": "s", "Q": "k"}
 
 
 func mk_enemy(kind: String, px: float, py: float) -> Ent:
@@ -613,12 +613,12 @@ func upd_enemy(e: Ent, dt: float) -> void:
 				e.cd += dt
 				if randf() < 0.5:
 					part(ec.x + randf_range(-14, 14), ec.y + randf_range(-16, 16), 0, -40, 0.5, Color("7be36b"), 2.5, 0.0, true)
-				if e.cd >= 2.0:
+				if e.cd >= charge_time(e):
 					e.charging = false
 					e.cd = 3.0
 					for o in enemies:
 						if not o.dead and o.kind in ["c", "f", "s", "k", "B", "E"]:
-							o.hp = minf(o.max_hp, o.hp + 15)
+							o.hp = minf(o.max_hp, o.hp + (25 if e.elite else 15))
 							o.shield = 1
 					burst(ec, 30, Color("7be36b"), 300, 0.0, true)
 					num(ec.x, e.y - 10, "¡Hechizo!", Color("7be36b"))
@@ -627,6 +627,11 @@ func upd_enemy(e: Ent, dt: float) -> void:
 				if e.cd <= 0 and ec.distance_to(pc) < 600:
 					e.charging = true
 					e.cd = 0.0
+
+
+## El conjurador de élite carga más rápido.
+func charge_time(e: Ent) -> float:
+	return 1.4 if e.elite else 2.0
 
 
 ## El golpe interrumpe al conjurador si estaba cargando.
@@ -1116,7 +1121,6 @@ func upd_arena(dt: float) -> void:
 			burst(e.center(), 14, Color("e8384f"), 200, 0.0, true)
 		arena_wave += 1
 		arena_delay = 1.0
-		num(room.w * T / 2.0, 4 * T, "Oleada %d/%d" % [arena_wave, room.waves.size()], Color("fff3c4"), true)
 		return
 	# Arena superada.
 	arena_active = false

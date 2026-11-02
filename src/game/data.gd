@@ -221,42 +221,101 @@ static func build_rooms() -> Dictionary:
 
 		# --- Mundo 2: Academia del Último Hechizo ---
 		# "R" cristal que resuena al golpearlo; "y" plataforma de cristal: solo se pisa mientras Álex resuena.
-		RoomDef.new("patio", "Patio de la Academia", "Donde nadie se gradúa", 50, 17, "academia").box()
-			.fill(0, 12, 0, 14, ".").fill(49, 12, 49, 14, ".")
-			.fill(16, 12, 18, 12, "y").fill(20, 9, 26, 9, "#")
-			.e("1", 1, 14).e("2", 48, 14)
+		# Recorrido principal: Patio → Vestíbulo → Biblioteca → Pasillo de las Runas (orbe de salto en pared) →
+		# Laboratorio (arena) → Galería de Retratos (pide salto en pared) → Torre del Examen → Antesala (fuente) →
+		# Claustro (arena de élites) → Aula Magna. Desvíos desde el Vestíbulo: Observatorio (arriba) y Archivo (abajo).
+		RoomDef.new("patio", "Patio de la Academia", "Donde nadie se gradúa", 56, 17, "academia").box()
+			.door("left", 12, 14, "trono", "2").door("right", 12, 14, "vestibulo", "1")
+			.fill(16, 12, 18, 12, "y").fill(20, 9, 26, 9, "#").fill(50, 12, 50, 14, "b")
+			.e("1", 1, 14).e("2", 54, 14)
 			.o("L", 6, 14, "Registro de Zerik #052: los cristales vibran al golpearlos. Mientras vibran, algunas plataformas existen. Mi manual no tiene una categoría para «existir a ratos».")
-			.o("R", 13, 14).o("F", 23, 8).o("c", 30, 14).o("k", 36, 11).o("c", 42, 14)
-			.link("left", "trono", "2").link("right", "biblioteca", "1"),
+			.o("R", 13, 14).o("F", 23, 8).o("c", 30, 14).o("k", 36, 11).o("c", 44, 14),
+		# Vestíbulo vertical: dos tramos de la subida son de cristal (hay que golpear un cristal antes).
+		RoomDef.new("vestibulo", "Vestíbulo de los Ecos", "Cada paso suena dos veces", 40, 34, "academia").box()
+			.door("left", 29, 31, "patio", "2").door("right", 29, 31, "biblioteca", "1")
+			.door("up", 17, 22, "observatorio", "1").door("down", 30, 33, "archivo", "1")
+			.fill(3, 29, 8, 29, "=").fill(11, 26, 16, 26, "=").fill(3, 23, 8, 23, "=").fill(11, 20, 16, 20, "=")
+			.fill(19, 17, 24, 17, "y").fill(27, 14, 32, 14, "=").fill(19, 11, 24, 11, "y").fill(11, 8, 16, 8, "=")
+			.fill(18, 5, 23, 5, "=").fill(17, 2, 22, 2, "=")
+			.e("1", 1, 31).e("2", 38, 31).e("3", 19, 1).e("4", 28, 31)
+			.o("R", 14, 19).o("R", 29, 13)
+			.o("c", 10, 31).o("k", 8, 15).o("f", 30, 8).o("s", 31, 13)
+			.o("L", 36, 31, "Registro de Zerik #055: el Vestíbulo repite cada sonido. También los errores. Sobre todo los errores."),
+		# Opcional, arriba: plataformas de cristal hasta unos fragmentos escondidos; conjurador de élite.
+		RoomDef.new("observatorio", "Observatorio", "Donde se miraban las notas", 44, 17, "academia").box()
+			.door("down", 2, 5, "vestibulo", "3")
+			.fill(15, 12, 18, 12, "y").fill(20, 9, 23, 9, "y").fill(26, 6, 31, 6, "=").fill(34, 10, 34, 10, "n")
+			.e("1", 8, 14)
+			.o("R", 12, 14).o("g", 28, 5).o("F", 38, 14).o("Q", 30, 11).o("f", 20, 4)
+			.o("L", 41, 14, "Registro de Zerik #060: un telescopio que apunta hacia dentro. Desde aquí se ve todo el Reino del Continue. Parece pequeño."),
+		# Opcional, abajo: puentes de cristal sobre fosos de pinchos, fragmentos y un escupidor de élite.
+		RoomDef.new("archivo", "Archivo Prohibido", "Exámenes que nadie corrigió", 56, 20, "academia").box()
+			.door("up", 2, 5, "vestibulo", "4")
+			.fill(2, 3, 6, 3, "=").fill(1, 6, 5, 6, "=").fill(7, 9, 11, 9, "=").fill(1, 12, 5, 12, "=").fill(7, 15, 11, 15, "=")
+			.fill(16, 18, 25, 18, "^").fill(16, 15, 25, 15, "y")
+			.fill(34, 18, 41, 18, "^").fill(36, 15, 39, 15, "=").fill(49, 15, 49, 17, "b")
+			.e("1", 3, 2)
+			.o("R", 13, 17).o("g", 30, 17).o("g", 52, 17)
+			.o("Z", 45, 17).o("k", 28, 12).o("f", 38, 6)
+			.o("L", 9, 17, "Registro de Zerik #066: exámenes de dev_01. Todos con la misma nota en rojo: «Bien, pero sin terminar»."),
 		RoomDef.new("biblioteca", "Biblioteca Flotante", "Libros que nadie terminó de leer", 56, 24, "academia").box()
-			.fill(0, 19, 0, 21, ".").fill(55, 4, 55, 6, ".")
+			.door("left", 19, 21, "vestibulo", "2").door("right", 4, 6, "pasillo", "1")
 			.fill(11, 19, 14, 19, "y").fill(17, 16, 21, 16, "=").fill(24, 13, 27, 13, "y")
-			.fill(30, 10, 34, 10, "=").fill(38, 10, 41, 10, "y").fill(43, 7, 54, 7, "#")
+			.fill(30, 10, 34, 10, "=").fill(38, 10, 41, 10, "y").fill(43, 7, 54, 7, "#").fill(48, 17, 48, 17, "n")
 			.e("1", 1, 21).e("2", 53, 6)
 			.o("L", 4, 21, "Registro de Zerik #058: la Biblioteca flota porque nadie terminó de diseñar el suelo. Hipótesis: aquí estudiaba dev_01.")
 			.o("R", 8, 21).o("R", 19, 15).o("R", 34, 9).o("F", 31, 9)
-			.o("k", 21, 12).o("f", 28, 5).o("s", 47, 6).o("c", 30, 21).o("c", 44, 21)
-			.link("left", "patio", "2").link("right", "pasillo", "1"),
+			.o("k", 21, 12).o("f", 28, 5).o("s", 47, 6).o("c", 30, 21).o("C", 44, 21),
 		RoomDef.new("pasillo", "Pasillo de las Runas", "Aquí se suspendía", 60, 17, "academia").box()
-			.fill(0, 4, 0, 6, ".").fill(1, 7, 8, 7, "#").fill(4, 11, 7, 11, "=").fill(59, 12, 59, 14, ".")
-			.fill(46, 11, 52, 14, "#")
+			.door("left", 4, 6, "biblioteca", "2").door("right", 12, 14, "laboratorio", "1")
+			.fill(1, 7, 8, 7, "#").fill(4, 11, 7, 11, "=").fill(46, 11, 52, 14, "#")
 			.e("1", 1, 6).e("2", 58, 14).e("K", 11, 14)
 			.o("K", 14, 14, "2").o("T", 11, 14, "2").o("W", 49, 10)
-			.o("L", 56, 14, "Registro de Zerik #063: hay marcas en las paredes de la torre. Alguien subía rebotando de pared en pared.")
-			.o("c", 24, 14).o("k", 30, 11).o("s", 38, 14).o("f", 44, 5)
-			.link("left", "biblioteca", "2").link("right", "torre", "1"),
+			.o("L", 56, 14, "Registro de Zerik #063: hay marcas en las paredes de la Galería. Alguien subía rebotando de pared en pared.")
+			.o("c", 24, 14).o("k", 30, 11).o("s", 38, 14).o("f", 44, 5),
+		# Primera arena de la Academia: conjuradores que curan a los demás si no se les interrumpe.
+		RoomDef.new("laboratorio", "Laboratorio de Alquimia", "Mezclas que no salieron bien", 40, 17, "academia").box()
+			.door("left", 12, 14, "pasillo", "2").door("right", 12, 14, "galeria", "1")
+			.fill(1, 12, 1, 14, "d").fill(38, 12, 38, 14, "d")
+			.fill(6, 11, 10, 11, "=").fill(16, 8, 23, 8, "y").fill(29, 11, 33, 11, "=")
+			.e("1", 2, 14).e("2", 37, 14)
+			.o("R", 20, 14).o("x", 20, 14).o("z", 8, 10).o("z", 20, 6).o("z", 31, 10).o("z", 5, 13).o("z", 34, 13)
+			.arena([["k", "c", "c"], ["k", "k", "f", "s"], ["Q", "C", "f", "f"]]),
+		# Enseña el salto en pared: una chimenea de 3 casillas entre dos muros es la única forma de pasar.
+		RoomDef.new("galeria", "Galería de Retratos", "Todos te miran subir", 60, 24, "academia").box()
+			.door("left", 19, 21, "laboratorio", "2").door("right", 19, 21, "torre", "1")
+			.fill(26, 3, 26, 18, "#").fill(30, 3, 31, 21, "#")
+			.fill(36, 22, 47, 22, "^").fill(38, 19, 41, 19, "y").fill(44, 16, 47, 16, "y").fill(50, 13, 50, 13, "n")
+			.e("1", 1, 21).e("2", 58, 21)
+			.o("R", 34, 21).o("Q", 44, 12).o("c", 14, 21).o("f", 10, 8).o("V", 53, 8)
+			.o("L", 22, 21, "Registro de Zerik #068: retratos de todos los alumnos que suspendieron. El último es un maniquí gris.")
+			.need("walljump"),
 		# Torre: un pozo de 4 casillas sin escalones. Solo se sube con salto en pared.
 		RoomDef.new("torre", "Torre del Examen", "Arriba está la nota", 14, 44, "academia").box()
-			.fill(0, 39, 0, 41, ".").fill(6, 0, 8, 0, ".")
-			.fill(1, 3, 4, 30, "#").fill(9, 3, 12, 30, "#")
+			.door("left", 39, 41, "galeria", "2").door("up", 5, 8, "antesala", "1")
+			.fill(1, 1, 4, 30, "#").fill(9, 1, 12, 30, "#")
 			.fill(2, 38, 5, 38, "=").fill(8, 35, 11, 35, "=").fill(4, 32, 9, 32, "=")
 			.e("1", 1, 41).e("2", 7, 2)
 			.o("L", 11, 41, "Registro de Zerik #070: la Torre del Examen no tiene escaleras. Diagnóstico: el examen es subir.")
-			.o("F", 3, 37).o("f", 10, 36).o("f", 6, 15)
-			.link("left", "pasillo", "2").link("up", "aula", "1").need("walljump"),
+			.o("f", 10, 36).o("f", 6, 15).o("V", 7, 8)
+			.need("walljump"),
+		# Descanso antes del final: fuente y grieta.
+		RoomDef.new("antesala", "Antesala del Examen", "Repasa por última vez", 32, 17, "academia").box()
+			.door("left", 12, 14, "torre", "2").door("right", 12, 14, "claustro", "1")
+			.e("1", 3, 14).e("2", 30, 14)
+			.o("h", 16, 14).o("F", 9, 14)
+			.o("L", 24, 14, "Registro de Zerik #072: alguien dejó apuntes en la mesa. Letra de dev_01. Dicen: «Esta vez sí lo termino»."),
+		# Última arena: élites de la Academia.
+		RoomDef.new("claustro", "Claustro de los Repetidores", "Los que nunca pasaron de curso", 40, 17, "academia").box()
+			.door("left", 12, 14, "antesala", "2").door("right", 12, 14, "aula", "1")
+			.fill(1, 12, 1, 14, "d").fill(38, 12, 38, 14, "d")
+			.fill(6, 11, 10, 11, "=").fill(16, 8, 23, 8, "=").fill(29, 11, 33, 11, "=")
+			.e("1", 2, 14).e("2", 37, 14)
+			.o("x", 20, 14).o("z", 8, 10).o("z", 20, 7).o("z", 31, 10).o("z", 5, 13).o("z", 34, 13)
+			.arena([["Q", "C", "f"], ["V", "k", "Z", "c"], ["Q", "Q", "V", "C"]]),
 		RoomDef.new("aula", "Aula Magna", "El examen final", 40, 18, "academia").box()
 			.fill(0, 13, 0, 15, ".").fill(8, 11, 12, 11, "=").fill(27, 11, 31, 11, "=")
-			.e("1", 2, 15).o("E", 28, 15).link("left", "torre", "2"),
+			.e("1", 2, 15).o("E", 28, 15).link("left", "claustro", "2"),
 		# Segundo trozo del juego de Kira: su técnica de espada, a medio enseñar.
 		RoomDef.new("kira2", "Técnica de Kira", "La combinación sin pulir", 32, 17, "kira").box()
 			.fill(0, 12, 0, 14, ".")
@@ -273,7 +332,7 @@ static func build_rooms() -> Dictionary:
 
 ## Salas con una grieta. En cada intento los cuatro héroes se reparten por ellas al azar
 ## (en la Academia repiten y ofrecen los poderes que aún no se han cogido).
-const RIFT_ROOMS := ["inicio", "azotea", "bloque", "sotano", "fuente", "patio", "biblioteca", "torre"]
+const RIFT_ROOMS := ["inicio", "azotea", "bloque", "sotano", "fuente", "patio", "biblioteca", "observatorio", "antesala"]
 
 ## Arenas de jefe: la columna de la puerta izquierda que se cierra durante el combate.
 const ARENAS := {"trono": "B", "aula": "E"}

@@ -304,14 +304,41 @@ func _init() -> void:
 	g.load_room("torre", "1"); g.enemies.clear()
 	g.P.x = 6 * 32; g.P.y = 32 * 32 - g.P.h; step(5)
 	climb()
-	check(g.room.id != "aula", "sin el orbe no se sube la Torre del Examen (%s)" % g.room.id)
+	check(g.room.id != "antesala", "sin el orbe no se sube la Torre del Examen (%s)" % g.room.id)
 	fresh(); g.meta["wings"] = true; g.meta["walljump"] = true
 	g.load_room("torre", "1"); g.enemies.clear()
 	g.P.x = 6 * 32; g.P.y = 32 * 32 - g.P.h; step(5)
 	step(1, {"jump": true}, ["jump"]); step(6, {"jump": true})
 	climb()
 	step(30)
-	check(g.room.id == "aula", "con salto en pared se sube la torre hasta el Aula Magna")
+	check(g.room.id == "antesala", "con salto en pared se sube la torre hasta la Antesala del Examen")
+
+	# La Galería de Retratos: la chimenea solo se sube con salto en pared.
+	fresh(); g.meta["wings"] = true; g.meta["walljump"] = true
+	g.load_room("galeria", "1"); g.enemies.clear()
+	g.P.x = 28 * 32; g.P.y = 22 * 32 - g.P.h; step(5)
+	step(1, {"jump": true}, ["jump"]); step(6, {"jump": true})
+	var dir := -1
+	for i in 360:
+		var hold := {"jump": true}
+		var tap := []
+		if g.P.y < 3 * 32:
+			hold["right"] = true
+		else:
+			hold["left" if dir < 0 else "right"] = true
+			if g.P.wall_dir != 0 and g.P.vy >= 0:
+				tap = ["jump"]
+				dir = -g.P.wall_dir
+		step(1, hold, tap)
+		if g.P.x > 33 * 32:
+			break
+	check(g.P.x > 32 * 32, "en la Galería se cruza el muro subiendo por la chimenea")
+	fresh(); g.meta["wings"] = true
+	g.load_room("galeria", "1"); g.enemies.clear()
+	g.P.x = 28 * 32; g.P.y = 22 * 32 - g.P.h; step(5)
+	for i in 6:
+		step(1, {"jump": true, "right": true}, ["jump"]); step(20, {"jump": true, "right": true}); step(1, {"jump": true, "right": true}, ["jump"]); step(40, {"jump": true, "right": true})
+	check(g.P.x < 30 * 32, "sin salto en pared no se pasa el muro de la Galería")
 
 	print("Técnica de Kira")
 	fresh(); g.meta["kira_talk"] = 1; g.meta["kira_frags"] = 1

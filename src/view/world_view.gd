@@ -472,7 +472,7 @@ func _draw_enemy(e: Game.Ent) -> void:
 				var bw := 30.0
 				var bp := s(Vector2(e.x + e.w / 2 - bw / 2, e.y - 14))
 				draw_rect(Rect2(bp - Vector2(1, 1), Vector2(bw + 2, 6)), OUT)
-				draw_rect(Rect2(bp, Vector2(bw * clampf(e.cd / 2.0, 0, 1), 4)), Color("7be36b"))
+				draw_rect(Rect2(bp, Vector2(bw * clampf(e.cd / g.charge_time(e), 0, 1), 4)), Color("7be36b"))
 				glow(p + Vector2(0, -20), 40, Color("7be36b"), 0.5)
 		"dummy":
 			# Muñeco de entrenamiento con la combinación que pide encima.

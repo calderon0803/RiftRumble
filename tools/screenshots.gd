@@ -97,6 +97,19 @@ func _run(main: Node) -> void:
 	g.cam = g.cam_target()
 	await _frames(40)
 	await _shot("8_patio")
+	g.load_room("vestibulo", "1")
+	g.P.x = 14 * 32
+	g.P.y = 20 * 32 - g.P.h
+	g.P.resonance = 4.0
+	g.cam = g.cam_target()
+	await _frames(40)
+	await _shot("8b_vestibulo")
+	g.load_room("galeria", "1")
+	g.P.x = 27 * 32
+	g.P.y = 12 * 32
+	g.cam = g.cam_target()
+	await _frames(20)
+	await _shot("8c_galeria")
 	g.load_room("biblioteca", "1")
 	g.P.x = 18 * 32
 	g.P.y = 16 * 32 - g.P.h
