@@ -46,6 +46,10 @@ func _run(main: Node) -> void:
 	g.cam = g.cam_target()
 	await _frames(40)
 	await _shot("3_inicio")
+	g.open_dialog("Kira Volt", Game.KIRA_COL, ["¿Álex? ...Eres tú. Con esa pinta de maniquí, pero eres tú."])
+	g.dialog["t"] = 5.0
+	await _shot("3a_dialogo_kira")
+	g.state = "play"
 	g.meta["kira_talk"] = 1
 	g.load_room("kira1", "1")
 	g.enemies.clear()
