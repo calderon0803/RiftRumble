@@ -1,0 +1,20 @@
+{
+  "mcpServers": {
+    "photocraft": {
+      "command": "D:\\artcraft\\PhotoCraft\\photocraft-cli.exe",
+      "args": [
+        "mcp",
+        "--automation-read-root", "C:\\Users\\calde\\Proyectos\\RiftRumble",
+        "--automation-write-root", "C:\\Users\\calde\\Proyectos\\RiftRumble\\art"
+      ]
+    },
+    "vectorcraft": {
+      "command": "D:\\artcraft\\VectorCraft\\vectorcraft-cli.exe",
+      "args": [
+        "mcp",
+        "--automation-read-root", "C:\\Users\\calde\\Proyectos\\RiftRumble",
+        "--automation-write-root", "C:\\Users\\calde\\Proyectos\\RiftRumble\\art"
+      ]
+    }
+  }
+}

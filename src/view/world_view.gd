@@ -304,7 +304,7 @@ func _draw_props() -> void:
 			"K":
 				_draw_kira_npc(p)
 				if g.new_kira_talk(int(o["text"])):
-					Paint.text(self, "!", p + Vector2(0, -52 + sin(g.time * 4) * 3), 28, MAGENTA, 1, 6, true)
+					Paint.text(self, "!", p + Vector2(0, -72 + sin(g.time * 4) * 3), 28, Color("5fe39a"), 1, 6, true)
 			"M":
 				# El anillo de Nexo: recibe fragmentos.
 				Paint.outline_poly(self, PackedVector2Array([p + Vector2(-22, 0), p + Vector2(-14, -16), p + Vector2(14, -16), p + Vector2(22, 0)]), _pal["stone"])
@@ -363,20 +363,57 @@ func _draw_props() -> void:
 				Paint.text(self, txt, p, 16, Color("efe8f4"), 1)
 
 
+## Sprites de los personajes (art/personajes, preparados con PhotoCraft a partir de los diseños).
+var _tex := {}
+
+
+func tex(name: String) -> Texture2D:
+	if not _tex.has(name):
+		_tex[name] = load("res://art/personajes/%s.png" % name)
+	return _tex[name]
+
+
+## Dibuja un sprite con los pies en `p`, mirando a `face`, de `height` píxeles de alto y respirando.
+func _draw_sprite(t: Texture2D, p: Vector2, face: int, height: float, phase: float) -> float:
+	var k := height / t.get_height()
+	var breath := 1.0 + sin(game.time * 2.2 + phase) * 0.012
+	draw_set_transform(p, 0, Vector2(face * k, k * breath))
+	var origin := Vector2(-t.get_width() / 2.0, -t.get_height())
+	# Contorno oscuro (la silueta desplazada en cuatro direcciones) para que se lea sobre cualquier fondo.
+	var o := 1.6 / k
+	for d in [Vector2(o, 0), Vector2(-o, 0), Vector2(0, o), Vector2(0, -o)]:
+		draw_texture(t, origin + d, Color(OUT, 0.9))
+	draw_texture(t, origin)
+	return k
+
+
+## Runas que flotan alrededor de Nexo, como en su diseño: trazos sueltos en naranja y azul.
+const RUNES := [
+	[Vector2(-3, -4), Vector2(3, -4), Vector2(-3, 4), Vector2(3, 4)],
+	[Vector2(-3, 4), Vector2(-3, -4), Vector2(2, 0), Vector2(-3, 0)],
+	[Vector2(-3, 4), Vector2(0, -4), Vector2(3, 4)],
+	[Vector2(-3, -4), Vector2(-3, 4), Vector2(3, 4)],
+	[Vector2(3, -4), Vector2(-3, -1), Vector2(3, 1), Vector2(-3, 4)],
+	[Vector2(-3, 4), Vector2(-3, -4), Vector2(3, -2), Vector2(-3, 0), Vector2(3, 4)],
+]
+
+
 func _draw_nexo(p: Vector2) -> void:
 	var g := game
-	# Capa asimétrica en espiral, cuerpo esbelto y el anillo-umbral orbitando a su espalda.
-	var ring_c := p + Vector2(-6, -52)
-	glow(ring_c, 60, Color("6ff3ff"), 0.35)
-	draw_arc(ring_c, 26, 0, TAU, 40, OUT, 7)
-	draw_arc(ring_c, 26, 0, TAU, 40, Color("6ff3ff"), 3)
-	var cloak := PackedVector2Array([p + Vector2(-16, 0), p + Vector2(-10, -40), p + Vector2(-2, -50), p + Vector2(8, -48), p + Vector2(12, -30), p + Vector2(20, -6), p + Vector2(12, 0), p + Vector2(4, -6), p + Vector2(-4, 0)])
-	Paint.outline_poly(self, cloak, Color("1d2b4f"))
-	draw_polyline(PackedVector2Array([p + Vector2(-14, -4), p + Vector2(-9, -38), p + Vector2(-2, -48)]), Color("6ff3ff"), 1.8, true)
-	Paint.fill_ellipse(self, p + Vector2(2, -58), 8, 9, Color("e8f4ff"), 0, 3)
-	draw_rect(Rect2(p + Vector2(3, -60), Vector2(5, 2)), Color("1d2b4f"))
-	var a := g.time * 2
-	draw_circle(ring_c + Vector2(cos(a), sin(a)) * 26, 3, Color("ffffff"))
+	var face := 1 if g.P.center().x >= p.x else -1
+	glow(p + Vector2(0, -4), 46, Color("4fc3f7"), 0.12)
+	_draw_sprite(tex("nexo"), p, face, 76, 0.0)
+	draw_set_transform(Vector2.ZERO)
+	for i in RUNES.size():
+		var a := g.time * 0.6 + i * TAU / RUNES.size()
+		var c := p + Vector2(cos(a) * 30, -38 + sin(a * 1.3) * 22)
+		var col := Color("ff9a3a") if i % 2 == 0 else Color("4fc3f7")
+		var alpha := 0.55 + 0.35 * sin(g.time * 3 + i)
+		var pts := PackedVector2Array()
+		for q in RUNES[i]:
+			pts.append(c + q)
+		draw_polyline(pts, Color(col, alpha), 1.5)
+		glow(c, 10, col, 0.35 * alpha)
 
 
 func _draw_rift(p: Vector2, o: Dictionary) -> void:
@@ -679,32 +716,28 @@ func _cursor(tip: Vector2, rot: float, a: float, k := 1.0) -> void:
 
 
 func _draw_kira_npc(p: Vector2) -> void:
-	# Kira de pie, mirando hacia Álex, con su espada de 6 muescas apagadas.
+	# Kira de pie, mirando hacia Álex. Su diseño no lleva la espada, así que la hoja de energía con las
+	# 6 muescas (el avance hacia el final oculto) se dibuja en su mano derecha.
 	var g := game
 	var face := 1 if g.P.center().x >= p.x else -1
-	var bob := sin(g.time * 2) * 1.0
-	draw_set_transform(p, 0, Vector2(face, 1))
-	var hair := PackedVector2Array([Vector2(-6, -36 + bob), Vector2(-13, -33 + bob), Vector2(-17, -25 + sin(g.time * 2) * 1.5), Vector2(-19, -15 + sin(g.time * 2 + 1) * 2)])
-	draw_polyline(hair, OUT, 8, true)
-	draw_polyline(hair, HAIR, 5, true)
-	draw_rect(Rect2(-5, -10, 4, 10), GRAPHITE)
-	draw_rect(Rect2(2, -10, 4, 10), GRAPHITE)
-	Paint.outline_poly(self, PackedVector2Array([Vector2(-8, -26 + bob), Vector2(9, -26 + bob), Vector2(12, -9), Vector2(-7, -9)]), GRAPHITE)
-	draw_colored_polygon(PackedVector2Array([Vector2(-6, -20 + bob), Vector2(10, -20 + bob), Vector2(11, -15), Vector2(-6, -15)]), MAGENTA)
-	Paint.fill_ellipse(self, Vector2(2, -33 + bob), 8, 8.5, SKIN, 0, 3)
-	Paint.outline_poly(self, PackedVector2Array([Vector2(-7, -36 + bob), Vector2(-4, -43 + bob), Vector2(6, -43 + bob), Vector2(11, -36 + bob), Vector2(7, -38 + bob), Vector2(5, -33 + bob), Vector2(2, -37 + bob), Vector2(-3, -34 + bob)]), HAIR, 2.5)
-	Paint.fill_ellipse(self, Vector2(6, -32 + bob), 1.4, 2.2, OUT)
-	var hand := Vector2(9, -16 + bob)
-	var tip := hand + Vector2(4, -26)
-	draw_line(hand, tip, OUT, 6)
-	draw_line(hand, tip, Color("fff5fb"), 3)
+	var green := Color("5fe39a")
+	glow(p + Vector2(0, -4), 40, green, 0.12)
+	var t := tex("kira")
+	var k := _draw_sprite(t, p, face, 68, 1.3)
+	# Puño derecho del sprite (74 x 128) en coordenadas locales.
+	var hand := Vector2(18, -60)
+	var tip := hand + Vector2(30, 46)
+	var w := 2.0 / k
+	draw_line(hand, tip, OUT, w * 3)
+	draw_line(hand, tip, Color("e8fff0"), w * 1.6)
 	var lit := int(g.meta["kira_frags"])
 	for i in 6:
-		draw_circle(hand.lerp(tip, 0.18 + i * 0.13), 1.6, SPARK if i < lit else Color("5a4a5a"))
+		draw_circle(hand.lerp(tip, 0.25 + i * 0.12), w * 0.9, SPARK if i < lit else Color("4a5a50"))
 	draw_set_transform(Vector2.ZERO)
-	glow(p + Vector2(0, -24), 40, MAGENTA, 0.25)
+	var tip_s := p + Vector2(tip.x * k * face, tip.y * k)
+	glow(p.lerp(tip_s, 0.5) + Vector2(0, -10), 18, green, 0.4)
 	if lit > 0:
-		glow(p + Vector2(10 * face, -36), 14 + lit * 4, SPARK, 0.45)
+		glow(p.lerp(tip_s, 0.5) + Vector2(0, -10), 12 + lit * 4, SPARK, 0.45)
 
 
 func _draw_slashes() -> void:

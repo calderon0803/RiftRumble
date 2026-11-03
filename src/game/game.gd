@@ -15,6 +15,8 @@ const DASH := 720.0
 const POGO := 600.0
 const DEBUG_MAX := 6
 const DEBUG_COST := 2
+## Color de Kira (su diseño es verde).
+const KIRA_COL := Color("5fe39a")
 ## Color de la depuración y de los efectos de Álex.
 const DEBUG_COL := Color("7be3c8")
 
@@ -1515,7 +1517,7 @@ func complete_kira_fragment() -> void:
 	burst(P.center(), 60, Color("ff6fd8"), 420, 0.0, true)
 	banner = {"text": info["name"], "sub": info["sub"], "t": 0.0}
 	var back: Array = info["back"]
-	open_dialog("Kira Volt", Color("ff6fd8"), Data.KIRA_FRAG[mini(n, Data.KIRA_FRAG.size() - 1)],
+	open_dialog("Kira Volt", KIRA_COL, Data.KIRA_FRAG[mini(n, Data.KIRA_FRAG.size() - 1)],
 		func(): state = "trans"; trans = {"t": 0.0, "to": back[0], "entry": back[1], "loaded": false, "carry": Vector2.ZERO})
 
 
@@ -1561,7 +1563,7 @@ func interact(o: Dictionary) -> void:
 			save()
 			open_dialog("Nexo, Guardián del Umbral", Color("6ff3ff"), l)
 		"K":
-			open_dialog("Kira Volt", Color("ff6fd8"), kira_lines(int(o["text"])))
+			open_dialog("Kira Volt", KIRA_COL, kira_lines(int(o["text"])))
 			save()
 		"T":
 			var n := int(o["text"])
