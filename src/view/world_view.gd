@@ -376,7 +376,7 @@ func tex(name: String) -> Texture2D:
 ## Reposo de cada personaje: fotogramas en bucle (art/personajes/<nombre>_reposo_N.png). Los de Kira salen de
 ## un vídeo generado con Wan 2.2 en Hugging Face a partir de su diseño (fotograma inicial = final, así que el
 ## bucle cierra), con el fondo quitado en PhotoCraft. 0 fotogramas = imagen fija (<nombre>.png).
-const IDLE := {"kira": [8, 0.25], "nexo": [0, 0.25]}
+const IDLE := {"kira": [0, 0.25], "nexo": [0, 0.25]}
 
 
 ## Dibuja al personaje con los pies en `p`, mirando a `face`. `figure` es la altura de la figura en la imagen
