@@ -374,17 +374,85 @@ func tex(name: String) -> Texture2D:
 
 
 ## Dibuja un sprite con los pies en `p`, mirando a `face`, de `height` píxeles de alto y respirando.
-func _draw_sprite(t: Texture2D, p: Vector2, face: int, height: float, phase: float) -> float:
+## La imagen se dibuja como una malla de cuadros cuyos puntos mueve `deform(u, v)` (u, v de 0 a 1 sobre la
+## imagen; devuelve el desplazamiento en píxeles de la imagen). Así se anima sin dibujar fotogramas nuevos.
+const MESH_COLS := 8
+const MESH_ROWS := 16
+
+
+func _draw_sprite(t: Texture2D, p: Vector2, face: int, height: float, deform: Callable) -> float:
 	var k := height / t.get_height()
-	var breath := 1.0 + sin(game.time * 2.2 + phase) * 0.012
-	draw_set_transform(p, 0, Vector2(face * k, k * breath))
-	var origin := Vector2(-t.get_width() / 2.0, -t.get_height())
+	draw_set_transform(p, 0, Vector2(face * k, k))
+	var w := float(t.get_width())
+	var h := float(t.get_height())
+	var origin := Vector2(-w / 2.0, -h)
+	var grid: Array = []
+	for j in MESH_ROWS + 1:
+		var row: Array = []
+		for i in MESH_COLS + 1:
+			var u := float(i) / MESH_COLS
+			var v := float(j) / MESH_ROWS
+			row.append(origin + Vector2(u * w, v * h) + deform.call(u, v))
+		grid.append(row)
 	# Contorno oscuro (la silueta desplazada en cuatro direcciones) para que se lea sobre cualquier fondo.
 	var o := 1.6 / k
 	for d in [Vector2(o, 0), Vector2(-o, 0), Vector2(0, o), Vector2(0, -o)]:
-		draw_texture(t, origin + d, Color(OUT, 0.9))
-	draw_texture(t, origin)
+		_draw_grid(t, grid, d, Color(OUT, 0.9))
+	_draw_grid(t, grid, Vector2.ZERO, Color.WHITE)
 	return k
+
+
+func _draw_grid(t: Texture2D, grid: Array, off: Vector2, col: Color) -> void:
+	var cols := PackedColorArray([col, col, col, col])
+	for j in MESH_ROWS:
+		for i in MESH_COLS:
+			var u0 := float(i) / MESH_COLS
+			var u1 := float(i + 1) / MESH_COLS
+			var v0 := float(j) / MESH_ROWS
+			var v1 := float(j + 1) / MESH_ROWS
+			var quad := PackedVector2Array([grid[j][i] + off, grid[j][i + 1] + off, grid[j + 1][i + 1] + off, grid[j + 1][i] + off])
+			var uv := PackedVector2Array([Vector2(u0, v0), Vector2(u1, v0), Vector2(u1, v1), Vector2(u0, v1)])
+			draw_polygon(quad, cols, uv, t)
+
+
+## Joroba suave entre a y b (0 fuera, 1 en el centro).
+func _band(x: float, a: float, b: float) -> float:
+	return sin(PI * clampf((x - a) / (b - a), 0.0, 1.0))
+
+
+## Movimientos comunes: respirar (el pecho se ensancha y el cuerpo sube un poco) con los pies quietos.
+func _breathe(u: float, v: float, t: float) -> Vector2:
+	var s := sin(t * 2.2)
+	return Vector2((u - 0.5) * 1.6 * s * _band(v, 0.15, 0.6), -s * 0.7 * (1.0 - v))
+
+
+## Los pies no se mueven: anula el desplazamiento en la parte baja central.
+func _feet_lock(u: float, v: float) -> float:
+	return 1.0 - smoothstep(0.82, 0.97, v) * (1.0 - clampf(absf(u - 0.5) * 3.0, 0.0, 1.0))
+
+
+## Kira: coleta (arriba a la izquierda de la imagen) con retardo de la raíz a la punta y capa por los lados.
+func _deform_kira(u: float, v: float) -> Vector2:
+	var t := game.time
+	var d := _breathe(u, v, t)
+	var hair := clampf((0.55 - u) * 3.0, 0.0, 1.0) * _band(v, 0.0, 0.62)
+	d += Vector2(sin(t * 1.9 - v * 5.0) * 2.4, cos(t * 1.9 - v * 5.0) * 0.6) * hair
+	var cape := smoothstep(0.42, 1.0, v) * clampf(absf(u - 0.5) * 2.4, 0.0, 1.0)
+	d.x += sin(t * 1.6 - v * 3.0) * 2.8 * cape
+	return d * _feet_lock(u, v)
+
+
+## Nexo: el abrigo se mece abajo, el panel central de la túnica ondea y la capucha se inclina despacio.
+func _deform_nexo(u: float, v: float) -> Vector2:
+	var t := game.time
+	var d := _breathe(u, v, t + 0.8)
+	var coat := smoothstep(0.38, 1.0, v) * clampf(absf(u - 0.5) * 2.4, 0.0, 1.0)
+	d.x += sin(t * 1.3 - v * 2.5) * 2.6 * coat
+	var panel := smoothstep(0.45, 0.8, v) * (1.0 - clampf(absf(u - 0.5) * 5.0, 0.0, 1.0))
+	d.x += sin(t * 1.7 - v * 3.0) * 1.2 * panel
+	var hood := 1.0 - smoothstep(0.0, 0.28, v)
+	d += Vector2(sin(t * 0.9) * 1.0, absf(sin(t * 0.9)) * 0.4) * hood
+	return d * _feet_lock(u, v)
 
 
 ## Hacia dónde mira cada personaje (por su posición en la sala). Solo se gira cuando Álex ha pasado
@@ -419,7 +487,7 @@ func _draw_nexo(p: Vector2) -> void:
 	var g := game
 	var face := npc_face(p + _cam)
 	glow(p + Vector2(0, -4), 46, Color("4fc3f7"), 0.12)
-	_draw_sprite(tex("nexo"), p, face, 76, 0.0)
+	_draw_sprite(tex("nexo"), p, face, 76, _deform_nexo)
 	draw_set_transform(Vector2.ZERO)
 	for i in RUNES.size():
 		var a := g.time * 0.6 + i * TAU / RUNES.size()
@@ -737,7 +805,7 @@ func _draw_kira_npc(p: Vector2) -> void:
 	var g := game
 	var face := npc_face(p + _cam)
 	glow(p + Vector2(0, -4), 40, Color("5fe39a"), 0.12)
-	_draw_sprite(tex("kira"), p, face, 68, 1.3)
+	_draw_sprite(tex("kira"), p, face, 68, _deform_kira)
 	draw_set_transform(Vector2.ZERO)
 
 
