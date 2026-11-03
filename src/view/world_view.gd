@@ -387,6 +387,23 @@ func _draw_sprite(t: Texture2D, p: Vector2, face: int, height: float, phase: flo
 	return k
 
 
+## Hacia dónde mira cada personaje (por su posición en la sala). Solo se gira cuando Álex ha pasado
+## claramente al otro lado, para que no cambie de lado mientras Álex sigue delante de él.
+var _npc_face := {}
+
+
+func npc_face(p: Vector2, margin := 26.0) -> int:
+	var key := "%s:%d" % [game.room.id, int(p.x)]
+	var face: int = _npc_face.get(key, 1 if game.P.center().x >= p.x else -1)
+	var dx := game.P.center().x - p.x
+	if dx > margin:
+		face = 1
+	elif dx < -margin:
+		face = -1
+	_npc_face[key] = face
+	return face
+
+
 ## Runas que flotan alrededor de Nexo, como en su diseño: trazos sueltos en naranja y azul.
 const RUNES := [
 	[Vector2(-3, -4), Vector2(3, -4), Vector2(-3, 4), Vector2(3, 4)],
@@ -400,7 +417,7 @@ const RUNES := [
 
 func _draw_nexo(p: Vector2) -> void:
 	var g := game
-	var face := 1 if g.P.center().x >= p.x else -1
+	var face := npc_face(p + _cam)
 	glow(p + Vector2(0, -4), 46, Color("4fc3f7"), 0.12)
 	_draw_sprite(tex("nexo"), p, face, 76, 0.0)
 	draw_set_transform(Vector2.ZERO)
@@ -718,7 +735,7 @@ func _cursor(tip: Vector2, rot: float, a: float, k := 1.0) -> void:
 func _draw_kira_npc(p: Vector2) -> void:
 	# Kira de pie, mirando hacia Álex, tal como su diseño (sin espada por ahora).
 	var g := game
-	var face := 1 if g.P.center().x >= p.x else -1
+	var face := npc_face(p + _cam)
 	glow(p + Vector2(0, -4), 40, Color("5fe39a"), 0.12)
 	_draw_sprite(tex("kira"), p, face, 68, 1.3)
 	draw_set_transform(Vector2.ZERO)
