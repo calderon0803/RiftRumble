@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://csj56oylf20wf"
-path="res://.godot/imported/nexo_reposo_1.png-33e2dbf91d50c40f94e04267345aa245.ctex"
+uid="uid://byco6v0t2vfdv"
+path="res://.godot/imported/kira_reposo_6.png-fb9ef1566cff433b9a9c8ebd55c0f346.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/personajes/nexo_reposo_1.png"
-dest_files=["res://.godot/imported/nexo_reposo_1.png-33e2dbf91d50c40f94e04267345aa245.ctex"]
+source_file="res://art/personajes/kira_reposo_6.png"
+dest_files=["res://.godot/imported/kira_reposo_6.png-fb9ef1566cff433b9a9c8ebd55c0f346.ctex"]
 
 [params]
 

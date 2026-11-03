@@ -373,17 +373,21 @@ func tex(name: String) -> Texture2D:
 	return _tex[name]
 
 
-## Dibuja un sprite con los pies en `p`, mirando a `face`, de `height` píxeles de alto y respirando.
-## Animación de reposo: 6 fotogramas hechos con la Deformación de marioneta de PhotoCraft
-## (art/personajes/<nombre>_reposo_N.png), en bucle. `figure` es la altura de la figura sin el margen de
-## arriba que dejan los fotogramas, para que los dos personajes salgan al tamaño de antes.
-const IDLE_FRAMES := 6
-const IDLE_FRAME_TIME := 0.22
+## Reposo de cada personaje: fotogramas en bucle (art/personajes/<nombre>_reposo_N.png). Los de Kira salen de
+## un vídeo generado con Wan 2.2 en Hugging Face a partir de su diseño (fotograma inicial = final, así que el
+## bucle cierra), con el fondo quitado en PhotoCraft. 0 fotogramas = imagen fija (<nombre>.png).
+const IDLE := {"kira": [8, 0.25], "nexo": [0, 0.25]}
 
 
+## Dibuja al personaje con los pies en `p`, mirando a `face`. `figure` es la altura de la figura en la imagen
+## y `height` la altura en pantalla.
 func _draw_idle(name: String, p: Vector2, face: int, height: float, figure: float, phase: float) -> void:
-	var i := int(game.time / IDLE_FRAME_TIME + phase) % IDLE_FRAMES
-	var t := tex("%s_reposo_%d" % [name, i])
+	var frames: int = IDLE[name][0]
+	var t: Texture2D
+	if frames > 0:
+		t = tex("%s_reposo_%d" % [name, int(game.time / IDLE[name][1] + phase) % frames])
+	else:
+		t = tex(name)
 	var k := height / figure
 	draw_set_transform(p, 0, Vector2(face * k, k))
 	var origin := Vector2(-t.get_width() / 2.0, -t.get_height())
