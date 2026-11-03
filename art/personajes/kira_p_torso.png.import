@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://xqvocy2ls7vd"
-path="res://.godot/imported/kira_reposo_10.png-c32e2edc751f6c99fe76e65e87ac90e0.ctex"
+uid="uid://dhneh38dyb5k3"
+path="res://.godot/imported/kira_p_torso.png-553c10cae42a4e3a318e0b4e02866b70.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/personajes/kira_reposo_10.png"
-dest_files=["res://.godot/imported/kira_reposo_10.png-c32e2edc751f6c99fe76e65e87ac90e0.ctex"]
+source_file="res://art/personajes/kira_p_torso.png"
+dest_files=["res://.godot/imported/kira_p_torso.png-553c10cae42a4e3a318e0b4e02866b70.ctex"]
 
 [params]
 

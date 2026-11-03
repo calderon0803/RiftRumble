@@ -374,10 +374,9 @@ func tex(name: String) -> Texture2D:
 
 
 ## Reposo de cada personaje: [fotogramas, segundos por fotograma, dónde caen los pies en el ancho (0-1)].
-## Fotogramas en art/personajes/<nombre>_reposo_N.png; 0 = imagen fija (<nombre>.png). Los de Kira salen de un
-## vídeo de Wan 2.2 (Hugging Face) generado sobre fondo magenta: el tramo que mejor cierra el bucle, con el
-## magenta quitado con una máscara suavizada entre fotogramas para que el borde no parpadee.
-const IDLE := {"kira": [12, 0.125, 0.733], "nexo": [0, 0.25, 0.5]}
+## Fotogramas en art/personajes/<nombre>_reposo_N.png; 0 = imagen fija (<nombre>.png). Kira no pasa por aquí:
+## se anima por piezas (_draw_kira_parts).
+const IDLE := {"nexo": [0, 0.25, 0.5]}
 
 
 ## Dibuja al personaje con los pies en `p`, mirando a `face`. `figure` es la altura de la figura en la imagen
@@ -750,7 +749,54 @@ func _draw_kira_npc(p: Vector2) -> void:
 	var g := game
 	var face := npc_face(p + _cam)
 	glow(p + Vector2(0, -4), 40, Color("5fe39a"), 0.12)
-	_draw_idle("kira", p, face, 68, 128, 2.0)
+	_draw_kira_parts(p, face, 68)
+	draw_set_transform(Vector2.ZERO)
+
+
+## Reposo de Kira por piezas rígidas (su diseño separado en art/personajes/kira_p_*.png, a 2x del sprite, 108x256).
+## Nada se deforma: cada pieza se desplaza o gira entera alrededor de donde nace.
+const KIRA_PARTS := ["coleta", "capa", "base", "torso", "cabeza"]
+const KIRA_PIVOT := {"coleta": Vector2(47.3, 19.5), "capa": Vector2(41.0, 117.3), "cabeza": Vector2(64.6, 54.2)}
+## Ojos en coordenadas de la pieza de la cabeza, para parpadear.
+const KIRA_EYES := [Rect2(60, 37.5, 6.5, 3.5), Rect2(71.5, 38.5, 4.5, 2.5)]
+const KIRA_SKIN := Color("f2c5a7")
+
+
+func _draw_kira_parts(p: Vector2, face: int, height: float) -> void:
+	var t := game.time + 2.0
+	var k := height / 256.0
+	# El torso no se desplaza: moverlo entero se veía como una pieza que resbala sobre las piernas.
+	# Mirar abajo un momento cada 7 s (la cabeza gira desde el cuello).
+	var l := fmod(t, 7.0)
+	var look := deg_to_rad(-5.0) * smoothstep(3.0, 3.4, l) * (1.0 - smoothstep(4.6, 5.0, l))
+	var off := {
+		"coleta": [Vector2.ZERO, deg_to_rad(3.5) * sin((t - 0.5) * TAU / 3.4)],
+		"capa": [Vector2.ZERO, deg_to_rad(2.5) * sin(t * TAU / 4.1)],
+		"base": [Vector2.ZERO, 0.0],
+		"torso": [Vector2.ZERO, 0.0],
+		"cabeza": [Vector2.ZERO, look],
+	}
+	var root := Transform2D(0, Vector2(face * k, k), 0, p) * Transform2D(0, Vector2(-54, -256))
+	var xf := {}
+	for part in KIRA_PARTS:
+		var piv: Vector2 = KIRA_PIVOT.get(part, Vector2.ZERO)
+		xf[part] = root * Transform2D(0, off[part][0]) * Transform2D(off[part][1], piv) * Transform2D(0, -piv)
+	# Contorno de toda la figura (todas las piezas desplazadas) antes de dibujar las piezas encima.
+	var o := 1.6 / k
+	for d in [Vector2(o, 0), Vector2(-o, 0), Vector2(0, o), Vector2(0, -o)]:
+		for part in KIRA_PARTS:
+			draw_set_transform_matrix(xf[part])
+			draw_texture(tex("kira_p_" + part), d, Color(OUT, 0.9))
+	for part in KIRA_PARTS:
+		draw_set_transform_matrix(xf[part])
+		draw_texture(tex("kira_p_" + part), Vector2.ZERO)
+	# Parpadeo cada 3,7 s (y alguna vez doble).
+	var b := fmod(t, 3.7)
+	if b < 0.12 or (int(t / 3.7) % 3 == 1 and b > 0.24 and b < 0.34):
+		draw_set_transform_matrix(xf["cabeza"])
+		for r in KIRA_EYES:
+			draw_rect(r, KIRA_SKIN)
+			draw_line(Vector2(r.position.x, r.end.y - 0.6), Vector2(r.end.x, r.end.y - 0.6), Color("2a1a1c"), 1.0)
 	draw_set_transform(Vector2.ZERO)
 
 
