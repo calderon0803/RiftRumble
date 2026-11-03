@@ -716,28 +716,12 @@ func _cursor(tip: Vector2, rot: float, a: float, k := 1.0) -> void:
 
 
 func _draw_kira_npc(p: Vector2) -> void:
-	# Kira de pie, mirando hacia Álex. Su diseño no lleva la espada, así que la hoja de energía con las
-	# 6 muescas (el avance hacia el final oculto) se dibuja en su mano derecha.
+	# Kira de pie, mirando hacia Álex, tal como su diseño (sin espada por ahora).
 	var g := game
 	var face := 1 if g.P.center().x >= p.x else -1
-	var green := Color("5fe39a")
-	glow(p + Vector2(0, -4), 40, green, 0.12)
-	var t := tex("kira")
-	var k := _draw_sprite(t, p, face, 68, 1.3)
-	# Puño derecho del sprite (74 x 128) en coordenadas locales.
-	var hand := Vector2(18, -60)
-	var tip := hand + Vector2(30, 46)
-	var w := 2.0 / k
-	draw_line(hand, tip, OUT, w * 3)
-	draw_line(hand, tip, Color("e8fff0"), w * 1.6)
-	var lit := int(g.meta["kira_frags"])
-	for i in 6:
-		draw_circle(hand.lerp(tip, 0.25 + i * 0.12), w * 0.9, SPARK if i < lit else Color("4a5a50"))
+	glow(p + Vector2(0, -4), 40, Color("5fe39a"), 0.12)
+	_draw_sprite(tex("kira"), p, face, 68, 1.3)
 	draw_set_transform(Vector2.ZERO)
-	var tip_s := p + Vector2(tip.x * k * face, tip.y * k)
-	glow(p.lerp(tip_s, 0.5) + Vector2(0, -10), 18, green, 0.4)
-	if lit > 0:
-		glow(p.lerp(tip_s, 0.5) + Vector2(0, -10), 12 + lit * 4, SPARK, 0.45)
 
 
 func _draw_slashes() -> void:
