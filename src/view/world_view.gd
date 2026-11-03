@@ -373,10 +373,11 @@ func tex(name: String) -> Texture2D:
 	return _tex[name]
 
 
-## Reposo de cada personaje: fotogramas en bucle (art/personajes/<nombre>_reposo_N.png). Los de Kira salen de
-## un vídeo generado con Wan 2.2 en Hugging Face a partir de su diseño (fotograma inicial = final, así que el
-## bucle cierra), con el fondo quitado en PhotoCraft. 0 fotogramas = imagen fija (<nombre>.png).
-const IDLE := {"kira": [0, 0.25], "nexo": [0, 0.25]}
+## Reposo de cada personaje: [fotogramas, segundos por fotograma, dónde caen los pies en el ancho (0-1)].
+## Fotogramas en art/personajes/<nombre>_reposo_N.png; 0 = imagen fija (<nombre>.png). Los de Kira salen de un
+## vídeo de Wan 2.2 (Hugging Face) generado sobre fondo magenta: el tramo que mejor cierra el bucle, con el
+## magenta quitado con una máscara suavizada entre fotogramas para que el borde no parpadee.
+const IDLE := {"kira": [12, 0.125, 0.733], "nexo": [0, 0.25, 0.5]}
 
 
 ## Dibuja al personaje con los pies en `p`, mirando a `face`. `figure` es la altura de la figura en la imagen
@@ -390,7 +391,8 @@ func _draw_idle(name: String, p: Vector2, face: int, height: float, figure: floa
 		t = tex(name)
 	var k := height / figure
 	draw_set_transform(p, 0, Vector2(face * k, k))
-	var origin := Vector2(-t.get_width() / 2.0, -t.get_height())
+	var anchor: float = IDLE[name][2] if frames > 0 else 0.5
+	var origin := Vector2(-t.get_width() * anchor, -t.get_height())
 	# Contorno oscuro (la silueta desplazada en cuatro direcciones) para que se lea sobre cualquier fondo.
 	var o := 1.6 / k
 	for d in [Vector2(o, 0), Vector2(-o, 0), Vector2(0, o), Vector2(0, -o)]:
