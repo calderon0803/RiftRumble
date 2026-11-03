@@ -392,7 +392,7 @@ func _draw_sprite(t: Texture2D, p: Vector2, face: int, height: float, phase: flo
 var _npc_face := {}
 
 
-func npc_face(p: Vector2, margin := 26.0) -> int:
+func npc_face(p: Vector2, margin := 8.0) -> int:
 	var key := "%s:%d" % [game.room.id, int(p.x)]
 	var face: int = _npc_face.get(key, 1 if game.P.center().x >= p.x else -1)
 	var dx := game.P.center().x - p.x
