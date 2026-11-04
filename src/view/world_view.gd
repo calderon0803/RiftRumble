@@ -6,10 +6,10 @@ extends Node2D
 const T := 32
 const OUT := Paint.OUT
 const SKIN := Color("f2d2c0")
-const MAGENTA := Color("ff6fd8")
+const KIRA := Game.KIRA_COL
 const GRAPHITE := Color("2c2433")
 const SPARK := Color("ffe14d")
-const HAIR := Color("b8338f")
+const HAIR := Color("2f9e6a")
 
 var game: Game
 var glows: Array = []
@@ -180,7 +180,7 @@ func _draw_tiles() -> void:
 					# Muro falso golpeado una vez: ahora sí se ven las grietas.
 					draw_polyline(PackedVector2Array([p + Vector2(6, 4), p + Vector2(14, 14), p + Vector2(9, 22), p + Vector2(17, 29)]), OUT, 2.5)
 					draw_polyline(PackedVector2Array([p + Vector2(26, 5), p + Vector2(19, 16), p + Vector2(27, 24)]), OUT, 2.5)
-					glow(p + Vector2(16, 16), 20, Color("ff6fd8"), 0.3)
+					glow(p + Vector2(16, 16), 20, KIRA, 0.3)
 			elif ch == "=":
 				draw_rect(Rect2(p, Vector2(T, 10)), stone)
 				draw_rect(Rect2(p, Vector2(T, 3)), OUT)
@@ -221,7 +221,7 @@ func _draw_tiles() -> void:
 			elif ch == "p":
 				# Bloque sin colocar: solo su contorno, a trazos, esperando un clic.
 				var a := 0.45 + 0.25 * sin(game.time * 4 + x)
-				var col := Color(Color("ff6fd8"), a)
+				var col := Color(KIRA, a)
 				for i in 4:
 					draw_line(p + Vector2(i * 8 + 1, 1), p + Vector2(i * 8 + 5, 1), col, 2)
 					draw_line(p + Vector2(i * 8 + 1, 11), p + Vector2(i * 8 + 5, 11), col, 2)
@@ -252,10 +252,10 @@ func _draw_props() -> void:
 					var c := p + Vector2(0, -30)
 					var pulse := 1.0 + sin(g.time * 3) * 0.05
 					Paint.fill_ellipse(self, c, 18 * pulse, 30 * pulse, OUT)
-					Paint.fill_ellipse(self, c, 14 * pulse, 26 * pulse, Color("3a1030"))
-					draw_arc(c, 16, 0, TAU, 32, MAGENTA, 2)
-					Paint.text(self, "%d-1" % n, c + Vector2(0, 5), 13, Color("ffd6f2"), 1, 3, true)
-					glow(c, 70, MAGENTA, 0.45)
+					Paint.fill_ellipse(self, c, 14 * pulse, 26 * pulse, Color("0f3020"))
+					draw_arc(c, 16, 0, TAU, 32, KIRA, 2)
+					Paint.text(self, "%d-1" % n, c + Vector2(0, 5), 13, Color("d6ffe8"), 1, 3, true)
+					glow(c, 70, KIRA, 0.45)
 			"R":
 				# Cristal de resonancia sobre su peana; vibra mientras Álex resuena.
 				var on := g.P.resonance > 0
@@ -299,12 +299,12 @@ func _draw_props() -> void:
 				# Bandera del final del nivel.
 				draw_rect(Rect2(p + Vector2(-2, -76), Vector2(4, 76)), Color("d8cfe0"))
 				var wave := sin(g.time * 5) * 3
-				Paint.outline_poly(self, PackedVector2Array([p + Vector2(2, -74), p + Vector2(30, -66 + wave), p + Vector2(2, -56)]), MAGENTA, 2.5)
-				glow(p + Vector2(14, -66), 50, MAGENTA, 0.4)
+				Paint.outline_poly(self, PackedVector2Array([p + Vector2(2, -74), p + Vector2(30, -66 + wave), p + Vector2(2, -56)]), KIRA, 2.5)
+				glow(p + Vector2(14, -66), 50, KIRA, 0.4)
 			"K":
 				_draw_kira_npc(p)
 				if g.new_kira_talk(int(o["text"])):
-					Paint.text(self, "!", p + Vector2(0, -52 + sin(g.time * 4) * 3), 28, MAGENTA, 1, 6, true)
+					Paint.text(self, "!", p + Vector2(0, -52 + sin(g.time * 4) * 3), 28, KIRA, 1, 6, true)
 			"M":
 				# El anillo de Nexo: recibe fragmentos.
 				Paint.outline_poly(self, PackedVector2Array([p + Vector2(-22, 0), p + Vector2(-14, -16), p + Vector2(14, -16), p + Vector2(22, 0)]), _pal["stone"])
@@ -490,10 +490,10 @@ func _draw_enemy(e: Game.Ent) -> void:
 			var icons := {"side": "X", "up": "↑X", "down": "↓X"}
 			var x0 := p.x - (e.seq.size() - 1) * 15
 			for i in e.seq.size():
-				var col := MAGENTA if i < e.idx else Color("efe2c8")
+				var col := KIRA if i < e.idx else Color("efe2c8")
 				Paint.text(self, icons[e.seq[i]], Vector2(x0 + i * 30, p.y - 56), 13, col, 1, 4, true)
 			if done:
-				glow(p + Vector2(0, -26), 50, MAGENTA, 0.5)
+				glow(p + Vector2(0, -26), 50, KIRA, 0.5)
 	if e.elite:
 		# Élite: corona dorada encima y un halo.
 		var top := s(Vector2(e.x + e.w / 2, e.y - 4))
@@ -679,7 +679,7 @@ func _cursor(tip: Vector2, rot: float, a: float, k := 1.0) -> void:
 
 
 func _draw_kira_npc(p: Vector2) -> void:
-	# Kira de pie, mirando hacia Álex, con su espada de 6 muescas apagadas.
+	# Kira de pie, mirando hacia Álex, con su espada de energía (provisional hasta tener sus sprites).
 	var g := game
 	var face := 1 if g.P.center().x >= p.x else -1
 	var bob := sin(g.time * 2) * 1.0
@@ -690,21 +690,16 @@ func _draw_kira_npc(p: Vector2) -> void:
 	draw_rect(Rect2(-5, -10, 4, 10), GRAPHITE)
 	draw_rect(Rect2(2, -10, 4, 10), GRAPHITE)
 	Paint.outline_poly(self, PackedVector2Array([Vector2(-8, -26 + bob), Vector2(9, -26 + bob), Vector2(12, -9), Vector2(-7, -9)]), GRAPHITE)
-	draw_colored_polygon(PackedVector2Array([Vector2(-6, -20 + bob), Vector2(10, -20 + bob), Vector2(11, -15), Vector2(-6, -15)]), MAGENTA)
+	draw_colored_polygon(PackedVector2Array([Vector2(-6, -20 + bob), Vector2(10, -20 + bob), Vector2(11, -15), Vector2(-6, -15)]), KIRA)
 	Paint.fill_ellipse(self, Vector2(2, -33 + bob), 8, 8.5, SKIN, 0, 3)
 	Paint.outline_poly(self, PackedVector2Array([Vector2(-7, -36 + bob), Vector2(-4, -43 + bob), Vector2(6, -43 + bob), Vector2(11, -36 + bob), Vector2(7, -38 + bob), Vector2(5, -33 + bob), Vector2(2, -37 + bob), Vector2(-3, -34 + bob)]), HAIR, 2.5)
 	Paint.fill_ellipse(self, Vector2(6, -32 + bob), 1.4, 2.2, OUT)
 	var hand := Vector2(9, -16 + bob)
 	var tip := hand + Vector2(4, -26)
 	draw_line(hand, tip, OUT, 6)
-	draw_line(hand, tip, Color("fff5fb"), 3)
-	var lit := int(g.meta["kira_frags"])
-	for i in 6:
-		draw_circle(hand.lerp(tip, 0.18 + i * 0.13), 1.6, SPARK if i < lit else Color("5a4a5a"))
+	draw_line(hand, tip, KIRA, 3)
 	draw_set_transform(Vector2.ZERO)
-	glow(p + Vector2(0, -24), 40, MAGENTA, 0.25)
-	if lit > 0:
-		glow(p + Vector2(10 * face, -36), 14 + lit * 4, SPARK, 0.45)
+	glow(p + Vector2(0, -24), 40, KIRA, 0.25)
 
 
 func _draw_slashes() -> void:

@@ -74,6 +74,9 @@ class Ent extends RefCounted:
 		return Vector2(x + w / 2.0, y + h / 2.0)
 
 
+## Color de Kira (verde).
+const KIRA_COL := Color("5fe39a")
+
 class Player extends RefCounted:
 	var x := 0.0
 	var y := 0.0
@@ -1141,8 +1144,8 @@ func place_blocks(b: Rect2) -> void:
 		for tx in range(floori(b.position.x / T), floori(b.end.x / T) + 1):
 			if tile_at(tx, ty) == "p" and b.intersects(Rect2(tx * T, ty * T, T, T)):
 				room.g[ty][tx] = "="
-				burst(Vector2(tx * T + 16, ty * T + 6), 8, Color("ff6fd8"), 160, 0.0, true)
-				num(tx * T + 16, ty * T - 4, "Colocado", Color("ff6fd8"))
+				burst(Vector2(tx * T + 16, ty * T + 6), 8, KIRA_COL, 160, 0.0, true)
+				num(tx * T + 16, ty * T - 4, "Colocado", KIRA_COL)
 
 
 ## Golpe a un muñeco de la técnica de Kira: tiene que llegar en el orden que pide.
@@ -1152,9 +1155,9 @@ func dummy_hit(e: Ent) -> void:
 	if P.atk_dir == e.seq[e.idx]:
 		e.idx += 1
 		e.flash = 0.09
-		burst(e.center(), 10, Color("ff6fd8"), 200, 0.0, true)
+		burst(e.center(), 10, KIRA_COL, 200, 0.0, true)
 		if e.idx >= e.seq.size():
-			num(e.center().x, e.y - 12, "¡Aprendido!", Color("ff6fd8"), true)
+			num(e.center().x, e.y - 12, "¡Aprendido!", KIRA_COL, true)
 			if enemies.all(func(o): return o.kind != "dummy" or o.idx >= o.seq.size()):
 				# Toda la técnica aprendida: aparece la bandera.
 				props.append({"type": "G", "x": (room.w - 4) * T + 16.0, "y": (room.h - 2) * T + 0.0, "text": ""})
@@ -1487,8 +1490,8 @@ func nexo_lines() -> Array:
 	return [Data.NEXO_IDLE.pick_random()]
 
 
-## Kira solo aparece en momentos puntuales. `n` es su aparición (1 en el Reino, 2 en la Academia):
-## la primera vez que se la encuentra ahí se presenta; después repite frases cortas.
+## Kira solo aparece al principio, en la Pantalla de Inicio (`n` = 1): la primera vez se presenta y explica
+## los portales; después repite frases cortas.
 func kira_lines(n: int) -> Array:
 	if new_kira_talk(n):
 		meta["kira_talk"] = n
@@ -1500,23 +1503,25 @@ func new_kira_talk(n: int) -> bool:
 	return int(meta["kira_talk"]) == n - 1 and n - 1 < Data.KIRA_SEQ.size()
 
 
-## El trozo `n` de Kira se abre cuando ella se ha presentado ahí y el anterior está terminado.
+## Los portales no dependen de Kira: el del trozo `n` está abierto mientras el anterior esté terminado y
+## este no. Lo que cuesta es encontrarlos (están detrás de muros falsos).
 func portal_open(n: int) -> bool:
-	return int(meta["kira_talk"]) >= n and int(meta["kira_frags"]) == n - 1
+	return int(meta["kira_frags"]) == n - 1
 
 
-## Tocar la bandera de un trozo de Kira enciende una muesca de su espada.
+## Tocar la bandera de un trozo de Kira lo da por terminado (con los seis se desbloquea el final oculto) y
+## devuelve a la sala del portal. Kira no está: solo aparece al principio y al final.
 func complete_kira_fragment() -> void:
 	var n := int(meta["kira_frags"])
 	meta["kira_frags"] = n + 1
 	save()
 	var info: Dictionary = Data.KIRA_FRAG_INFO[mini(n, Data.KIRA_FRAG_INFO.size() - 1)]
-	flash_a = 0.7; flash_col = Color("ff6fd8")
-	burst(P.center(), 60, Color("ff6fd8"), 420, 0.0, true)
+	flash_a = 0.7; flash_col = KIRA_COL
+	burst(P.center(), 60, KIRA_COL, 420, 0.0, true)
 	banner = {"text": info["name"], "sub": info["sub"], "t": 0.0}
 	var back: Array = info["back"]
-	open_dialog("Kira Volt", Color("ff6fd8"), Data.KIRA_FRAG[mini(n, Data.KIRA_FRAG.size() - 1)],
-		func(): state = "trans"; trans = {"t": 0.0, "to": back[0], "entry": back[1], "loaded": false, "carry": Vector2.ZERO})
+	state = "trans"
+	trans = {"t": 0.0, "to": back[0], "entry": back[1], "loaded": false, "carry": Vector2.ZERO}
 
 
 func open_dialog(speaker: String, col: Color, lines: Array, on_end := Callable()) -> void:
@@ -1561,7 +1566,7 @@ func interact(o: Dictionary) -> void:
 			save()
 			open_dialog("Nexo, Guardián del Umbral", Color("6ff3ff"), l)
 		"K":
-			open_dialog("Kira Volt", Color("ff6fd8"), kira_lines(int(o["text"])))
+			open_dialog("Kira Volt", KIRA_COL, kira_lines(int(o["text"])))
 			save()
 		"T":
 			var n := int(o["text"])

@@ -12,7 +12,7 @@ const PALETTES := {
 	"monedas": {"top": Color("3a2a10"), "bot": Color("0e0904"), "stone": Color("3a2a1a"), "deep": Color("22180e"), "rim": Color("f2c14e"), "far": Color("2a1e0e"), "near": Color("1a1208")},
 	"bloque": {"top": Color("44180f"), "bot": Color("100504"), "stone": Color("3c1e16"), "deep": Color("24110c"), "rim": Color("ff7a4a"), "far": Color("2e130c"), "near": Color("1c0b07")},
 	"pantalla": {"top": Color("0f2c48"), "bot": Color("040a14"), "stone": Color("1a2c46"), "deep": Color("0f1a2c"), "rim": Color("4fc3f7"), "far": Color("0e2440"), "near": Color("08162a")},
-	"kira": {"top": Color("3a1030"), "bot": Color("0c040c"), "stone": Color("2c1a30"), "deep": Color("180c1c"), "rim": Color("ff6fd8"), "far": Color("2a0e26"), "near": Color("1a0818")},
+	"kira": {"top": Color("0f3020"), "bot": Color("040c08"), "stone": Color("1a2c22"), "deep": Color("0c1810"), "rim": Color("5fe39a"), "far": Color("0e2618"), "near": Color("081a10")},
 	"academia": {"top": Color("241a44"), "bot": Color("070512"), "stone": Color("2a2450"), "deep": Color("16122c"), "rim": Color("e0b84a"), "far": Color("1c1638"), "near": Color("110d24")},
 	"trono": {"top": Color("4a0c18"), "bot": Color("0b0205"), "stone": Color("2c1018"), "deep": Color("18080c"), "rim": Color("e8384f"), "far": Color("2a0810"), "near": Color("170409")},
 }
@@ -275,7 +275,7 @@ static func build_rooms() -> Dictionary:
 			.door("left", 4, 6, "biblioteca", "2").door("right", 12, 14, "laboratorio", "1")
 			.fill(1, 7, 8, 7, "#").fill(4, 11, 7, 11, "=").fill(46, 11, 52, 14, "#")
 			.e("1", 1, 6).e("2", 58, 14).e("K", 11, 14)
-			.o("K", 14, 14, "2").o("W", 49, 10)
+			.o("W", 49, 10)
 			.o("L", 56, 14, "Registro de Zerik #063: hay marcas en las paredes de la Galería. Alguien subía rebotando de pared en pared.")
 			.o("c", 24, 14).o("k", 30, 11).o("s", 38, 14).o("f", 44, 5),
 		# Primera arena de la Academia: conjuradores que curan a los demás si no se les interrumpe.
@@ -411,32 +411,19 @@ const NEXO_END := ["Has vencido al Rey. El Reino ya no se reinicia: sigue adelan
 	"Un mundo menos, dev_01. Quedan cinco.",
 	"...Lo estás haciendo muy bien. Sigue jugando."]
 
-## Kira, la protagonista del primer juego que Álex dejó a medias. Solo aparece en momentos puntuales.
+## Kira, la protagonista del primer juego que Álex dejó a medias. Solo aparece al principio (aquí, para
+## explicar los portales a los trozos de su juego) y al final, en el final oculto.
 const KIRA_SEQ := [
 	["¿Álex? ...Eres tú. Con esa pinta de maniquí, pero eres tú.",
 		"Soy Kira. La protagonista de tu primer juego. El que dejaste a medias, ¿te acuerdas?",
 		"Tu IA se ha tragado todos tus juegos, y el mío con ellos. Está roto en trozos por todas partes.",
-		"Mira mi espada: seis muescas, todas apagadas. Era tu mecánica estrella y nunca la terminaste.",
-		"Mi primer nivel sigue por ahí. Lo escondiste tú: bajo el Cruce, detrás de un muro que no es un muro.",
+		"Cada trozo está detrás de un portal, y los portales están escondidos. Los escondiste tú: detrás de muros que no son muros.",
+		"Busca uno en cada uno de tus juegos. El primero está en este Reino, bajo el Cruce.",
 		"No te pido nada. Solo que esta vez no dejes las cosas a medias."],
-	["Álex. Esta es tu Academia... la recuerdo. Aquí me diste la espada.",
-		"Mi técnica: una combinación de golpes por cada muesca. Solo escribiste la primera.",
-		"Mi sala de entrenamiento está arriba del Vestíbulo, en el Observatorio. Al fondo.",
-		"Las paredes de esta Academia no siempre son paredes. Si la terminas, quizá recuerde el resto."],
-]
-## Al terminar un trozo de su juego, Kira habla (uno por cada muesca encendida).
-const KIRA_FRAG := [
-	["...Mi primer nivel. Lo has terminado.",
-		"Has puesto el puente y el escalón que faltaban. Los que me prometiste hace años.",
-		"Mira: una muesca encendida. La primera.",
-		"Hay más trozos míos en tus otros juegos. Cuando llegues, te buscaré."],
-	["De frente, arriba, abajo... así era. Ya me acuerdo.",
-		"Segunda muesca. Mi espada empieza a parecerse a lo que prometiste.",
-		"El Alumno Eterno te espera arriba, en el aula. No dejes que te convenza de que no estás listo."],
 ]
 ## Rótulo, subtítulo y sala de vuelta de cada trozo de Kira.
 const KIRA_FRAG_INFO := [
-	{"name": "Nivel 1-1 de Kira", "sub": "Primera muesca encendida", "back": ["sotano", "K"], "room": "kira1"},
-	{"name": "Técnica de Kira", "sub": "Segunda muesca encendida", "back": ["observatorio", "K"], "room": "kira2"},
+	{"name": "Nivel 1-1 de Kira", "sub": "Trozo de su juego terminado: 1 de 6", "back": ["sotano", "K"], "room": "kira1"},
+	{"name": "Técnica de Kira", "sub": "Trozo de su juego terminado: 2 de 6", "back": ["observatorio", "K"], "room": "kira2"},
 ]
 const KIRA_IDLE :=["Sigue. Yo aparezco cuando haga falta.", "Ese Nexo te sonríe mucho, Álex. Demasiado.", "Golpea las paredes que te parezcan sospechosas. Te encantaba esconder cosas así."]

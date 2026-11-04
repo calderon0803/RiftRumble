@@ -24,7 +24,7 @@ Trono ─ Patio ─ Vestíbulo ─ Biblioteca ─ Pasillo ─ Laboratorio ─ Ga
 | Observatorio | opcional: subida por cristal hasta fragmentos escondidos, grieta, **conjurador de élite** |
 | Archivo Prohibido | opcional: puentes de cristal sobre pinchos, fragmentos escondidos, escupidor de élite |
 | Biblioteca Flotante | tres cristales y una subida por plataformas de cristal hasta la salida alta, grieta, bloque sorpresa |
-| Pasillo de las Runas | **Kira** y el portal a su técnica; el **orbe de salto en pared** sobre un bloque alto |
+| Pasillo de las Runas | el **orbe de salto en pared** sobre un bloque alto |
 | Laboratorio de Alquimia | **arena** de conjuradores, con un cristal en el centro para pelear resonando |
 | Galería de Retratos | **pide salto en pared**: el muro solo se pasa subiendo por una chimenea; luego cristal sobre pinchos |
 | Torre del Examen | pozo sin escalones, solo con salto en pared |
@@ -56,8 +56,9 @@ Obliga a variar.
 Vencerle da 80 fragmentos (40 las siguientes veces) y una bufanda violeta al avatar de Álex.
 
 ## Técnica de Kira (segundo trozo)
-Kira se presenta en el Pasillo de las Runas y abre el portal 2-1. Dentro hay tres muñecos de entrenamiento, cada uno
-con una combinación de golpes encima (X, ↑X, ↓X). Hay que dar los golpes en ese orden; uno equivocado reinicia la
-combinación. Con los tres aprendidos aparece la bandera, que enciende **la segunda muesca** de la espada de Kira.
+Su portal (2-1) está escondido al fondo del Observatorio, detrás de un muro falso; se abre con el primer trozo
+terminado. Dentro hay tres muñecos de entrenamiento, cada uno con una combinación de golpes encima (X, ↑X, ↓X).
+Hay que dar los golpes en ese orden; uno equivocado reinicia la combinación. Con los tres aprendidos aparece la
+bandera, que da el trozo por terminado (2 de 6).
 
 Tests: `game_tests.gd` 72/72 · `reach_tests.gd` 169/169.

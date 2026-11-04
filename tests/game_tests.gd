@@ -104,7 +104,8 @@ func _init() -> void:
 	check(not g.new_kira_talk(1), "tras presentarse, Kira ya no tiene conversación nueva")
 
 	print("Nivel 1-1 de Kira")
-	check(g.portal_open(1), "tras hablar con Kira se abre su nivel")
+	fresh()
+	check(g.portal_open(1), "el portal al Nivel 1-1 está abierto aunque no se haya hablado con Kira")
 	check(g.props.filter(func(o): return o["type"] == "T").is_empty(), "el portal ya no está junto a Kira")
 	g.load_room("sotano", "1"); g.enemies.clear(); step(3)
 	check(g.tile_at(50, 16) == "w" and g.is_solid("w"), "en el Sótano, el portal está detrás de un muro falso")
@@ -130,9 +131,8 @@ func _init() -> void:
 	t = 0
 	while g.state == "play" and t < 200:
 		step(1, {"right": true}); t += 1
-	check(g.meta["kira_frags"] == 1 and g.state == "dialog", "la bandera enciende la primera muesca y Kira habla")
-	for i in 12:
-		step(4, {}, ["confirm"])
+	check(g.meta["kira_frags"] == 1 and g.state == "trans" and g.banner["sub"].ends_with("1 de 6"),
+		"la bandera da por terminado el primer trozo, sin Kira, y vuelve a la sala del portal")
 	step(30)
 	check(g.room.id == "sotano" and not g.portal_open(1), "se vuelve a la cámara secreta del Sótano y el portal se cierra")
 
@@ -348,15 +348,10 @@ func _init() -> void:
 	check(g.P.x < 30 * 32, "sin salto en pared no se pasa el muro de la Galería")
 
 	print("Técnica de Kira")
-	fresh(); g.meta["kira_talk"] = 1; g.meta["kira_frags"] = 1
+	fresh(); g.meta["kira_frags"] = 1
 	g.load_room("pasillo", "1"); g.enemies.clear()
-	var K2: Dictionary = g.props.filter(func(o): return o["type"] == "K")[0]
-	g.P.x = K2["x"] - 9; g.P.y = K2["y"] - g.P.h
-	step(3); step(1, {}, ["interact"])
-	check(g.state == "dialog" and g.dialog["lines"][0].begins_with("Álex. Esta es tu Academia"), "Kira aparece en la Academia")
-	for i in 12:
-		step(4, {}, ["confirm"])
-	check(g.portal_open(2), "se abre la sala de su técnica")
+	check(g.props.filter(func(o): return o["type"] == "K").is_empty(), "Kira ya no aparece en la Academia")
+	check(g.portal_open(2), "con el primer trozo terminado, el portal de su técnica está abierto")
 	g.load_room("observatorio", "1"); g.enemies.clear(); step(3)
 	check(g.tile_at(39, 13) == "w" and g.props.any(func(o): return o["type"] == "T"), "su portal está en el Observatorio, detrás de un muro falso")
 	g.load_room("kira2", "1"); step(5)
@@ -376,7 +371,7 @@ func _init() -> void:
 	check(g.props.any(func(o): return o["type"] == "G"), "con la técnica completa aparece la bandera")
 	var G2: Dictionary = g.props.filter(func(o): return o["type"] == "G")[0]
 	g.P.x = G2["x"] - 9; g.P.y = G2["y"] - g.P.h; step(3)
-	check(g.meta["kira_frags"] == 2 and g.state == "dialog", "la bandera enciende la segunda muesca")
+	check(g.meta["kira_frags"] == 2 and g.state == "trans", "la bandera da por terminado el segundo trozo")
 
 	print("El Alumno Eterno")
 	fresh(); g.load_room("aula", "1"); step(5)
