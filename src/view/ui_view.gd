@@ -166,44 +166,19 @@ func _title() -> void:
 		Paint.text(self, info, Vector2(W / 2, 518), 15, MUTED, 1, 3)
 
 
-var _portraits := {}
-
-
-func _portrait_for(speaker: String) -> Texture2D:
-	var key := ""
-	if speaker.begins_with("Nexo"):
-		key = "nexo_retrato"
-	elif speaker.begins_with("Kira"):
-		key = "kira_retrato"
-	if key == "":
-		return null
-	if not _portraits.has(key):
-		_portraits[key] = load("res://art/personajes/%s.png" % key)
-	return _portraits[key]
-
-
 func _dialog() -> void:
 	var g := game
 	var d := g.dialog
 	var r := Rect2(110, H - 170, W - 220, 130)
 	var col: Color = d["col"]
 	_panel(r, col)
-	# Retrato de quien habla (Nexo y Kira), asomando por encima del cuadro como en Hades.
-	var portrait := _portrait_for(d["speaker"])
-	var tx := 24.0
-	if portrait != null:
-		var pr := Rect2(r.position.x + 10, r.end.y - 164, 156, 156)
-		glow(pr.get_center(), 110, col, 0.25)
-		draw_texture_rect(portrait, pr, false)
-		draw_rect(Rect2(pr.position.x, r.end.y - 10, pr.size.x, 4), col)
-		tx = 180.0
 	if d["speaker"] != "":
-		Paint.text(self, d["speaker"], r.position + Vector2(tx, -10), 24, col, 0, 6, true)
+		Paint.text(self, d["speaker"], r.position + Vector2(24, -10), 24, col, 0, 6, true)
 	var full: String = d["lines"][d["i"]]
 	var shown := full.substr(0, int(d["t"] * 55))
-	var lines := Paint.wrap(shown, 20, r.size.x - tx - 24)
+	var lines := Paint.wrap(shown, 20, r.size.x - 48)
 	for i in lines.size():
-		Paint.text(self, lines[i], r.position + Vector2(tx, 38 + i * 27), 20, TEXT)
+		Paint.text(self, lines[i], r.position + Vector2(24, 38 + i * 27), 20, TEXT)
 	if d["t"] * 55 >= full.length():
 		Paint.text(self, "▸", r.end + Vector2(-26, -18 + sin(g.time * 5) * 2), 18, col, 1)
 

@@ -37,19 +37,11 @@ func _run(main: Node) -> void:
 	g.meta["seen_intro"] = true
 	await _frames(10)
 	await _shot("2_umbral")
-	g.open_dialog("Nexo, Guardián del Umbral", Color("6ff3ff"), ["Usuario dev_01, conectado. Bienvenido al Umbral."])
-	g.dialog["t"] = 5.0
-	await _shot("2b_dialogo_nexo")
-	g.state = "play"
 	g.load_room("inicio", "1")
 	g.P.x = 13 * 32
 	g.cam = g.cam_target()
 	await _frames(40)
 	await _shot("3_inicio")
-	g.open_dialog("Kira Volt", Game.KIRA_COL, ["¿Álex? ...Eres tú. Con esa pinta de maniquí, pero eres tú."])
-	g.dialog["t"] = 5.0
-	await _shot("3a_dialogo_kira")
-	g.state = "play"
 	g.meta["kira_talk"] = 1
 	g.load_room("kira1", "1")
 	g.enemies.clear()

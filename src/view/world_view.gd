@@ -304,7 +304,7 @@ func _draw_props() -> void:
 			"K":
 				_draw_kira_npc(p)
 				if g.new_kira_talk(int(o["text"])):
-					Paint.text(self, "!", p + Vector2(0, -72 + sin(g.time * 4) * 3), 28, Color("5fe39a"), 1, 6, true)
+					Paint.text(self, "!", p + Vector2(0, -52 + sin(g.time * 4) * 3), 28, MAGENTA, 1, 6, true)
 			"M":
 				# El anillo de Nexo: recibe fragmentos.
 				Paint.outline_poly(self, PackedVector2Array([p + Vector2(-22, 0), p + Vector2(-14, -16), p + Vector2(14, -16), p + Vector2(22, 0)]), _pal["stone"])
@@ -363,86 +363,20 @@ func _draw_props() -> void:
 				Paint.text(self, txt, p, 16, Color("efe8f4"), 1)
 
 
-## Sprites de los personajes (art/personajes, preparados con PhotoCraft a partir de los diseños).
-var _tex := {}
-
-
-func tex(name: String) -> Texture2D:
-	if not _tex.has(name):
-		_tex[name] = load("res://art/personajes/%s.png" % name)
-	return _tex[name]
-
-
-## Reposo de cada personaje: [fotogramas, segundos por fotograma, dónde caen los pies en el ancho (0-1)].
-## Fotogramas en art/personajes/<nombre>_reposo_N.png; 0 = imagen fija (<nombre>.png). Kira no pasa por aquí:
-## se anima por piezas (_draw_kira_parts).
-const IDLE := {"nexo": [0, 0.25, 0.5]}
-
-
-## Dibuja al personaje con los pies en `p`, mirando a `face`. `figure` es la altura de la figura en la imagen
-## y `height` la altura en pantalla.
-func _draw_idle(name: String, p: Vector2, face: int, height: float, figure: float, phase: float) -> void:
-	var frames: int = IDLE[name][0]
-	var t: Texture2D
-	if frames > 0:
-		t = tex("%s_reposo_%d" % [name, int(game.time / IDLE[name][1] + phase) % frames])
-	else:
-		t = tex(name)
-	var k := height / figure
-	draw_set_transform(p, 0, Vector2(face * k, k))
-	var anchor: float = IDLE[name][2] if frames > 0 else 0.5
-	var origin := Vector2(-t.get_width() * anchor, -t.get_height())
-	# Contorno oscuro (la silueta desplazada en cuatro direcciones) para que se lea sobre cualquier fondo.
-	var o := 1.6 / k
-	for d in [Vector2(o, 0), Vector2(-o, 0), Vector2(0, o), Vector2(0, -o)]:
-		draw_texture(t, origin + d, Color(OUT, 0.9))
-	draw_texture(t, origin)
-	draw_set_transform(Vector2.ZERO)
-
-## Hacia dónde mira cada personaje (por su posición en la sala). Solo se gira cuando Álex ha pasado
-## claramente al otro lado, para que no cambie de lado mientras Álex sigue delante de él.
-var _npc_face := {}
-
-
-func npc_face(p: Vector2, margin := 8.0) -> int:
-	var key := "%s:%d" % [game.room.id, int(p.x)]
-	var face: int = _npc_face.get(key, 1 if game.P.center().x >= p.x else -1)
-	var dx := game.P.center().x - p.x
-	if dx > margin:
-		face = 1
-	elif dx < -margin:
-		face = -1
-	_npc_face[key] = face
-	return face
-
-
-## Runas que flotan alrededor de Nexo, como en su diseño: trazos sueltos en naranja y azul.
-const RUNES := [
-	[Vector2(-3, -4), Vector2(3, -4), Vector2(-3, 4), Vector2(3, 4)],
-	[Vector2(-3, 4), Vector2(-3, -4), Vector2(2, 0), Vector2(-3, 0)],
-	[Vector2(-3, 4), Vector2(0, -4), Vector2(3, 4)],
-	[Vector2(-3, -4), Vector2(-3, 4), Vector2(3, 4)],
-	[Vector2(3, -4), Vector2(-3, -1), Vector2(3, 1), Vector2(-3, 4)],
-	[Vector2(-3, 4), Vector2(-3, -4), Vector2(3, -2), Vector2(-3, 0), Vector2(3, 4)],
-]
-
-
 func _draw_nexo(p: Vector2) -> void:
 	var g := game
-	var face := npc_face(p + _cam)
-	glow(p + Vector2(0, -4), 46, Color("4fc3f7"), 0.12)
-	_draw_idle("nexo", p, face, 76, 144, 0.0)
-	draw_set_transform(Vector2.ZERO)
-	for i in RUNES.size():
-		var a := g.time * 0.6 + i * TAU / RUNES.size()
-		var c := p + Vector2(cos(a) * 30, -38 + sin(a * 1.3) * 22)
-		var col := Color("ff9a3a") if i % 2 == 0 else Color("4fc3f7")
-		var alpha := 0.55 + 0.35 * sin(g.time * 3 + i)
-		var pts := PackedVector2Array()
-		for q in RUNES[i]:
-			pts.append(c + q)
-		draw_polyline(pts, Color(col, alpha), 1.5)
-		glow(c, 10, col, 0.35 * alpha)
+	# Capa asimétrica en espiral, cuerpo esbelto y el anillo-umbral orbitando a su espalda.
+	var ring_c := p + Vector2(-6, -52)
+	glow(ring_c, 60, Color("6ff3ff"), 0.35)
+	draw_arc(ring_c, 26, 0, TAU, 40, OUT, 7)
+	draw_arc(ring_c, 26, 0, TAU, 40, Color("6ff3ff"), 3)
+	var cloak := PackedVector2Array([p + Vector2(-16, 0), p + Vector2(-10, -40), p + Vector2(-2, -50), p + Vector2(8, -48), p + Vector2(12, -30), p + Vector2(20, -6), p + Vector2(12, 0), p + Vector2(4, -6), p + Vector2(-4, 0)])
+	Paint.outline_poly(self, cloak, Color("1d2b4f"))
+	draw_polyline(PackedVector2Array([p + Vector2(-14, -4), p + Vector2(-9, -38), p + Vector2(-2, -48)]), Color("6ff3ff"), 1.8, true)
+	Paint.fill_ellipse(self, p + Vector2(2, -58), 8, 9, Color("e8f4ff"), 0, 3)
+	draw_rect(Rect2(p + Vector2(3, -60), Vector2(5, 2)), Color("1d2b4f"))
+	var a := g.time * 2
+	draw_circle(ring_c + Vector2(cos(a), sin(a)) * 26, 3, Color("ffffff"))
 
 
 func _draw_rift(p: Vector2, o: Dictionary) -> void:
@@ -745,59 +679,32 @@ func _cursor(tip: Vector2, rot: float, a: float, k := 1.0) -> void:
 
 
 func _draw_kira_npc(p: Vector2) -> void:
-	# Kira de pie, mirando hacia Álex, tal como su diseño (sin espada por ahora).
+	# Kira de pie, mirando hacia Álex, con su espada de 6 muescas apagadas.
 	var g := game
-	var face := npc_face(p + _cam)
-	glow(p + Vector2(0, -4), 40, Color("5fe39a"), 0.12)
-	_draw_kira_parts(p, face, 68)
+	var face := 1 if g.P.center().x >= p.x else -1
+	var bob := sin(g.time * 2) * 1.0
+	draw_set_transform(p, 0, Vector2(face, 1))
+	var hair := PackedVector2Array([Vector2(-6, -36 + bob), Vector2(-13, -33 + bob), Vector2(-17, -25 + sin(g.time * 2) * 1.5), Vector2(-19, -15 + sin(g.time * 2 + 1) * 2)])
+	draw_polyline(hair, OUT, 8, true)
+	draw_polyline(hair, HAIR, 5, true)
+	draw_rect(Rect2(-5, -10, 4, 10), GRAPHITE)
+	draw_rect(Rect2(2, -10, 4, 10), GRAPHITE)
+	Paint.outline_poly(self, PackedVector2Array([Vector2(-8, -26 + bob), Vector2(9, -26 + bob), Vector2(12, -9), Vector2(-7, -9)]), GRAPHITE)
+	draw_colored_polygon(PackedVector2Array([Vector2(-6, -20 + bob), Vector2(10, -20 + bob), Vector2(11, -15), Vector2(-6, -15)]), MAGENTA)
+	Paint.fill_ellipse(self, Vector2(2, -33 + bob), 8, 8.5, SKIN, 0, 3)
+	Paint.outline_poly(self, PackedVector2Array([Vector2(-7, -36 + bob), Vector2(-4, -43 + bob), Vector2(6, -43 + bob), Vector2(11, -36 + bob), Vector2(7, -38 + bob), Vector2(5, -33 + bob), Vector2(2, -37 + bob), Vector2(-3, -34 + bob)]), HAIR, 2.5)
+	Paint.fill_ellipse(self, Vector2(6, -32 + bob), 1.4, 2.2, OUT)
+	var hand := Vector2(9, -16 + bob)
+	var tip := hand + Vector2(4, -26)
+	draw_line(hand, tip, OUT, 6)
+	draw_line(hand, tip, Color("fff5fb"), 3)
+	var lit := int(g.meta["kira_frags"])
+	for i in 6:
+		draw_circle(hand.lerp(tip, 0.18 + i * 0.13), 1.6, SPARK if i < lit else Color("5a4a5a"))
 	draw_set_transform(Vector2.ZERO)
-
-
-## Reposo de Kira por piezas rígidas (su diseño separado en art/personajes/kira_p_*.png, a 2x del sprite, 108x256).
-## Nada se deforma: cada pieza se desplaza o gira entera alrededor de donde nace.
-const KIRA_PARTS := ["coleta", "capa", "base", "torso", "cabeza"]
-const KIRA_PIVOT := {"coleta": Vector2(47.3, 19.5), "capa": Vector2(41.0, 117.3), "cabeza": Vector2(64.6, 54.2)}
-## Ojos en coordenadas de la pieza de la cabeza, para parpadear.
-const KIRA_EYES := [Rect2(60, 37.5, 6.5, 3.5), Rect2(71.5, 38.5, 4.5, 2.5)]
-const KIRA_SKIN := Color("f2c5a7")
-
-
-func _draw_kira_parts(p: Vector2, face: int, height: float) -> void:
-	var t := game.time + 2.0
-	var k := height / 256.0
-	# El torso no se desplaza: moverlo entero se veía como una pieza que resbala sobre las piernas.
-	# Mirar abajo un momento cada 7 s (la cabeza gira desde el cuello).
-	var l := fmod(t, 7.0)
-	var look := deg_to_rad(-5.0) * smoothstep(3.0, 3.4, l) * (1.0 - smoothstep(4.6, 5.0, l))
-	var off := {
-		"coleta": [Vector2.ZERO, deg_to_rad(3.5) * sin((t - 0.5) * TAU / 3.4)],
-		"capa": [Vector2.ZERO, deg_to_rad(2.5) * sin(t * TAU / 4.1)],
-		"base": [Vector2.ZERO, 0.0],
-		"torso": [Vector2.ZERO, 0.0],
-		"cabeza": [Vector2.ZERO, look],
-	}
-	var root := Transform2D(0, Vector2(face * k, k), 0, p) * Transform2D(0, Vector2(-54, -256))
-	var xf := {}
-	for part in KIRA_PARTS:
-		var piv: Vector2 = KIRA_PIVOT.get(part, Vector2.ZERO)
-		xf[part] = root * Transform2D(0, off[part][0]) * Transform2D(off[part][1], piv) * Transform2D(0, -piv)
-	# Contorno de toda la figura (todas las piezas desplazadas) antes de dibujar las piezas encima.
-	var o := 1.6 / k
-	for d in [Vector2(o, 0), Vector2(-o, 0), Vector2(0, o), Vector2(0, -o)]:
-		for part in KIRA_PARTS:
-			draw_set_transform_matrix(xf[part])
-			draw_texture(tex("kira_p_" + part), d, Color(OUT, 0.9))
-	for part in KIRA_PARTS:
-		draw_set_transform_matrix(xf[part])
-		draw_texture(tex("kira_p_" + part), Vector2.ZERO)
-	# Parpadeo cada 3,7 s (y alguna vez doble).
-	var b := fmod(t, 3.7)
-	if b < 0.12 or (int(t / 3.7) % 3 == 1 and b > 0.24 and b < 0.34):
-		draw_set_transform_matrix(xf["cabeza"])
-		for r in KIRA_EYES:
-			draw_rect(r, KIRA_SKIN)
-			draw_line(Vector2(r.position.x, r.end.y - 0.6), Vector2(r.end.x, r.end.y - 0.6), Color("2a1a1c"), 1.0)
-	draw_set_transform(Vector2.ZERO)
+	glow(p + Vector2(0, -24), 40, MAGENTA, 0.25)
+	if lit > 0:
+		glow(p + Vector2(10 * face, -36), 14 + lit * 4, SPARK, 0.45)
 
 
 func _draw_slashes() -> void:
