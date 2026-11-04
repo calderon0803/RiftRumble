@@ -142,5 +142,5 @@ El argumento principal está cerrado. Queda:
   que se cierra. Los bloques colocados no se guardan: si muere dentro, al volver el nivel vuelve a estar a medias.
 - **Segundo trozo: la técnica de Kira** (mundo 2), detrás de un muro falso del Observatorio, con muñecos que piden
   su combinación de golpes. Detalle en [03-mundo-2-academia.md](03-mundo-2-academia.md).
-- Pendiente: el final oculto (pelea de Kira contra el Editor) y los sprites de Kira y Nexo (diseños elegidos en
-  `art/disenos/`).
+- Pendiente: el final oculto (pelea de Kira contra el Editor) y el aspecto de Kira y Nexo (hoy se dibujan por
+  código; no hay diseños).
