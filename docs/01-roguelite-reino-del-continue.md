@@ -57,7 +57,7 @@ abre la puerta y cambia el marcador del Umbral a GAME CLEAR.
 
 ## Pendiente
 - Sonido.
-- Arte final: todo se dibuja por código; el arte de Kira de `art/` no está conectado todavía.
+- Arte final: todo se dibuja por código.
 - Más mundos de la Trama (Academia, Última Sesión, Neón, Vertedero, Frontera).
 
 Tests: `game_tests.gd` 57/57 (con el mundo 2).

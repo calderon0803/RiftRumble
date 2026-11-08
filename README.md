@@ -22,7 +22,7 @@ src/view/               Dibujo: sala y personajes (WorldView), marcador y pantal
 src/core/               Controles de teclado y mando
 tests/                  Tests headless de la simulación
 tools/                  Capturas automáticas
-art/                    Arte de Kira de versiones anteriores (no se usa todavía; Kira se dibuja por código)
+art/                    Arte del juego (por ahora vacío; los personajes se dibujan por código)
 ```
 
 ## Comandos

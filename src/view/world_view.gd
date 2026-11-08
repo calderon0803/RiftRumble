@@ -40,7 +40,7 @@ func _draw() -> void:
 	for e in g.enemies:
 		_draw_enemy(e)
 	_draw_pickups()
-	if g.state != "dead":
+	if g.state != "dead" or PLAYER_3D:
 		_draw_alex()
 	_draw_slashes()
 	_draw_projs()
@@ -604,15 +604,82 @@ func _draw_alex() -> void:
 		var tp := s(Vector2(tr["x"], tr["y"]))
 		var a: float = tr["a"] * 0.6
 		draw_rect(Rect2(tp - Vector2(4, 16), Vector2(P.w + 8, P.h + 16)), Color(Game.DEBUG_COL, a * 0.6), false, 1.0)
+		if PLAYER_3D:
+			_draw_avatar(s(Vector2(tr["x"] + P.w / 2, tr["y"] + P.h)), a, tr["face"])
+			continue
 		_alex_body(s(Vector2(tr["x"] + P.w / 2, tr["y"] + P.h)), tr["face"], a, true)
 	var blink := P.inv > 0 and P.dash_t <= 0 and int(P.inv * 16) % 2 == 0
-	_alex_body(s(Vector2(P.x + P.w / 2, P.y + P.h)), P.face, 0.35 if blink else 1.0, false)
+	if PLAYER_3D:
+		_update_avatar()
+		var wall_gap := Vector2(P.face * WALL_GAP, 0) if P.wall_dir != 0 else Vector2.ZERO  # que el brazo no atraviese la pared
+		_draw_avatar(s(Vector2(P.x + P.w / 2, P.y + P.h)) + wall_gap, 0.35 if blink else 1.0, P.face)
+	else:
+		_alex_body(s(Vector2(P.x + P.w / 2, P.y + P.h)), P.face, 0.35 if blink else 1.0, false)
 	if P.crit_next:
 		glow(s(P.center()), 30, Color("9b8cff"), 0.6)
 	if P.heal_t > 0:
 		glow(s(P.center()), 40 + P.heal_t * 30, Game.DEBUG_COL, 0.45)
 	if P.resonance > 0:
 		glow(s(P.center()), 34, Color("e0b84a"), 0.25 + 0.15 * sin(g.time * 12))
+
+
+## Prueba del jugador en 3D en tiempo real (la logica de juego y la caja de colision no cambian).
+const PLAYER_3D := true
+const RUN_REF := 250.0  # a la velocidad normal de carrera, la animacion va a su ritmo
+var _avatar: Avatar3D
+var _av_inv := 0.0
+var _av_hurt_t := -9.0
+var _av_atk := 0.0
+var _av_air := false
+var _av_land_t := -9.0
+const LAND_TIME := 0.3
+const WALL_GAP := -5.0
+
+
+## Elige la animacion del personaje 3D segun el estado del jugador.
+func _update_avatar() -> void:
+	if _avatar == null:
+		_avatar = Avatar3D.new()
+		get_parent().add_child.call_deferred(_avatar)  # no es hijo de la vista: esta redibuja a sus hijos
+		return
+	var g := game
+	var P := g.P
+	if P.inv > _av_inv + 0.01 and P.dash_t <= 0:
+		_av_hurt_t = g.time
+	_av_inv = P.inv
+	if _av_air and P.on_ground:
+		_av_land_t = g.time
+	_av_air = not P.on_ground
+	var new_attack := P.atk_cd > _av_atk + 0.01
+	_av_atk = P.atk_cd
+	if g.state == "dead":
+		_avatar.pose("Death", 1.0, P.face)
+	elif g.time - _av_hurt_t < 0.3:
+		_avatar.pose("Hit", 1.6, P.face)
+	elif new_attack:
+		_avatar.pose("Attack", _avatar.anim_length("Attack") / 0.32, P.face, -1.0, true)
+	elif P.atk_cd > 0:
+		pass
+	elif P.dash_t > 0:
+		_avatar.pose("Run", 2.0, P.face)
+	elif P.wall_dir != 0:
+		_avatar.pose("Wall", 1.0, P.face)  # P.face ya mira hacia fuera de la pared
+	elif not P.on_ground:
+		_avatar.pose("Jump" if P.vy < 0 else "Fall", 1.0, P.face)
+	elif absf(P.vx) > 20:
+		_avatar.pose("Run", absf(P.vx) / RUN_REF, P.face)
+	elif g.time - _av_land_t < LAND_TIME:
+		_avatar.pose("Land", 1.0, P.face)
+	else:
+		_avatar.pose("Idle", 1.0, P.face)
+
+
+func _draw_avatar(feet: Vector2, alpha: float, face: int) -> void:
+	if _avatar == null or not _avatar.is_inside_tree():
+		return
+	draw_set_transform(feet, 0, Vector2(face, 1))  # la imagen se voltea, como un sprite 2D
+	draw_texture_rect(_avatar.get_texture(), Rect2(-Avatar3D.FEET, Avatar3D.DRAW_SIZE), false, Color(1, 1, 1, alpha))
+	draw_set_transform(Vector2.ZERO)
 
 
 ## Avatar de pruebas: maniquí gris sin texturas, con la cuadrícula a la vista. Al vencer al Rey del Reinicio
