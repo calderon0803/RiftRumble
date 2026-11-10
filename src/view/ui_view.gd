@@ -11,9 +11,14 @@ const SPARK := Color("ffe14d")
 const CYAN := Color("6ff3ff")
 const TEXT := Color("efe8f4")
 const MUTED := Color("a89cb4")
+const MAP_PX := 4.0  # píxeles de ventana por casilla en el mapa
+const LOOK_TOP := 92.0
+const LOOK_ROW := 43.0
 
 var game: Game
 var glows: Array = []
+var _map_tex: ImageTexture  # el mapa ya pintado, solo mientras está abierto
+var _preview: Avatar3D  # solo mientras está abierta la personalización
 
 
 func glow(p: Vector2, r: float, col: Color, a: float) -> void:
@@ -32,8 +37,15 @@ func _draw() -> void:
 		draw_rect(Rect2(0, 0, W, H), Color(g.flash_col, a))
 	if g.revive_fx > 0 and g.state in ["play", "pause"]:
 		_revive_notice()
+	if g.state != "map":
+		_map_tex = null
+	if g.state != "look" and _preview != null:
+		_preview.queue_free()
+		_preview = null
 	match g.state:
 		"title": _title()
+		"look": _look()
+		"map": _map()
 		"dialog": _dialog()
 		"choice": _choice()
 		"shop": _shop()
@@ -183,6 +195,191 @@ func _dialog() -> void:
 		Paint.text(self, "▸", r.end + Vector2(-26, -18 + sin(g.time * 5) * 2), 18, col, 1)
 
 
+func _map() -> void:
+	var g := game
+	draw_rect(Rect2(0, 0, W, H), Color(0.02, 0.02, 0.04, 0.96))
+	# Cada casilla ocupa exactamente MAP_PX píxeles de la ventana: así las líneas salen nítidas.
+	var window := get_window().size
+	var k := MAP_PX / minf(window.x / W, window.y / H)
+	var bounds: Rect2 = Data.MAP_BOUNDS
+	var origin := Vector2(W / 2, (H - 60) / 2) - g.map_pan * k
+	if _map_tex == null:
+		_map_tex = _build_map_texture(bounds)
+	draw_texture_rect(_map_tex, Rect2(origin + bounds.position * k, bounds.size * k), false)
+	for label: Dictionary in Data.MAP_LABELS:
+		var lines: PackedStringArray = label["name"].split("\n")
+		for i in lines.size():
+			Paint.text(self, lines[i], origin + label["at"] * k + Vector2(0, i * 20), 17, Color("dfe6f0"), 0, 4, true)
+	if Data.MAP_ROOMS.has(g.room.id):
+		var marker: Vector2 = origin + (Vector2(Data.MAP_ROOMS[g.room.id]) + g.P.center() / Game.T) * k
+		draw_circle(marker, 6.0, OUT)
+		draw_circle(marker, 4.5, SPARK)
+	draw_rect(Rect2(0, H - 60, W, 60), Color(0.02, 0.02, 0.04, 0.96))
+	Paint.text(self, g.room.name, Vector2(W / 2, H - 34), 20, TEXT, 1, 4, true)
+	Paint.text(self, "Flechas: mover el mapa  ·  M o Esc para cerrar", Vector2(W / 2, H - 12), 13, MUTED, 1, 3)
+
+
+## Una sola masa: el hueco real de cada sala más los pasillos entre puertas, con un contorno alrededor de todo.
+func _build_map_texture(bounds: Rect2) -> ImageTexture:
+	const UPSCALE := int(MAP_PX)
+	const LINE := 2
+	var seen: Array = game.map_seen_rooms()
+	var cells := {}  # casilla del mapa -> color de borde de su zona
+	seen = seen.filter(func(id): return Data.MAP_ROOMS.has(id))  # los niveles de Kira no están en el mapa
+	for id: String in seen:
+		_map_carve_room(id, cells)
+	for id: String in seen:
+		_map_carve_exits(id, cells, seen)
+	var image := Image.create(int(bounds.size.x) * UPSCALE, int(bounds.size.y) * UPSCALE, false, Image.FORMAT_RGBA8)
+	var top_left := Vector2i(bounds.position)
+	for cell: Vector2i in cells:
+		var rim: Color = cells[cell]
+		var p := (cell - top_left) * UPSCALE
+		image.fill_rect(Rect2i(p, Vector2i(UPSCALE, UPSCALE)), rim.darkened(0.72))
+		var line := rim.lightened(0.25)
+		if not cells.has(cell + Vector2i.LEFT):
+			image.fill_rect(Rect2i(p, Vector2i(LINE, UPSCALE)), line)
+		if not cells.has(cell + Vector2i.RIGHT):
+			image.fill_rect(Rect2i(p + Vector2i(UPSCALE - LINE, 0), Vector2i(LINE, UPSCALE)), line)
+		if not cells.has(cell + Vector2i.UP):
+			image.fill_rect(Rect2i(p, Vector2i(UPSCALE, LINE)), line)
+		if not cells.has(cell + Vector2i.DOWN):
+			image.fill_rect(Rect2i(p + Vector2i(0, UPSCALE - LINE), Vector2i(UPSCALE, LINE)), line)
+	return ImageTexture.create_from_image(image)
+
+
+func _map_carve_room(id: String, cells: Dictionary) -> void:
+	var r: Data.RoomDef = game.rooms[id]
+	var rim: Color = Data.PALETTES[r.pal]["rim"]
+	# Solo es pared lo que toca el borde de la sala: los bloques flotantes no dejan agujeros en el mapa.
+	var wall := {}
+	var pending: Array[Vector2i] = []
+	for y in r.h:
+		for x in r.w:
+			if (x == 0 or y == 0 or x == r.w - 1 or y == r.h - 1) and r.g[y][x] == "#":
+				pending.append(Vector2i(x, y))
+	while not pending.is_empty():
+		var c: Vector2i = pending.pop_back()
+		if wall.has(c) or c.x < 0 or c.y < 0 or c.x >= r.w or c.y >= r.h or r.g[c.y][c.x] != "#":
+			continue
+		wall[c] = true
+		pending.append_array([c + Vector2i.LEFT, c + Vector2i.RIGHT, c + Vector2i.UP, c + Vector2i.DOWN])
+	for y in r.h:
+		for x in r.w:
+			if not wall.has(Vector2i(x, y)):
+				cells[Data.MAP_ROOMS[id] + Vector2i(x, y)] = rim
+
+
+## Pasillos hasta la puerta de enfrente; hacia lo que aún no se ha pisado, solo un trozo de salida.
+func _map_carve_exits(id: String, cells: Dictionary, seen: Array) -> void:
+	var r: Data.RoomDef = game.rooms[id]
+	var rim: Color = Data.PALETTES[r.pal]["rim"]
+	for ex: Dictionary in r.exits:
+		var a := _map_outside_door(r, ex, Data.MAP_ROOMS[id])
+		var to: String = ex["to"]
+		if not seen.has(to):
+			_map_carve_line(a, a + _map_outward(ex) * 3, rim, cells)
+			continue
+		var back: Array = game.rooms[to].exits.filter(func(e): return e["to"] == id)
+		if back.is_empty() or id > to:
+			continue
+		var b := _map_outside_door(game.rooms[to], back[0], Data.MAP_ROOMS[to])
+		var elbow := Vector2i(b.x, a.y) if ex["side"] in ["left", "right"] else Vector2i(a.x, b.y)
+		_map_carve_line(a, elbow, rim, cells)
+		_map_carve_line(elbow, b, rim, cells)
+
+
+func _map_outward(ex: Dictionary) -> Vector2i:
+	return {"left": Vector2i.LEFT, "right": Vector2i.RIGHT, "up": Vector2i.UP, "down": Vector2i.DOWN}[ex["side"]]
+
+
+## Casilla justo al otro lado de una puerta.
+func _map_outside_door(r: Data.RoomDef, ex: Dictionary, at: Vector2i) -> Vector2i:
+	var vertical: bool = ex["side"] in ["left", "right"]
+	var mid: int = (ex["a"] + ex["b"]) / 2 if ex["a"] >= 0 else (r.h if vertical else r.w) / 2
+	match ex["side"]:
+		"left": return at + Vector2i(-1, mid)
+		"right": return at + Vector2i(r.w, mid)
+		"up": return at + Vector2i(mid, -1)
+	return at + Vector2i(mid, r.h)
+
+
+## Tramo recto de tres casillas de ancho; nunca abre las paredes de una sala.
+func _map_carve_line(a: Vector2i, b: Vector2i, rim: Color, cells: Dictionary) -> void:
+	var step := (b - a).sign()
+	var p := a
+	while true:
+		for dx in range(-1, 2):
+			for dy in range(-1, 2):
+				var c := p + Vector2i(dx, dy)
+				if not cells.has(c) and not _map_inside_room(c):
+					cells[c] = rim
+		if p == b:
+			break
+		p += step
+
+
+func _map_inside_room(c: Vector2i) -> bool:
+	for id: String in Data.MAP_ROOMS:
+		if Rect2i(Data.MAP_ROOMS[id], Vector2i(game.rooms[id].w, game.rooms[id].h)).has_point(c):
+			return true
+	return false
+
+
+func _look() -> void:
+	var g := game
+	var look: Dictionary = g.look_edit["look"]
+	draw_rect(Rect2(0, 0, W, H), Color(0.02, 0.01, 0.04, 0.85))
+	Paint.text(self, "Tu aspecto", Vector2(W / 2, 70), 38, CYAN, 1, 6, true)
+	_draw_look_preview(look, Vector2(250, 440))
+	var rows: Array = Data.LOOK_OPTIONS
+	for i in rows.size():
+		var option: Dictionary = rows[i]
+		var y := LOOK_TOP + i * LOOK_ROW
+		var sel: bool = i == g.look_edit["sel"]
+		var chosen: Dictionary = option["opts"][int(look[option["id"]])]
+		_panel(Rect2(450, y, 420, LOOK_ROW - 4), CYAN if sel else Color("4a3a58"))
+		Paint.text(self, option["name"], Vector2(466, y + 26), 18, CYAN if sel else TEXT, 0, 4, true)
+		var label := ("◂  %s  ▸" if sel else "%s") % chosen["name"]
+		if not chosen.has("col"):
+			Paint.text(self, label, Vector2(750, y + 26), 17, TEXT, 1)
+			continue
+		Paint.text(self, label, Vector2(750, y + 15), 13, TEXT, 1)
+		_look_swatches(option, int(look[option["id"]]), y + 21)
+	var done_y := LOOK_TOP + rows.size() * LOOK_ROW
+	var done: bool = g.look_edit["sel"] == rows.size()
+	_panel(Rect2(450, done_y, 420, LOOK_ROW - 4), CYAN if done else Color("4a3a58"))
+	Paint.text(self, "Listo", Vector2(660, done_y + 27), 20, CYAN if done else TEXT, 1, 4, true)
+	Paint.text(self, "↑ ↓ elegir  ·  ← → cambiar  ·  en Listo, E / Enter para aceptar", Vector2(W / 2, 510), 16, MUTED, 1, 3)
+
+
+## Todos los colores de la opción, a la vista, con el elegido recuadrado.
+func _look_swatches(option: Dictionary, chosen: int, y: float) -> void:
+	var opts: Array = option["opts"]
+	const CELL := 14.0
+	var x := 750.0 - opts.size() * CELL / 2
+	for i in opts.size():
+		var cell := Rect2(x + i * CELL + 1, y, CELL - 2, 12)
+		draw_rect(cell, opts[i]["col"])
+		if i == chosen:
+			draw_rect(cell.grow(2), Color.WHITE, false, 2)
+
+
+## El modelo 3D en grande; colores y prendas cambian al momento, sin volver a cargarlo.
+func _draw_look_preview(look: Dictionary, feet: Vector2) -> void:
+	const SCALE := 4.0
+	if _preview == null:
+		_preview = Avatar3D.of_look(look.duplicate())
+		_preview.zoom = SCALE
+		get_parent().add_child.call_deferred(_preview)  # no es hijo de la vista: esta redibuja a sus hijos
+		return
+	if not _preview.is_inside_tree():
+		return
+	_preview.pose("Idle", 1.0, 1)
+	_preview.set_look(look)
+	draw_texture_rect(_preview.get_texture(), Rect2(feet - Avatar3D.FEET * SCALE, Avatar3D.DRAW_SIZE * SCALE), false)
+
+
 func _card_rect(i: int, n: int) -> Rect2:
 	var cw := 270.0
 	var gap := 24.0
@@ -300,6 +497,6 @@ func _pause() -> void:
 	var g := game
 	draw_rect(Rect2(0, 0, W, H), Color(0.02, 0.01, 0.04, 0.7))
 	Paint.text(self, "Pausa", Vector2(W / 2, 200), 48, TEXT, 1, 6, true)
-	Paint.text(self, "Esc o Enter para seguir  ·  F10 para salir", Vector2(W / 2, 250), 20, Color("d8cfe0"), 1, 3)
+	Paint.text(self, "Esc o Enter para seguir  ·  M mientras juegas: mapa  ·  F10 para salir", Vector2(W / 2, 250), 20, Color("d8cfe0"), 1, 3)
 	var warn: bool = g.erase_arm > 0
 	Paint.text(self, "Pulsa B otra vez para borrar todo el progreso" if warn else "B dos veces: borrar el progreso guardado", Vector2(W / 2, 320), 17, Color("ff6a7a") if warn else MUTED, 1, 3)

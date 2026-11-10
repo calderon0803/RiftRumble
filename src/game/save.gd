@@ -8,7 +8,8 @@ static var path := "user://partida.json"
 static func defaults() -> Dictionary:
 	return {"frags": 0, "deaths": 0, "wings": false, "walljump": false, "boss": false, "boss2": false,
 		"up": {"corazon": 0, "dano": 0, "precarga": 0, "continue": 0},
-		"talk": 0, "kira_talk": 0, "kira_frags": 0, "wing_talk": false, "end_talk": false, "seen_intro": false}
+		"talk": 0, "kira_talk": 0, "kira_frags": 0, "wing_talk": false, "end_talk": false, "seen_intro": false,
+		"look": {}, "seen_rooms": [], "shortcuts": []}
 
 
 static func load_meta() -> Dictionary:
@@ -34,7 +35,23 @@ static func load_meta() -> Dictionary:
 	m["talk"] = int(m["talk"])
 	m["kira_talk"] = int(m["kira_talk"])
 	m["kira_frags"] = int(m["kira_frags"])
+	m["look"] = _valid_look(m["look"])
+	m["seen_rooms"] = m["seen_rooms"].filter(func(id): return id is String) if m["seen_rooms"] is Array else []
+	m["shortcuts"] = m["shortcuts"].filter(func(id): return id is String) if m["shortcuts"] is Array else []
 	return m
+
+
+## Un aspecto guardado fuera de rango se descarta: Nexo lo volverá a ofrecer.
+static func _valid_look(data) -> Dictionary:
+	if typeof(data) != TYPE_DICTIONARY or data.is_empty():
+		return {}
+	var look := {}
+	for option: Dictionary in Data.LOOK_OPTIONS:
+		var value = data.get(option["id"], 0)  # una fila nueva que la partida aun no tenia empieza en la primera opcion
+		if typeof(value) not in [TYPE_INT, TYPE_FLOAT] or int(value) < 0 or int(value) >= option["opts"].size():
+			return {}
+		look[option["id"]] = int(value)
+	return look
 
 
 static func save_meta(m: Dictionary) -> void:

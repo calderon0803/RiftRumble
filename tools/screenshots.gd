@@ -1,6 +1,8 @@
-## Abre el juego, lo lleva a varias situaciones y guarda una captura de cada una (para revisar el aspecto sin jugar).
+## Abre el juego, lo lleva a varias situaciones y guarda una captura de cada una (las del README).
 ## godot --path . --script res://tools/screenshots.gd -- <carpeta de salida>
 extends SceneTree
+
+const SIZE := Vector2i(960, 540)
 
 var out_dir := "user://capturas"
 
@@ -24,118 +26,68 @@ func _frames(n: int) -> void:
 
 func _shot(name: String) -> void:
 	await _frames(3)
-	root.get_texture().get_image().save_png(out_dir.path_join(name + ".png"))
+	await RenderingServer.frame_post_draw
+	var image := root.get_texture().get_image()
+	image.resize(SIZE.x, SIZE.y, Image.INTERPOLATE_LANCZOS)
+	image.save_png(out_dir.path_join(name + ".png"))
 	print("captura ", name)
+
+
+## Lleva a Álex a una sala, en la casilla (x, y) del suelo, y espera a que se asiente la cámara.
+func _go(g: Game, room: String, entry: String, x: int, y: int, clear := true) -> void:
+	g.load_room(room, entry)
+	if clear:
+		g.enemies.clear()
+	g.P.x = x * 32
+	g.P.y = (y + 1) * 32 - g.P.h
+	g.P.vy = 0
+	g.cam = g.cam_target()
+	await _frames(45)
+	g.banner = {}
 
 
 func _run(main: Node) -> void:
 	await _frames(5)
 	var g: Game = main.game
 	g.time = 2.0
-	await _shot("1_titulo")
+	await _shot("titulo")
 	g.state = "play"
 	g.meta["seen_intro"] = true
-	await _frames(10)
-	await _shot("2_umbral")
-	g.load_room("inicio", "1")
-	g.P.x = 13 * 32
-	g.cam = g.cam_target()
-	await _frames(40)
-	await _shot("3_inicio")
-	g.meta["kira_talk"] = 1
-	g.load_room("kira1", "1")
-	g.enemies.clear()
-	g.P.x = 12 * 32
-	g.P.y = 16 * 32 - g.P.h
-	g.room.g[16][10] = "="
-	g.room.g[16][11] = "="
-	g.room.g[16][12] = "="
-	g.cam = g.cam_target()
-	await _frames(40)
-	await _shot("3b_nivel_kira")
-	g.load_room("pasarela", "1")
-	g.P.x = 28 * 32
-	g.P.y = 15 * 32 - g.P.h
-	g.cam = g.cam_target()
-	await _frames(40)
-	await _shot("4a_pasarela")
-	g.load_room("cruce", "1")
-	g.P.x = 20 * 32
-	g.P.y = 17 * 32 - g.P.h
-	g.cam = g.cam_target()
-	await _frames(40)
-	await _shot("4b_cruce")
-	g.load_room("bloque", "1")
-	g.P.x = 16 * 32
-	g.cam = g.cam_target()
-	await _frames(40)
-	await _shot("4c_bloque")
-	g.load_room("arena2", "1")
-	g.P.x = 20 * 32
-	await _frames(150)
-	await _shot("4d_arena")
-	g.load_room("inicio", "1")
-	g.enemies.clear()
-	var F: Dictionary = g.props.filter(func(o): return o["type"] == "F")[0]
-	g.P.x = F["x"] - 9
-	g.P.y = F["y"] - g.P.h
-	g.cam = g.cam_target()
+	await _go(g, "umbral", "P", 26, 14)
+	await _shot("umbral")
+	await _go(g, "inicio", "pasarela", 62, 14)
+	await _shot("kira")
+	await _go(g, "pasarela", "inicio", 34, 11, false)
+	g.P.face = 1
+	Input.action_press("attack")
+	await _frames(2)
+	Input.action_release("attack")
+	await _frames(4)
+	await _shot("combate")
+	await _go(g, "inicio", "pasarela", 36, 9)
+	g.interact(g.props.filter(func(o): return o["type"] == "F")[0])
+	await _frames(30)
+	await _shot("grieta")
+	g.state = "play"
+	await _go(g, "patio", "trono", 12, 14)
+	await _shot("academia")
+	await _go(g, "butacas", "cine", 28, 31)
+	await _shot("mundo3")
+	await _go(g, "cruce", "inicio", 3, 14)
+	g.map_pan = Vector2(Data.MAP_ROOMS["cruce"]) + g.P.center() / 32
+	g.state = "map"
 	await _frames(5)
-	g.interact(F)
-	await _frames(30)
-	await _shot("5_grieta")
-	g.pick_boon(g.choice["opts"][0])
-	g.load_room("trono", "1")
-	g.P.x = 12 * 32
-	g.P.debug = 4
-	await _frames(150)
-	await _shot("6_rey")
-	g.meta["boss"] = true
-	g.load_room("patio", "1")
-	g.P.x = 15 * 32
-	g.P.resonance = 5.0
-	g.cam = g.cam_target()
-	await _frames(40)
-	await _shot("8_patio")
-	g.load_room("vestibulo", "1")
-	g.P.x = 14 * 32
-	g.P.y = 20 * 32 - g.P.h
-	g.P.resonance = 4.0
-	g.cam = g.cam_target()
-	await _frames(40)
-	await _shot("8b_vestibulo")
-	g.load_room("galeria", "1")
-	g.P.x = 27 * 32
-	g.P.y = 12 * 32
-	g.cam = g.cam_target()
+	await _shot("mapa")
+	g.state = "play"
+	await _go(g, "umbral", "P", 26, 14)
+	g.open_look_editor()
+	g.look_edit["look"] = {"peinado": 3, "pelo": 3, "piel": 1, "arriba": 2, "ropa": 2, "abajo": 0, "pantalon": 1, "calzado": 1}
+	g.look_edit["sel"] = 3
 	await _frames(20)
-	await _shot("8c_galeria")
-	g.load_room("biblioteca", "1")
-	g.P.x = 18 * 32
-	g.P.y = 16 * 32 - g.P.h
-	g.cam = g.cam_target()
-	await _frames(60)
-	await _shot("9_biblioteca")
-	g.meta["kira_talk"] = 2
-	g.meta["kira_frags"] = 1
-	g.load_room("kira2", "1")
-	g.P.x = 8 * 32
-	g.enemies[0].idx = 1
-	g.cam = g.cam_target()
-	await _frames(30)
-	await _shot("10_tecnica_kira")
-	g.load_room("aula", "1")
-	g.P.x = 12 * 32
+	await _shot("aspecto")
+	g.look_edit = {}
+	g.state = "play"
+	await _go(g, "trono", "arena2", 36, 14, false)
 	await _frames(200)
-	await _shot("11_alumno")
-	g.load_room("inicio", "1")
-	g.meta["up"]["continue"] = 1
-	g.run["revive"] = 0
-	g.revive_fx = 1.6
-	g.P.hp = 3
-	await _shot("12_continue_extra")
-	g.state = "dead"
-	g.dead_t = 2.0
-	await _shot("7_continue")
-	SaveData.erase()
+	await _shot("rey")
 	quit()

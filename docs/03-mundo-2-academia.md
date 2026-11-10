@@ -9,6 +9,10 @@ abre la puerta derecha del trono hacia la Academia. La primera vez sale la panta
 fragmentos); las siguientes, solo un rótulo (30).
 
 ## El mapa (12 salas + Técnica de Kira)
+> **Superado (2026-11-10):** los mundos ya no van en línea. Las salas están en una cuadrícula de pantallas alrededor
+> del Umbral, entrelazadas como en Hollow Knight; el plano de los seis mundos está en [plano-mundos.png](plano-mundos.png)
+> y las salas, puertas y atajos en `Data.GRID` y `Data.LINKS`. Lo de abajo es el diseño anterior.
+
 Ampliada igual que el Reino ([04-reino-ampliado.md](04-reino-ampliado.md)): mapa fijo, desvíos opcionales,
 arenas y élites, pensada para 10-15 minutos por intento.
 ```

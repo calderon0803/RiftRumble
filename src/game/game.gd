@@ -149,6 +149,12 @@ var banner := {}
 var dialog := {}
 var choice := {}
 var shop := {}
+## Mientras se desarrolla el juego, el mapa enseña todas las salas. Poner a false para el juego final.
+const DEV_FULL_MAP := true
+var map_reveal_all := DEV_FULL_MAP
+var map_pan := Vector2.ZERO  # casilla del mapa que está en el centro de la pantalla
+const MAP_PAN_SPEED := 160.0  # casillas por segundo al mover el mapa
+var look_edit := {}  # {"look": aspecto en edición, "sel": fila; la fila tras las opciones es "Listo"}
 var trans := {}
 var dead_t := 0.0
 var end_t := 0.0
@@ -227,7 +233,7 @@ func tile_at(tx: int, ty: int) -> String:
 
 ## Casillas que no se atraviesan: bloque, bloques rompibles y la puerta de una arena en combate.
 func is_solid(c: String) -> bool:
-	return c == "#" or c == "b" or c == "n" or c == "w" or (c == "d" and arena_active)
+	return c == "#" or c == "b" or c == "n" or c == "w" or c == "a" or (c == "d" and arena_active)
 
 
 func solid_pt(px: float, py: float) -> bool:
@@ -244,18 +250,36 @@ func one_way(c: String) -> bool:
 	return c == "=" or (c == "y" and P.resonance > 0)
 
 
-## Cierra o abre la puerta izquierda de una arena de jefe.
+## Cierra o abre la puerta por la que se entra a una arena de jefe.
 func set_arena(rid: String, locked: bool) -> void:
 	var r: Data.RoomDef = rooms[rid]
-	for y in range(13, 16):
-		r.g[y][0] = "#" if locked else "."
+	for ex: Dictionary in r.exits:
+		if ex["to"] == Data.BOSS_DOORS.get(rid, ""):
+			_set_door(r, ex, "#" if locked else ".")
 
 
-## La puerta derecha del trono lleva a la Academia y solo se abre tras vencer al Rey en el intento.
-func set_trono_exit(open: bool) -> void:
-	var r: Data.RoomDef = rooms["trono"]
-	for y in range(13, 16):
-		r.g[y][r.w - 1] = "." if open else "#"
+## Rellena el hueco de una puerta (cerrarla o abrirla).
+func _set_door(r: Data.RoomDef, ex: Dictionary, c: String) -> void:
+	match ex["side"]:
+		"left", "right":
+			var x := 0 if ex["side"] == "left" else r.w - 1
+			for y in range(ex["a"], ex["b"] + 1):
+				r.g[y][x] = c
+		"up":
+			for x in range(ex["a"], ex["b"] + 1):
+				r.g[0][x] = c
+		"down":
+			for x in range(ex["a"], ex["b"] + 1):
+				r.g[r.h - 2][x] = c
+				r.g[r.h - 1][x] = c
+
+
+## La salida de una sala de jefe hacia el mundo siguiente solo se abre tras vencerle en el intento.
+func set_boss_exit(rid: String, open: bool) -> void:
+	var r: Data.RoomDef = rooms[rid]
+	for ex: Dictionary in r.exits:
+		if ex["to"] == Data.BOSS_GATES[rid][0]:
+			_set_door(r, ex, "." if open else "#")
 
 
 func move_x(e, dx: float) -> bool:
@@ -362,12 +386,21 @@ func load_room(id: String, entry: String, carry := Vector2.ZERO) -> void:
 	var prev := room
 	if Data.ARENAS.has(id):
 		set_arena(id, false)
-	if id == "trono":
-		set_trono_exit(run["beaten"].has("B"))
+	if Data.BOSS_GATES.has(id):
+		set_boss_exit(id, run["beaten"].has(Data.BOSS_GATES[id][1]))
 	if id == "kira1" or id == "kira2":
 		# Los trozos de Kira no guardan lo hecho: cada visita vuelven a estar a medias.
 		rooms[id] = Data.build_rooms()[id]
 	room = rooms[id]
+	if meta["shortcuts"].has(id):
+		open_shortcut()
+	for ex: Dictionary in room.exits:
+		if ex.has("shortcut"):
+			# Atajo de un solo sentido: cerrado hasta cruzarlo una vez desde el otro lado.
+			_set_door(room, ex, "." if meta["shortcuts"].has(ex["shortcut"]) else "#")
+	if not meta["seen_rooms"].has(id):
+		meta["seen_rooms"].append(id)
+		save()
 	enemies.clear(); projs.clear(); pickups.clear(); slashes.clear(); props.clear()
 	arena_active = false; arena_wave = 0; arena_delay = 0.0; arena_trigger = -1.0; arena_spawns.clear(); hits.clear()
 	boss = null
@@ -436,6 +469,9 @@ func start_trans(side: String) -> bool:
 				break
 	if found == null:
 		return false
+	if found.has("opens") and not meta["shortcuts"].has(found["opens"]):
+		meta["shortcuts"].append(found["opens"])
+		save()
 	state = "trans"
 	trans = {"t": 0.0, "to": found["to"], "entry": found["entry"], "loaded": false,
 		"carry": Vector2(0.0 if side == "up" else P.vx, -300.0 if side == "up" else 0.0)}
@@ -954,8 +990,8 @@ func boss_defeated(b: Ent) -> void:
 		reward /= 2
 	meta["frags"] = int(meta["frags"]) + reward
 	save()
-	if b.kind == "B":
-		set_trono_exit(true)
+	if Data.BOSS_GATES.has(room.id):
+		set_boss_exit(room.id, true)
 	end_world = 1 if b.kind == "B" else 2
 	if first:
 		state = "end"; end_t = 0.0
@@ -1072,7 +1108,9 @@ func break_blocks(b: Rect2) -> bool:
 	for ty in range(floori(b.position.y / T), floori(b.end.y / T) + 1):
 		for tx in range(floori(b.position.x / T), floori(b.end.x / T) + 1):
 			var c := tile_at(tx, ty)
-			if not c in ["b", "n", "w"] or not b.intersects(Rect2(tx * T, ty * T, T, T)):
+			if not c in ["b", "n", "w", "a"] or not b.intersects(Rect2(tx * T, ty * T, T, T)):
+				continue
+			if c == "a" and not shortcut_side_ok(tx):
 				continue
 			var key := Vector2i(tx, ty)
 			if P.atk_hits.has(key):
@@ -1082,7 +1120,15 @@ func break_blocks(b: Rect2) -> bool:
 			hits[key] = hits.get(key, 0) + 1
 			var center := Vector2(tx * T + 16, ty * T + 16)
 			burst(center, 8, Data.PALETTES[room.pal]["stone"].lightened(0.4), 200, 900)
-			if hits[key] >= 2:
+			if hits[key] >= 2 and c == "a":
+				hits.erase(key)
+				open_shortcut()
+				meta["shortcuts"].append(room.id)
+				save()
+				burst(center, 30, room_rim(), 320, 900)
+				shake = maxf(shake, 8)
+				num(center.x, center.y - 10, "¡Atajo abierto!", Color("6ff3ff"), true)
+			elif hits[key] >= 2:
 				room.g[ty][tx] = "."
 				hits.erase(key)
 				burst(center, 16, room_rim(), 260, 900)
@@ -1094,6 +1140,20 @@ func break_blocks(b: Rect2) -> bool:
 						k.kind = "frag"; k.x = center.x; k.y = center.y; k.vx = randf_range(-160, 160); k.vy = randf_range(-380, -160); k.amt = 1
 						pickups.append(k)
 	return any
+
+
+## Un atajo solo se rompe desde su lado: Álex tiene que estar en la parte de la sala de la que sale.
+func shortcut_side_ok(tx: int) -> bool:
+	var px := P.center().x
+	return px > tx * T + 16 if room.shortcut_from == "right" else px < tx * T + 16
+
+
+## Quita el muro del atajo de la sala actual.
+func open_shortcut() -> void:
+	for y in room.h:
+		for x in room.w:
+			if room.g[y][x] == "a":
+				room.g[y][x] = "."
 
 
 ## Arena: al entrar se cierran las puertas ("d") y salen las oleadas por los puntos "z". Al vaciar
@@ -1470,7 +1530,24 @@ func upd_pickups(dt: float) -> void:
 
 
 # --- interacción ---
+## Salas que enseña el mapa. Lo descubierto se sigue guardando aparte aunque se vea todo.
+func map_seen_rooms() -> Array:
+	return rooms.keys() if map_reveal_all else meta["seen_rooms"]
+
+
+## Tras el primer Continue (y después de la bienvenida), Nexo ofrece un aspecto normal hasta que se elija.
+func look_offer_pending() -> bool:
+	return int(meta["deaths"]) >= 1 and int(meta["talk"]) >= 1 and meta["look"].is_empty()
+
+
+func open_look_editor() -> void:
+	look_edit = {"look": Data.default_look(), "sel": 0}
+	state = "look"
+
+
 func new_talk() -> bool:
+	if look_offer_pending():
+		return true
 	if meta["boss"]:
 		return not meta["end_talk"]
 	return (meta["wings"] and not meta["wing_talk"]) or (int(meta["talk"]) <= int(meta["deaths"]) and int(meta["talk"]) < Data.NEXO_SEQ.size())
@@ -1562,6 +1639,9 @@ func prompt_for(o: Dictionary) -> String:
 func interact(o: Dictionary) -> void:
 	match o["type"]:
 		"O":
+			if look_offer_pending():
+				open_dialog("Nexo, Guardián del Umbral", Color("6ff3ff"), Data.NEXO_LOOK, open_look_editor)
+				return
 			var l := nexo_lines()
 			save()
 			open_dialog("Nexo, Guardián del Umbral", Color("6ff3ff"), l)
@@ -1715,6 +1795,32 @@ func update(dt: float) -> void:
 				if hit("confirm") or hit("interact") or hit("attack"):
 					pick_boon(choice["opts"][choice["sel"]])
 			return
+		"map":
+			if hit("map") or hit("pause") or hit("dash"):
+				state = "play"
+				return
+			var dir := Vector2(int(keys.get("right", false)) - int(keys.get("left", false)), int(keys.get("down", false)) - int(keys.get("up", false)))
+			var b: Rect2 = Data.MAP_BOUNDS
+			map_pan = (map_pan + dir * MAP_PAN_SPEED * dt).clamp(b.position, b.end)
+			return
+		"look":
+			var rows: int = Data.LOOK_OPTIONS.size() + 1
+			if hit("up"):
+				look_edit["sel"] = (look_edit["sel"] + rows - 1) % rows
+			if hit("down"):
+				look_edit["sel"] = (look_edit["sel"] + 1) % rows
+			if look_edit["sel"] == rows - 1:
+				if hit("confirm") or hit("interact") or hit("attack"):
+					meta["look"] = look_edit["look"]
+					look_edit = {}
+					state = "play"; flash_a = 0.6; flash_col = Color("6ff3ff")
+					save()
+				return
+			var option: Dictionary = Data.LOOK_OPTIONS[look_edit["sel"]]
+			var count: int = option["opts"].size()
+			var step_dir := int(hit("right")) - int(hit("left"))
+			look_edit["look"][option["id"]] = (int(look_edit["look"][option["id"]]) + step_dir + count) % count
+			return
 		"shop":
 			shop["msg_t"] = maxf(0.0, shop["msg_t"] - dt)
 			var n := Data.UPGRADES.size()
@@ -1762,6 +1868,13 @@ func update(dt: float) -> void:
 	# --- jugando ---
 	if hit("pause"):
 		state = "pause"
+		return
+	if hit("map"):
+		# El mapa se abre centrado en Álex.
+		map_pan = Data.MAP_BOUNDS.get_center()
+		if Data.MAP_ROOMS.has(room.id):
+			map_pan = Vector2(Data.MAP_ROOMS[room.id]) + P.center() / T
+		state = "map"
 		return
 	if hitstop > 0:
 		hitstop -= dt

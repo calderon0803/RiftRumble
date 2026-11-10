@@ -5,6 +5,10 @@ Los mundos se quedaban cortos (unos 3-4 minutos) y cada sala hacía una sola cos
 por mundo** en un intento. Este documento cubre el mundo 1; la Academia se ampliará después igual.
 
 ## El mapa (12 salas + Umbral, Nivel 1-1 de Kira y Trono)
+> **Superado (2026-11-10):** los mundos ya no van en línea. Las salas están en una cuadrícula de pantallas alrededor
+> del Umbral, entrelazadas como en Hollow Knight; el plano de los seis mundos está en [plano-mundos.png](plano-mundos.png)
+> y las salas, puertas y atajos en `Data.GRID` y `Data.LINKS`. Lo de abajo es el diseño anterior.
+
 ```
 Umbral ─ Inicio ─ Pasarela ─ Cruce ─ Arena de los Rastreros ─ Bloque Sorpresa ─ Doble Pantalla ─ Fuente ─ Arena de Élites ─ Trono
                                │                                   │

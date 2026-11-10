@@ -5,11 +5,8 @@ extends Node2D
 
 const T := 32
 const OUT := Paint.OUT
-const SKIN := Color("f2d2c0")
 const KIRA := Game.KIRA_COL
-const GRAPHITE := Color("2c2433")
 const SPARK := Color("ffe14d")
-const HAIR := Color("2f9e6a")
 
 var game: Game
 var glows: Array = []
@@ -188,7 +185,7 @@ func _draw_tiles() -> void:
 				draw_rect(Rect2(p.x, p.y + 3, T, 2), _rim)
 				if (x + y) % 3 == 0:
 					draw_rect(Rect2(p.x + 13, p.y + 13, 5, 8), OUT)
-			elif ch == "b" or ch == "n":
+			elif ch == "b" or ch == "n" or ch == "a":
 				# Bloque rompible: ladrillo agrietado; el que guarda fragmentos brilla por las grietas.
 				var cracked := game.hits.has(Vector2i(x, y))
 				draw_rect(Rect2(p, Vector2(T, T)), stone.lightened(0.08))
@@ -238,11 +235,12 @@ func _draw_tiles() -> void:
 # --- objetos de las salas ---
 func _draw_props() -> void:
 	var g := game
+	_forget_npcs_of_other_rooms()
 	for o in g.props:
 		var p := s(Vector2(o["x"], o["y"]))
 		match o["type"]:
 			"O":
-				_draw_nexo(p)
+				_draw_npc(Avatar3D.NEXO, "Float", p)
 				if g.new_talk():
 					Paint.text(self, "!", p + Vector2(0, -78 + sin(g.time * 4) * 3), 28, SPARK, 1, 6, true)
 			"T":
@@ -302,9 +300,9 @@ func _draw_props() -> void:
 				Paint.outline_poly(self, PackedVector2Array([p + Vector2(2, -74), p + Vector2(30, -66 + wave), p + Vector2(2, -56)]), KIRA, 2.5)
 				glow(p + Vector2(14, -66), 50, KIRA, 0.4)
 			"K":
-				_draw_kira_npc(p)
+				_draw_npc(Avatar3D.KIRA, "Idle", p)
 				if g.new_kira_talk(int(o["text"])):
-					Paint.text(self, "!", p + Vector2(0, -52 + sin(g.time * 4) * 3), 28, KIRA, 1, 6, true)
+					Paint.text(self, "!", p + Vector2(0, -84 + sin(g.time * 4) * 3), 28, KIRA, 1, 6, true)
 			"M":
 				# El anillo de Nexo: recibe fragmentos.
 				Paint.outline_poly(self, PackedVector2Array([p + Vector2(-22, 0), p + Vector2(-14, -16), p + Vector2(14, -16), p + Vector2(22, 0)]), _pal["stone"])
@@ -363,20 +361,29 @@ func _draw_props() -> void:
 				Paint.text(self, txt, p, 16, Color("efe8f4"), 1)
 
 
-func _draw_nexo(p: Vector2) -> void:
-	var g := game
-	# Capa asimétrica en espiral, cuerpo esbelto y el anillo-umbral orbitando a su espalda.
-	var ring_c := p + Vector2(-6, -52)
-	glow(ring_c, 60, Color("6ff3ff"), 0.35)
-	draw_arc(ring_c, 26, 0, TAU, 40, OUT, 7)
-	draw_arc(ring_c, 26, 0, TAU, 40, Color("6ff3ff"), 3)
-	var cloak := PackedVector2Array([p + Vector2(-16, 0), p + Vector2(-10, -40), p + Vector2(-2, -50), p + Vector2(8, -48), p + Vector2(12, -30), p + Vector2(20, -6), p + Vector2(12, 0), p + Vector2(4, -6), p + Vector2(-4, 0)])
-	Paint.outline_poly(self, cloak, Color("1d2b4f"))
-	draw_polyline(PackedVector2Array([p + Vector2(-14, -4), p + Vector2(-9, -38), p + Vector2(-2, -48)]), Color("6ff3ff"), 1.8, true)
-	Paint.fill_ellipse(self, p + Vector2(2, -58), 8, 9, Color("e8f4ff"), 0, 3)
-	draw_rect(Rect2(p + Vector2(3, -60), Vector2(5, 2)), Color("1d2b4f"))
-	var a := g.time * 2
-	draw_circle(ring_c + Vector2(cos(a), sin(a)) * 26, 3, Color("ffffff"))
+## Personaje 3D de la sala, en reposo y mirando hacia Álex. Se crea la primera vez que hace falta.
+func _draw_npc(scene: PackedScene, anim: String, feet: Vector2) -> void:
+	if not _npcs.has(scene):
+		var created := Avatar3D.new(scene)
+		_npcs[scene] = created
+		get_parent().add_child.call_deferred(created)  # no es hijo de la vista: esta redibuja a sus hijos
+		return
+	var npc: Avatar3D = _npcs[scene]
+	if not npc.is_inside_tree():
+		return
+	npc.pose(anim, 1.0, 1)
+	var face := 1 if s(game.P.center()).x >= feet.x else -1
+	_draw_avatar_image(npc, feet, 1.0, face)
+
+
+## Cada personaje dibuja su imagen en cada fotograma: al cambiar de sala se liberan los que ya no están.
+func _forget_npcs_of_other_rooms() -> void:
+	if game.room.id == _npcs_room:
+		return
+	_npcs_room = game.room.id
+	for npc: Avatar3D in _npcs.values():
+		npc.queue_free()
+	_npcs.clear()
 
 
 func _draw_rift(p: Vector2, o: Dictionary) -> void:
@@ -627,6 +634,9 @@ func _draw_alex() -> void:
 const PLAYER_3D := true
 const RUN_REF := 250.0  # a la velocidad normal de carrera, la animacion va a su ritmo
 var _avatar: Avatar3D
+var _avatar_look := ""
+var _npcs := {}  # PackedScene -> Avatar3D de los personajes de la sala actual
+var _npcs_room := ""
 var _av_inv := 0.0
 var _av_hurt_t := -9.0
 var _av_atk := 0.0
@@ -638,8 +648,12 @@ const WALL_GAP := -5.0
 
 ## Elige la animacion del personaje 3D segun el estado del jugador.
 func _update_avatar() -> void:
-	if _avatar == null:
-		_avatar = Avatar3D.new()
+	var look_key := str(game.meta["look"])
+	if _avatar == null or look_key != _avatar_look:
+		if _avatar != null:
+			_avatar.queue_free()
+		_avatar = Avatar3D.of_look(game.meta["look"])
+		_avatar_look = look_key
 		get_parent().add_child.call_deferred(_avatar)  # no es hijo de la vista: esta redibuja a sus hijos
 		return
 	var g := game
@@ -677,8 +691,12 @@ func _update_avatar() -> void:
 func _draw_avatar(feet: Vector2, alpha: float, face: int) -> void:
 	if _avatar == null or not _avatar.is_inside_tree():
 		return
+	_draw_avatar_image(_avatar, feet, alpha, face)
+
+
+func _draw_avatar_image(avatar: Avatar3D, feet: Vector2, alpha: float, face: int) -> void:
 	draw_set_transform(feet, 0, Vector2(face, 1))  # la imagen se voltea, como un sprite 2D
-	draw_texture_rect(_avatar.get_texture(), Rect2(-Avatar3D.FEET, Avatar3D.DRAW_SIZE), false, Color(1, 1, 1, alpha))
+	draw_texture_rect(avatar.get_texture(), Rect2(-Avatar3D.FEET, Avatar3D.DRAW_SIZE), false, Color(1, 1, 1, alpha))
 	draw_set_transform(Vector2.ZERO)
 
 
@@ -743,30 +761,6 @@ func _cursor(tip: Vector2, rot: float, a: float, k := 1.0) -> void:
 	for q in pts:
 		tr.append(tip + (q * k).rotated(rot))
 	Paint.outline_poly(self, tr, Color(Color("ffffff"), a), 2.0)
-
-
-func _draw_kira_npc(p: Vector2) -> void:
-	# Kira de pie, mirando hacia Álex, con su espada de energía (provisional hasta tener sus sprites).
-	var g := game
-	var face := 1 if g.P.center().x >= p.x else -1
-	var bob := sin(g.time * 2) * 1.0
-	draw_set_transform(p, 0, Vector2(face, 1))
-	var hair := PackedVector2Array([Vector2(-6, -36 + bob), Vector2(-13, -33 + bob), Vector2(-17, -25 + sin(g.time * 2) * 1.5), Vector2(-19, -15 + sin(g.time * 2 + 1) * 2)])
-	draw_polyline(hair, OUT, 8, true)
-	draw_polyline(hair, HAIR, 5, true)
-	draw_rect(Rect2(-5, -10, 4, 10), GRAPHITE)
-	draw_rect(Rect2(2, -10, 4, 10), GRAPHITE)
-	Paint.outline_poly(self, PackedVector2Array([Vector2(-8, -26 + bob), Vector2(9, -26 + bob), Vector2(12, -9), Vector2(-7, -9)]), GRAPHITE)
-	draw_colored_polygon(PackedVector2Array([Vector2(-6, -20 + bob), Vector2(10, -20 + bob), Vector2(11, -15), Vector2(-6, -15)]), KIRA)
-	Paint.fill_ellipse(self, Vector2(2, -33 + bob), 8, 8.5, SKIN, 0, 3)
-	Paint.outline_poly(self, PackedVector2Array([Vector2(-7, -36 + bob), Vector2(-4, -43 + bob), Vector2(6, -43 + bob), Vector2(11, -36 + bob), Vector2(7, -38 + bob), Vector2(5, -33 + bob), Vector2(2, -37 + bob), Vector2(-3, -34 + bob)]), HAIR, 2.5)
-	Paint.fill_ellipse(self, Vector2(6, -32 + bob), 1.4, 2.2, OUT)
-	var hand := Vector2(9, -16 + bob)
-	var tip := hand + Vector2(4, -26)
-	draw_line(hand, tip, OUT, 6)
-	draw_line(hand, tip, KIRA, 3)
-	draw_set_transform(Vector2.ZERO)
-	glow(p + Vector2(0, -24), 40, KIRA, 0.25)
 
 
 func _draw_slashes() -> void:

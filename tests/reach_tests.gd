@@ -162,11 +162,18 @@ func check_room(start_entry: String, label: String) -> void:
 		check(seen.has(s), "%s: %s llega a la entrada %s" % [r.id, label, k])
 
 
-## Recorridos que tienen que poder hacerse sin el salto doble (antes de conseguirlo).
+## Recorridos que tienen que poder hacerse sin el salto doble (antes de conseguirlo): sala, entrada y lados.
 const NO_WINGS := {
-	"inicio": ["right"], "pasarela": ["right"], "cruce": ["right", "up"],
-	"monedas": ["right"], "arena1": ["right"], "bloque": ["right"], "azotea": ["right"],
+	"inicio": ["umbral", ["left", "right", "up"]], "pasarela": ["inicio", ["up", "right"]],
+	"monedas": ["pasarela", ["right", "down"]], "azotea": ["monedas", ["left", "right"]],
+	"mirador": ["azotea", ["left", "down"]], "chimenea": ["mirador", ["right", "down", "up"]],
+	"puente": ["chimenea", ["right"]], "fuente": ["puente", ["left", "right", "down"]],
+	"cruce": ["inicio", ["left", "right"]], "arena1": ["cruce", ["left", "right"]],
+	"sotano": ["cruce", ["left", "right"]], "cripta": ["sotano", ["right"]], "pozo": ["cruce", ["left"]],
 }
+## Puertas que no se pueden alcanzar sin salto doble: sala, entrada y salida bloqueada (hacia esa sala).
+const WINGS_GATES := [["umbral", "inicio", "chimenea"], ["bloque", "arena1", "fuente"], ["bloque", "arena1", "pantalla"],
+	["pantalla", "bloque", "arena2"], ["pantalla", "fuente", "arena2"]]
 
 
 func _init() -> void:
@@ -178,20 +185,21 @@ func _init() -> void:
 		wings = true
 		var first: String = "1" if r.entries.has("1") else r.entries.keys()[0]
 		check_room(first, "con salto doble")
-	# Sin salto doble: solo el camino principal hasta la Doble Pantalla.
 	wings = false
 	for id in NO_WINGS:
 		r = rooms[id]
-		var seen := reachable_from(r.entries["1"])
+		var seen := reachable_from(r.entries[NO_WINGS[id][0]])
 		for ex in r.exits:
-			if ex["side"] in NO_WINGS[id]:
+			if ex["side"] in NO_WINGS[id][1]:
 				check(exit_reached(seen, ex), "%s: sin salto doble llega a la salida %s → %s" % [id, ex["side"], ex["to"]])
+	for gate: Array in WINGS_GATES:
+		r = rooms[gate[0]]
+		var seen := reachable_from(r.entries[gate[1]])
+		var ex: Dictionary = r.exits.filter(func(e): return e["to"] == gate[2])[0]
+		check(not exit_reached(seen, ex), "%s: sin salto doble no se llega a %s" % [gate[0], gate[2]])
 	r = rooms["monedas"]
-	var seen_m := reachable_from(r.entries["1"])
-	check(near(seen_m, 4, 4), "monedas: sin salto doble se llega al orbe")
-	# Y la Doble Pantalla no se puede subir sin él.
-	r = rooms["pantalla"]
-	var seen_p := reachable_from(r.entries["1"])
-	check(not exit_reached(seen_p, r.exits.filter(func(e): return e["side"] == "up")[0]), "pantalla: sin salto doble no se sube")
-	print("\nAlcance: %d ok, %d fallos" % [passed, failed])
+	var orb: Dictionary = r.objs.filter(func(o): return o["type"] == "A")[0]
+	check(near(reachable_from(r.entries["pasarela"]), orb["tx"], orb["ty"]), "monedas: sin salto doble se llega al orbe")
+	print("
+Alcance: %d ok, %d fallos" % [passed, failed])
 	quit(1 if failed > 0 else 0)

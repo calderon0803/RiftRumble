@@ -15,6 +15,7 @@ const KEYS := {
 	"interact": [KEY_E],
 	"confirm": [KEY_ENTER, KEY_KP_ENTER],
 	"pause": [KEY_ESCAPE, KEY_P],
+	"map": [KEY_M, KEY_TAB],
 	"c1": [KEY_1], "c2": [KEY_2], "c3": [KEY_3],
 	"erase": [KEY_B],
 	"quit": [KEY_F10],
@@ -29,13 +30,14 @@ const PAD := {
 	"interact": [JOY_BUTTON_B],
 	"confirm": [JOY_BUTTON_A],
 	"pause": [JOY_BUTTON_START],
+	"map": [JOY_BUTTON_BACK],
 	"left": [JOY_BUTTON_DPAD_LEFT],
 	"right": [JOY_BUTTON_DPAD_RIGHT],
 	"up": [JOY_BUTTON_DPAD_UP],
 	"down": [JOY_BUTTON_DPAD_DOWN],
 }
 
-const ACTIONS := ["left", "right", "up", "down", "jump", "attack", "dash", "cast", "heal", "interact", "confirm", "pause", "c1", "c2", "c3", "erase", "quit"]
+const ACTIONS := ["left", "right", "up", "down", "jump", "attack", "dash", "cast", "heal", "interact", "confirm", "pause", "map", "c1", "c2", "c3", "erase", "quit"]
 
 
 static func register() -> void:

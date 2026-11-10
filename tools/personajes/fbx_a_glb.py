@@ -190,12 +190,12 @@ FEET = ("LeftToe_End", "RightToe_End", "LeftToeBase", "RightToeBase", "LeftFoot"
 
 
 def build(spec, grounded):
-    m = {k: v.copy() for k, v in base.items()}
+    m = {n: arm.data.bones[n].matrix_local.copy() for n in order} if spec.get("_rest") else {k: v.copy() for k, v in base.items()}
     # las piernas parten rectas: el reposo del pack ya las tiene separadas
     chains = ("LeftUpLeg", "RightUpLeg") + (("LeftArm", "RightArm") if spec.get("_straight_arms") else ())
     for hip in chains:
         bone = arm.data.bones[hip]
-        shift = Matrix.Translation(base[hip].translation - bone.matrix_local.translation)
+        shift = Matrix.Translation(m[hip].translation - bone.matrix_local.translation)
         for n in [hip] + [c.name for c in bone.children_recursive]:
             m[n] = shift @ arm.data.bones[n].matrix_local
     for bone_name in order:
@@ -263,6 +263,10 @@ WALL_A = {"_straight_arms": True, "RightArm": [("Y", 88), ("X", -14)],
           "LeftUpLeg": [("X", -28)], "LeftLeg": [("X", 118)], "LeftFoot": [("X", 0)]}
 WALL_B = dict(WALL_A, LeftArm=[("Y", 72), ("X", -36)], LeftUpLeg=[("X", -30)])
 make_action("Wall", [(0, WALL_A, False), (10, WALL_B, False), (20, WALL_A, False)])
+FLOAT_A = {"_rest": True, "LeftArm": [("Y", 78), ("X", -6)], "RightArm": [("Y", -78), ("X", -6)],
+           "LeftForeArm": [("X", -10)], "RightForeArm": [("X", -10)]}
+FLOAT_B = dict(FLOAT_A, LeftArm=[("Y", 76), ("X", -11)], RightArm=[("Y", -76), ("X", -11)], Spine2=[("X", 2)], Head=[("X", -2)])
+make_action("Float", [(0, FLOAT_A, False), (24, FLOAT_B, False), (48, FLOAT_A, False)])
 make_action("Jump", [(0, CROUCH, True), (3, TAKEOFF, False), (9, RISE, False)])
 make_action("Fall", [(0, FALL_A, False), (8, FALL_B, False), (16, FALL_A, False)])
 make_action("Land", [(0, LAND_DEEP, True), (5, LAND_DEEP, True), (12, {}, True)])
@@ -277,3 +281,5 @@ if design:
 bpy.ops.export_scene.gltf(filepath=out, export_format="GLB", export_animations=True,
                           export_animation_mode="NLA_TRACKS", export_apply=False)
 print("RESULT exportado", out)
+if os.environ.get("PREVIEW") and "preview" in globals():
+    preview(os.environ["PREVIEW"])

@@ -49,6 +49,8 @@ costará la vida.
 Es el personaje que controla el jugador.
 - **Aspecto: avatar de pruebas.** Un maniquí gris sin texturas, con la cuadrícula de pruebas a la vista. Cada mundo
   superado le deja un detalle del estilo de ese mundo: empieza como prototipo y termina siendo alguien.
+- **Aspecto normal.** Tras el primer Continue, Nexo le ofrece dejar de ser un maniquí y el jugador personaliza a Álex
+  (peinado, pelo, piel, ropa y calzado).
 - **[P]** Dentro del juego aparece con su usuario de pruebas (por ejemplo, `dev_01`). Nexo le llama siempre por ese
   usuario; Kira, que le conoce, por su nombre: Álex.
 
