@@ -7,6 +7,12 @@ build/
 # Herramientas locales (binario de Godot portable, etc.)
 .tools/
 
+# Trabajo de personajes 3D: se regenera con tools/personajes/ (solo se guarda la referencia)
+art/personajes3d/fuentes/*.blend
+art/personajes3d/fuentes/*.blend1
+art/personajes3d/fuentes/texturas/
+art/personajes3d/fuentes/capturas/
+
 # SO / editores
 .DS_Store
 Thumbs.db

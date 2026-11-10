@@ -371,9 +371,9 @@ func _draw_npc(scene: PackedScene, anim: String, feet: Vector2) -> void:
 	var npc: Avatar3D = _npcs[scene]
 	if not npc.is_inside_tree():
 		return
-	npc.pose(anim, 1.0, 1)
 	var face := 1 if s(game.P.center()).x >= feet.x else -1
-	_draw_avatar_image(npc, feet, 1.0, face)
+	npc.pose(anim, 1.0, face)
+	_draw_avatar_image(npc, feet, 1.0)
 
 
 ## Cada personaje dibuja su imagen en cada fotograma: al cambiar de sala se liberan los que ya no están.
@@ -688,16 +688,15 @@ func _update_avatar() -> void:
 		_avatar.pose("Idle", 1.0, P.face)
 
 
-func _draw_avatar(feet: Vector2, alpha: float, face: int) -> void:
+## La orientacion ya va en la imagen (Avatar3D.pose gira el modelo), asi que aqui no se voltea.
+func _draw_avatar(feet: Vector2, alpha: float, _face: int) -> void:
 	if _avatar == null or not _avatar.is_inside_tree():
 		return
-	_draw_avatar_image(_avatar, feet, alpha, face)
+	_draw_avatar_image(_avatar, feet, alpha)
 
 
-func _draw_avatar_image(avatar: Avatar3D, feet: Vector2, alpha: float, face: int) -> void:
-	draw_set_transform(feet, 0, Vector2(face, 1))  # la imagen se voltea, como un sprite 2D
-	draw_texture_rect(avatar.get_texture(), Rect2(-Avatar3D.FEET, Avatar3D.DRAW_SIZE), false, Color(1, 1, 1, alpha))
-	draw_set_transform(Vector2.ZERO)
+func _draw_avatar_image(avatar: Avatar3D, feet: Vector2, alpha: float) -> void:
+	draw_texture_rect(avatar.get_texture(), Rect2(feet - Avatar3D.FEET, Avatar3D.DRAW_SIZE), false, Color(1, 1, 1, alpha))
 
 
 ## Avatar de pruebas: maniquí gris sin texturas, con la cuadrícula a la vista. Al vencer al Rey del Reinicio

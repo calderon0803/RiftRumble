@@ -4,7 +4,7 @@ class_name Avatar3D
 extends SubViewport
 
 const ALEX: PackedScene = preload("res://art/personajes3d/alex.glb")
-const KIRA: PackedScene = preload("res://art/personajes3d/kira.glb")
+const KIRA: PackedScene = preload("res://art/personajes3d/kira_v2.glb")
 const NEXO: PackedScene = preload("res://art/personajes3d/nexo.glb")
 const NORMAL: PackedScene = preload("res://art/personajes3d/alex_normal.glb")
 ## Colores de la paleta de los modelos de Alex normal, en su orden.
@@ -76,6 +76,44 @@ func _ready() -> void:
 	_player = _model.find_children("*", "AnimationPlayer", true, false)[0]
 	for loop_name in ["Idle", "Run", "Fall", "Wall", "Float"]:
 		_player.get_animation(loop_name).loop_mode = Animation.LOOP_LINEAR
+	_add_cape_physics()
+
+
+## La capa de Kira cuelga de tres cadenas de huesos (capa_I/C/D_0..3): se mueven con inercia y gravedad
+## y chocan con piernas y caderas, asi la tela reacciona a la animacion en vez de ir pegada a la espalda.
+const CAPE_CHAINS := ["I", "C", "D"]
+## Hueso del cuerpo: [hueso hijo hacia el que va la capsula, radio]. La capsula cubre el hueso entero.
+const CAPE_COLLIDERS := {"pelvis": ["spine_01", 0.16], "spine_01": ["spine_02", 0.15],
+	"thigh_l": ["calf_l", 0.095], "thigh_r": ["calf_r", 0.095], "calf_l": ["foot_l", 0.075], "calf_r": ["foot_r", 0.075]}
+
+
+func _add_cape_physics() -> void:
+	var skeletons := _model.find_children("*", "Skeleton3D", true, false)
+	if skeletons.is_empty() or skeletons[0].find_bone("capa_C_0") < 0:
+		return
+	var skel: Skeleton3D = skeletons[0]
+	var sim := SpringBoneSimulator3D.new()
+	skel.add_child(sim)
+	sim.setting_count = CAPE_CHAINS.size()
+	for i in CAPE_CHAINS.size():
+		sim.set_root_bone_name(i, "capa_%s_0" % CAPE_CHAINS[i])
+		sim.set_end_bone_name(i, "capa_%s_3" % CAPE_CHAINS[i])
+		sim.set_extend_end_bone(i, true)
+		sim.set_end_bone_length(i, 0.08)
+		sim.set_radius(i, 0.03)
+		sim.set_stiffness(i, 2.0)  # tiende a volver a su caida natural, por detras
+		sim.set_drag(i, 0.5)
+		sim.set_gravity(i, 0.4)
+		sim.set_enable_all_child_collisions(i, true)
+	for bone_name: String in CAPE_COLLIDERS:
+		var to_child := skel.get_bone_rest(skel.find_bone(CAPE_COLLIDERS[bone_name][0])).origin
+		var c := SpringBoneCollisionCapsule3D.new()
+		sim.add_child(c)
+		c.bone_name = bone_name
+		c.radius = CAPE_COLLIDERS[bone_name][1]
+		c.height = to_child.length() + c.radius * 2.0
+		c.position_offset = to_child * 0.5  # centrada en el hueso y alineada con el
+		c.rotation_offset = Quaternion(Vector3.UP, to_child.normalized())
 
 
 ## Un pixel de la imagen por cada pixel de la ventana: asi se ve nitido a cualquier tamano.
@@ -97,11 +135,12 @@ func _flatten(mesh_node: MeshInstance3D) -> void:
 
 
 ## Cambia de animacion suavemente; hold >= 0 deja la pose quieta en ese instante.
-func pose(anim: String, speed: float, _face: int, hold := -1.0, restart := false) -> void:
+func pose(anim: String, speed: float, face: int, hold := -1.0, restart := false) -> void:
 	if _player == null:
 		return
 	_fit_resolution()
-	_model.rotation.y = TURN # siempre a la derecha; al mirar a la izquierda se voltea la imagen
+	# Se gira el modelo, no la imagen: voltearla cambiaria de mano la espada y todo lo asimetrico
+	_model.rotation.y = TURN if face >= 0 else -TURN
 	if anim != _current or restart:
 		_player.play(anim, 0.0 if restart else BLEND)
 		_current = anim
