@@ -3,12 +3,10 @@
 class_name Avatar3D
 extends SubViewport
 
-const ALEX: PackedScene = preload("res://art/personajes3d/alex.glb")
+const ALEX: PackedScene = preload("res://art/personajes3d/alex_v2.glb")
 const KIRA: PackedScene = preload("res://art/personajes3d/kira_v2.glb")
 const NEXO: PackedScene = preload("res://art/personajes3d/nexo.glb")
-const NORMAL: PackedScene = preload("res://art/personajes3d/alex_normal.glb")
-## Colores de la paleta de los modelos de Alex normal, en su orden.
-const LOOK_SLOTS := ["piel", "pelo", "ropa", "ropa2", "pantalon", "pantalon2", "zapato", "bota", "ojo", "suela", "interior"]
+const NORMAL: PackedScene = preload("res://art/personajes3d/alex_normal_v2.glb")
 const QUALITY := 2  # se renderiza al doble para que se vea nitido
 const SIDE := 128 * QUALITY
 const PX_PER_M := 40.0 * QUALITY
@@ -40,22 +38,23 @@ static func of_look(look: Dictionary) -> Avatar3D:
 
 
 ## Cambia colores y piezas visibles al momento, sin volver a cargar el modelo.
+## Cada pieza se llama como su fila y opcion ("arriba_2"); cada material, como el color que lo tine
+## ("piel", "pelo", "ropa", "pantalon"): su textura va en gris y el color elegido la multiplica.
 func set_look(look: Dictionary) -> void:
 	_look = look
 	if _model == null or look.is_empty() or look == _applied_look:
 		return
 	_applied_look = look.duplicate()
-	var image := Image.create(LOOK_SLOTS.size(), 1, false, Image.FORMAT_RGB8)
 	var colors := Data.look_colors(look)
-	for i in LOOK_SLOTS.size():
-		image.set_pixel(i, 0, colors[LOOK_SLOTS[i]])
-	var texture := ImageTexture.create_from_image(image)
 	for node: MeshInstance3D in _model.find_children("*", "MeshInstance3D", true, false):
-		var piece := str(node.name).rsplit("_", true, 1)  # "arriba_2": fila y opcion; "base" no tiene
-		if piece.size() == 2:
+		var piece := str(node.name).rsplit("_", true, 1)
+		if piece.size() == 2 and look.has(piece[0]) and piece[1].is_valid_int():
 			node.visible = int(look[piece[0]]) == int(piece[1])
 		for i in node.mesh.get_surface_count():
-			(node.get_surface_override_material(i) as StandardMaterial3D).albedo_texture = texture
+			var mat := node.get_surface_override_material(i) as StandardMaterial3D
+			var slot := mat.resource_name.get_slice(".", 0)  # Blender numera los repetidos: "pelo.001"
+			if colors.has(slot):
+				mat.albedo_color = colors[slot]
 
 
 func _ready() -> void:

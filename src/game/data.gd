@@ -704,18 +704,18 @@ const LOOK_OPTIONS := [
 	{"id": "piel", "name": "Piel", "opts": [{"name": "Muy clara", "col": Color("f7e0d2")}, {"name": "Clara", "col": Color("ecc0a0")},
 		{"name": "Media", "col": Color("d09a6c")}, {"name": "Morena", "col": Color("a56e47")},
 		{"name": "Oscura", "col": Color("6f4630")}, {"name": "Muy oscura", "col": Color("3f2820")}]},
-	{"id": "arriba", "name": "Parte de arriba", "opts": [{"name": "Sudadera"}, {"name": "Camiseta"}, {"name": "Chaqueta"}, {"name": "Tirantes"}, {"name": "Camisa"}]},
+	{"id": "arriba", "name": "Parte de arriba", "opts": [{"name": "Manga larga"}, {"name": "Camiseta"}, {"name": "Chaqueta"}, {"name": "Tirantes"}, {"name": "Camisa"}]},
 	{"id": "ropa", "name": "Color de arriba", "opts": [{"name": "Azul", "col": Color("335c9e")}, {"name": "Roja", "col": Color("a83a3f")},
 		{"name": "Verde", "col": Color("3d7f5a")}, {"name": "Mostaza", "col": Color("c29a35")}, {"name": "Negra", "col": Color("2b2a33")},
 		{"name": "Blanca", "col": Color("dcdce2")}, {"name": "Gris", "col": Color("7c7f8a")}, {"name": "Celeste", "col": Color("6fb4e0")},
 		{"name": "Turquesa", "col": Color("2f9c9c")}, {"name": "Lima", "col": Color("9bc23f")}, {"name": "Naranja", "col": Color("dd7a2e")},
 		{"name": "Rosa", "col": Color("e0719f")}, {"name": "Morada", "col": Color("6c43a8")}, {"name": "Granate", "col": Color("6b2233")}]},
-	{"id": "abajo", "name": "Parte de abajo", "opts": [{"name": "Pantalón"}, {"name": "Pantalón corto"}, {"name": "Chándal"}]},
+	{"id": "abajo", "name": "Parte de abajo", "opts": [{"name": "Pantalón"}, {"name": "Pantalón corto"}, {"name": "Pantalón liso"}]},
 	{"id": "pantalon", "name": "Color de abajo", "opts": [{"name": "Gris oscuro", "col": Color("33353f")}, {"name": "Vaquero", "col": Color("3f5a82")},
 		{"name": "Beis", "col": Color("a8946f")}, {"name": "Negro", "col": Color("1e1d24")}, {"name": "Blanco", "col": Color("d6d5d0")},
 		{"name": "Vaquero claro", "col": Color("7395bd")}, {"name": "Marrón", "col": Color("5c3f2c")}, {"name": "Caqui", "col": Color("6d6f45")},
 		{"name": "Verde", "col": Color("2f5a43")}, {"name": "Azul marino", "col": Color("1e2a4d")}, {"name": "Rojo", "col": Color("8c2f35")}]},
-	{"id": "calzado", "name": "Calzado", "opts": [{"name": "Zapatillas"}, {"name": "Botas"}, {"name": "Sandalias"}]},
+	{"id": "calzado", "name": "Calzado", "opts": [{"name": "Zapatillas"}, {"name": "Botas"}, {"name": "Zapatos"}]},
 ]
 
 
